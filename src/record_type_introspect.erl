@@ -1,9 +1,9 @@
 -module(record_type_introspect).
 
 -export([parse_transform/2, record_from_json/3, from_json/3]).
-
 %% export for test
 -export([type_in_form/1]).
+
 -type a_type() :: any().
 
 -record(a_field, {name :: atom(), type :: a_type()}).
@@ -23,18 +23,8 @@ from_json(_TypeInfo, {type, string}, Json) ->
 from_json(TypeInfo, {type, TypeName}, Json) ->
     type_from_json(TypeInfo, TypeName, Json).
 
-record_from_json(TypeInfo, RecordName, Json) ->
-    #a_rec{name = RecordName, fields = RecordInfo} = maps:get({record, RecordName}, TypeInfo),
-    Fields =
-        lists:map(fun({FieldName, FieldType}) ->
-                     RecordFieldData = maps:get(atom_to_binary(FieldName), Json),
-                     from_json(TypeInfo, FieldType, RecordFieldData)
-                  end,
-                  RecordInfo),
-    list_to_tuple([RecordName | Fields]).
-
-type_from_json(Data, TypeName, Json) ->
-    case maps:get({type, TypeName}, Data) of
+type_from_json(TypeInfo, TypeName, Json) ->
+    case maps:get({type, TypeName}, TypeInfo) of
         {map, MapFieldType} ->
             Fields =
                 lists:zf(fun ({map_field_assoc, FieldName, _FieldType}) ->
@@ -49,8 +39,23 @@ type_from_json(Data, TypeName, Json) ->
                                  {true, {FieldName, FieldData}}
                          end,
                          MapFieldType),
-            maps:from_list(Fields)
+            maps:from_list(Fields);
+        #a_rec{name = RecordName, fields = RecordInfo} ->
+            do_record_from_json(TypeInfo, RecordName, RecordInfo, Json)
     end.
+
+record_from_json(TypeInfo, RecordName, Json) ->
+    #a_rec{name = RecordName, fields = RecordInfo} = maps:get({record, RecordName}, TypeInfo),
+    do_record_from_json(TypeInfo, RecordName, RecordInfo, Json).
+
+do_record_from_json(TypeInfo, RecordName, RecordInfo, Json) ->
+    Fields =
+        lists:map(fun({FieldName, FieldType}) ->
+                     RecordFieldData = maps:get(atom_to_binary(FieldName), Json),
+                     from_json(TypeInfo, FieldType, RecordFieldData)
+                  end,
+                  RecordInfo),
+    list_to_tuple([RecordName | Fields]).
 
 parse_transform(Forms, _Options) ->
     io:format("Inspecting records at compile-time...~n"),
@@ -65,10 +70,13 @@ type_in_form({attribute, _, record, {RecordName, Fields}}) ->
     {true, {{record, RecordName}, #a_rec{name = RecordName, fields = FieldInfos}}};
 type_in_form({attribute, _, type, {TypeName, {type, _, record, Attrs}, []}}) ->
     [{atom, _, RecordName} | FieldInfo] = Attrs,
-    FieldInfos = lists:flatmap(fun type_field_info/1, FieldInfo),
-    {true, {{type, TypeName}, #a_rec{name = RecordName, fields = FieldInfos}}};
-type_in_form({attribute, _, type, {TypeName, {type, _, Type, Attrs}, []}} = A) ->
-    io:format("Type: ~p~n", [A]),
+    FieldTypes =
+        lists:map(fun({type, _, field_type, [{atom, _, FieldName}, {type, _, FieldType, []}]}) ->
+                     {FieldName, {type, FieldType}}
+                  end,
+                  FieldInfo),
+    {true, {{type, TypeName}, #a_rec{name = RecordName, fields = FieldTypes}}};
+type_in_form({attribute, _, type, {TypeName, {type, _, Type, Attrs}, []}}) ->
     FieldInfos = lists:flatmap(fun type_field_info/1, Attrs),
     {true, {{type, TypeName}, {Type, FieldInfos}}};
 type_in_form(_) ->
