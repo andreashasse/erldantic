@@ -10,9 +10,9 @@
 -type name_t() :: #{first => string(), last := string()}.
 
 % | {A :: string(), string()}.
-%-type address_t() :: #address{street :: string()}.
+-type address_t() :: #address{street :: string(), city :: string()}.
 
--spec new(string(), string(), integer(), #address{}) -> #person{}.
+-spec new(string(), string(), integer(), address_t()) -> #person{}.
 new(First, Last, Age, Home) ->
     #person{name = #{first => First, last => Last},
             age = Age,

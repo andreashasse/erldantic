@@ -1,39 +1,14 @@
 -module(record_type_introspect).
 
--export([parse_transform/2, record_from_json/3, test_address/0, test_name_t/0,
-         test_person/0]).
+-export([parse_transform/2, record_from_json/3, from_json/3]).
 
-type_info() ->
-    % FIXME: I copy the output I get when compiling person.erl here
-    #{{record, address} => [{street, {type, string}}, {city, {type, string}}],
-      {record, person} =>
-          [{name, {user_type_ref, name_t}}, {age, {type, integer}}, {home, {record_ref, address}}],
-      {type, name_t} =>
-          {map, [{map_field_assoc, first, string}, {map_field_exact, last, string}]}}.
+%% export for test
+-export([type_in_form/1]).
+-type a_type() :: any().
 
-test_person() ->
-    Json =
-        json:decode(<<"{\"name\": {\"first\": \"Andreas\", \"last\": \"Hasselberg\"}, "
-                      "\"age\": 22, \"home\": {\"street\": \"mojs\", \"city\": \"sollentuna\""
-                      "}}"/utf8>>),
-    {person, Name, Age, Home} = Person = record_from_json(type_info(), person, Json),
-    #{first := <<"Andreas">>, last := <<"Hasselberg">>} = Name,
-    22 = Age,
-    {address, <<"mojs">>, <<"sollentuna">>} = Home,
-    Person.
-
-test_address() ->
-    Json = json:decode(<<"{\"street\": \"mojs\", \"city\": \"sollentuna\"}"/utf8>>),
-    {address, <<"mojs">>, <<"sollentuna">>} = from_json(type_info(), {record, address}, Json).
-
-test_name_t() ->
-    Json =
-        json:decode(<<"{\"first\": \"Andreas\", \"last\": \"Hasselberg\", \"not_present\": "
-                      "22}"/utf8>>),
-    #{first := <<"Andreas">>, last := <<"Hasselberg">>} =
-        M = from_json(type_info(), {type, name_t}, Json),
-    [first, last] = maps:keys(M),
-    M.
+-record(a_field, {name :: atom(), type :: a_type()}).
+-record(a_map, {fields :: [#a_field{}]}).
+-record(a_rec, {name :: string(), fields :: [#a_field{}]}).
 
 from_json(TypeInfo, {record, RecordName}, Json) ->
     record_from_json(TypeInfo, RecordName, Json);
@@ -49,7 +24,7 @@ from_json(TypeInfo, {type, TypeName}, Json) ->
     type_from_json(TypeInfo, TypeName, Json).
 
 record_from_json(TypeInfo, RecordName, Json) ->
-    RecordInfo = maps:get({record, RecordName}, TypeInfo),
+    #a_rec{name = RecordName, fields = RecordInfo} = maps:get({record, RecordName}, TypeInfo),
     Fields =
         lists:map(fun({FieldName, FieldType}) ->
                      RecordFieldData = maps:get(atom_to_binary(FieldName), Json),
@@ -87,7 +62,11 @@ parse_transform(Forms, _Options) ->
 
 type_in_form({attribute, _, record, {RecordName, Fields}}) ->
     FieldInfos = lists:map(fun record_field_info/1, Fields),
-    {true, {{record, RecordName}, FieldInfos}};
+    {true, {{record, RecordName}, #a_rec{name = RecordName, fields = FieldInfos}}};
+type_in_form({attribute, _, type, {TypeName, {type, _, record, Attrs}, []}}) ->
+    [{atom, _, RecordName} | FieldInfo] = Attrs,
+    FieldInfos = lists:flatmap(fun type_field_info/1, FieldInfo),
+    {true, {{type, TypeName}, #a_rec{name = RecordName, fields = FieldInfos}}};
 type_in_form({attribute, _, type, {TypeName, {type, _, Type, Attrs}, []}} = A) ->
     io:format("Type: ~p~n", [A]),
     FieldInfos = lists:flatmap(fun type_field_info/1, Attrs),
@@ -105,6 +84,9 @@ type_field_info({TypeOfType, _, Type, TypeAttrs}) ->
             [{record_ref, SubTypeRecordName}];
         {user_type, Type} ->
             [{user_type_ref, Type}];
+        {type, field_type} ->
+            [{atom, _, FieldName}, {type, _, FieldType, []}] = TypeAttrs,
+            [{FieldName, FieldType}];
         {type, map_field_assoc} ->
             [{atom, _, MapFieldName}, {type, _, MapFieldType, []}] = TypeAttrs,
             [{map_field_assoc, MapFieldName, MapFieldType}];
@@ -113,7 +95,7 @@ type_field_info({TypeOfType, _, Type, TypeAttrs}) ->
             [{map_field_exact, MapFieldName, MapFieldType}];
         {type, map} ->
             MapFields = lists:flatmap(fun type_field_info/1, TypeAttrs),
-            [{map, MapFields}];
+            [#a_map{fields = MapFields}];
         {type, tuple} ->
             TupleFields = lists:flatmap(fun type_field_info/1, TypeAttrs),
             [{tuple, TupleFields}];
