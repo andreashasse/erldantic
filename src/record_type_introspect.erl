@@ -11,13 +11,15 @@
 
 -type user_type_name() :: atom().
 -type a_type() ::
-    {type, string | integer} |
+    {type, string | integer | boolean} |
     {record_ref, user_type_name()} |
     {user_type_ref, user_type_name()} |
     #a_map{} |
     #a_rec{} |
     #a_tuple{} |
-    {union, [a_type()]}.
+    {union, [a_type()]} |
+    {literal, term()}.
+-type type_of_type() :: record | type.
 
 -define(is_primary_type(PrimaryType),
         PrimaryType =:= string orelse PrimaryType =:= integer orelse PrimaryType =:= boolean).
@@ -55,7 +57,6 @@ type_from_json(TypeInfo, TypeName, Json) ->
         #a_rec{name = RecordName, fields = RecordInfo} ->
             do_record_from_json(TypeInfo, RecordName, RecordInfo, Json)
     end.
-
 record_from_json(TypeInfo, RecordName, Json) ->
     #a_rec{name = RecordName, fields = RecordInfo} = maps:get({record, RecordName}, TypeInfo),
     do_record_from_json(TypeInfo, RecordName, RecordInfo, Json).
@@ -78,23 +79,30 @@ parse_transform(Forms, _Options) ->
     io:format("Record information:~n~p~n", [RecordInfo]),
     Forms.
 
-type_in_form({attribute, _, record, {RecordName, Fields}}) ->
+-spec type_in_form(term()) -> {true, {{type_of_type(), atom()}, a_type()}} | false.
+type_in_form({attribute, _, record, {RecordName, Fields}})
+    when is_list(Fields) andalso is_atom(RecordName) ->
     FieldInfos = lists:map(fun record_field_info/1, Fields),
     {true, {{record, RecordName}, #a_rec{name = RecordName, fields = FieldInfos}}};
-type_in_form({attribute, _, type, {TypeName, {type, _, record, Attrs}, []}}) ->
+type_in_form({attribute, _, type, {TypeName, {type, _, record, Attrs}, []}})
+    when is_atom(TypeName) ->
     [{atom, _, RecordName} | FieldInfo] = Attrs,
+    true = is_atom(RecordName),
     FieldTypes =
-        lists:map(fun({type, _, field_type, [{atom, _, FieldName}, {type, _, FieldType, []}]}) ->
-                     {FieldName, {type, FieldType}}
+        lists:map(fun({type, _, field_type, [{atom, _, FieldName}, {type, _, FieldType, []}]})
+                     when is_atom(FieldName) ->
+                     {FieldName, to_a_type({type, FieldType})}
                   end,
                   FieldInfo),
     {true, {{type, TypeName}, #a_rec{name = RecordName, fields = FieldTypes}}};
-type_in_form({attribute, _, type, {TypeName, {type, _, map, Attrs}, []}}) ->
+type_in_form({attribute, _, type, {TypeName, {type, _, map, Attrs}, []}})
+    when is_list(Attrs) andalso is_atom(TypeName) ->
     FieldInfos = lists:flatmap(fun map_field_info/1, Attrs),
     {true, {{type, TypeName}, #a_map{fields = FieldInfos}}};
-type_in_form({attribute, _, type, {TypeName, {type, _, Type, Attrs}, []}}) ->
+type_in_form({attribute, _, type, {TypeName, {type, _, Type, Attrs}, []}})
+    when is_list(Attrs) andalso is_atom(TypeName) ->
     FieldInfos = lists:flatmap(fun type_field_info/1, Attrs),
-    {true, {{type, TypeName}, {Type, FieldInfos}}};
+    {true, {{type, TypeName}, to_a_type({Type, FieldInfos})}};
 type_in_form(_) ->
     false.
 
@@ -145,8 +153,8 @@ map_field_info({TypeOfType, _, Type, TypeAttrs}) ->
             [{map_field_exact, MapFieldName, to_a_type({type, MapFieldType})}]
     end.
 
-
-to_a_type({type, PrimarfyType} = Type) when ?is_primary_type(PrimaryType) ->
+-spec to_a_type(term()) -> a_type().
+to_a_type({type, PrimaryType} = Type) when ?is_primary_type(PrimaryType) ->
     Type;
 to_a_type({literal, _Literal} = Type) ->
     Type.
