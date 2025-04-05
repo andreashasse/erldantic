@@ -4,7 +4,9 @@
 %% export for test
 -export([type_in_form/1]).
 
--type a_type() :: any().
+-type user_type_name() :: atom().
+
+-type a_type() :: {type, string | integer} | {record_ref, user_type_name()} | {user_type_ref, user_type_name()}.
 
 -record(a_field, {name :: atom(), type :: a_type()}).
 -record(a_map, {fields :: [#a_field{}]}).
@@ -76,13 +78,16 @@ type_in_form({attribute, _, type, {TypeName, {type, _, record, Attrs}, []}}) ->
                   end,
                   FieldInfo),
     {true, {{type, TypeName}, #a_rec{name = RecordName, fields = FieldTypes}}};
+type_in_form({attribute, _, type, {TypeName, {type, _, map, Attrs}, []}}) ->
+    FieldInfos = lists:flatmap(fun map_field_info/1, Attrs),
+    {true, {{type, TypeName}, #a_map{fields = FieldInfos}}};
 type_in_form({attribute, _, type, {TypeName, {type, _, Type, Attrs}, []}}) ->
     FieldInfos = lists:flatmap(fun type_field_info/1, Attrs),
     {true, {{type, TypeName}, {Type, FieldInfos}}};
 type_in_form(_) ->
     false.
 
--spec type_field_info(any()) -> list().
+-spec type_field_info(term()) -> [a_type()].
 type_field_info({ann_type, _, [{var, _, _VarName}, {type, _, _TypeAnnType, []}]}) ->
     [];
 type_field_info({TypeOfType, _, Type, TypeAttrs}) ->
@@ -95,14 +100,8 @@ type_field_info({TypeOfType, _, Type, TypeAttrs}) ->
         {type, field_type} ->
             [{atom, _, FieldName}, {type, _, FieldType, []}] = TypeAttrs,
             [{FieldName, FieldType}];
-        {type, map_field_assoc} ->
-            [{atom, _, MapFieldName}, {type, _, MapFieldType, []}] = TypeAttrs,
-            [{map_field_assoc, MapFieldName, MapFieldType}];
-        {type, map_field_exact} ->
-            [{atom, _, MapFieldName}, {type, _, MapFieldType, []}] = TypeAttrs,
-            [{map_field_exact, MapFieldName, MapFieldType}];
         {type, map} ->
-            MapFields = lists:flatmap(fun type_field_info/1, TypeAttrs),
+            MapFields = lists:flatmap(fun map_field_info/1, TypeAttrs),
             [#a_map{fields = MapFields}];
         {type, tuple} ->
             TupleFields = lists:flatmap(fun type_field_info/1, TypeAttrs),
@@ -122,6 +121,18 @@ type_field_info({TypeOfType, _, Type, TypeAttrs}) ->
             [{union, UnionFields}]
     end.
 
+map_field_info({TypeOfType, _, Type, TypeAttrs}) ->
+    case {TypeOfType, Type} of
+        {type, map_field_assoc} ->
+            [{atom, _, MapFieldName}, {type, _, MapFieldType, []}] = TypeAttrs,
+            [{map_field_assoc, MapFieldName, MapFieldType}];
+        {type, map_field_exact} ->
+            [{atom, _, MapFieldName}, {type, _, MapFieldType, []}] = TypeAttrs,
+            [{map_field_exact, MapFieldName, MapFieldType}]
+    end.
+
+-spec record_field_info(term()) -> #a_field{}.
 record_field_info({typed_record_field, {record_field, _, {atom, _, FieldName}}, Type}) ->
     [TypeInfo] = type_field_info(Type),
-    {FieldName, TypeInfo}.
+    true = is_atom(FieldName),
+    #a_field{name = FieldName, type = TypeInfo}.

@@ -18,7 +18,7 @@ new(First, Last, Age, Home) ->
             age = Age,
             home = Home}.
 
--spec get_name(#person{}) -> string().
+-spec get_name(#person{}) -> nonempty_string().
 get_name(#person{name = #{first := First, last := Last}}) ->
     First ++ " " ++ Last.
 
