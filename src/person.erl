@@ -4,7 +4,7 @@
 
 -export([new/4, get_name/1, get_age/1]).
 
--record(address, {street :: string(), city :: string()}).
+-record(address, {street :: string(), city :: string() | undefined}).
 -record(person, {name :: name_t(), age :: integer(), home :: #address{}}).
 
 -type name_t() :: #{first => string(), last := string()}.

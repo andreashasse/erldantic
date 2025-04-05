@@ -4,13 +4,23 @@
 %% export for test
 -export([type_in_form/1]).
 
+-record(a_tuple, {fields :: [a_type()]}).
+-record(a_map,
+        {fields :: [{map_field_assoc | map_field_exact, Name :: atom(), a_type()}]}).
+-record(a_rec, {name :: atom(), fields :: [{atom(), a_type()}]}).
+
 -type user_type_name() :: atom().
+-type a_type() ::
+    {type, string | integer} |
+    {record_ref, user_type_name()} |
+    {user_type_ref, user_type_name()} |
+    #a_map{} |
+    #a_rec{} |
+    #a_tuple{} |
+    {union, [a_type()]}.
 
--type a_type() :: {type, string | integer} | {record_ref, user_type_name()} | {user_type_ref, user_type_name()}.
-
--record(a_field, {name :: atom(), type :: a_type()}).
--record(a_map, {fields :: [#a_field{}]}).
--record(a_rec, {name :: string(), fields :: [#a_field{}]}).
+-define(is_primary_type(PrimaryType),
+        PrimaryType =:= string orelse PrimaryType =:= integer orelse PrimaryType =:= boolean).
 
 from_json(TypeInfo, {record, RecordName}, Json) ->
     record_from_json(TypeInfo, RecordName, Json);
@@ -53,6 +63,7 @@ record_from_json(TypeInfo, RecordName, Json) ->
 do_record_from_json(TypeInfo, RecordName, RecordInfo, Json) ->
     Fields =
         lists:map(fun({FieldName, FieldType}) ->
+                     true = is_atom(FieldName),
                      RecordFieldData = maps:get(atom_to_binary(FieldName), Json),
                      from_json(TypeInfo, FieldType, RecordFieldData)
                   end,
@@ -91,48 +102,57 @@ type_in_form(_) ->
 type_field_info({ann_type, _, [{var, _, _VarName}, {type, _, _TypeAnnType, []}]}) ->
     [];
 type_field_info({TypeOfType, _, Type, TypeAttrs}) ->
+    true = is_list(TypeAttrs),
     case {TypeOfType, Type} of
         {type, record} ->
             [{atom, _, SubTypeRecordName}] = TypeAttrs,
+            true = is_atom(SubTypeRecordName),
             [{record_ref, SubTypeRecordName}];
         {user_type, Type} ->
+            true = is_atom(Type),
             [{user_type_ref, Type}];
-        {type, field_type} ->
-            [{atom, _, FieldName}, {type, _, FieldType, []}] = TypeAttrs,
-            [{FieldName, FieldType}];
         {type, map} ->
             MapFields = lists:flatmap(fun map_field_info/1, TypeAttrs),
             [#a_map{fields = MapFields}];
         {type, tuple} ->
             TupleFields = lists:flatmap(fun type_field_info/1, TypeAttrs),
-            [{tuple, TupleFields}];
-        {type, string} ->
-            [{type, string}];
-        {type, integer} ->
-            [{type, integer}];
+            [#a_tuple{fields = TupleFields}];
         {type, union} ->
             UnionFields =
-                lists:map(fun ({UTypeOfType, _, UnionType, []}) ->
-                                  {UTypeOfType, UnionType};
-                              ({UTypeOfType, _, UnionType}) ->
-                                  {UTypeOfType, UnionType}
+                lists:map(fun ({type, _, UnionType, []}) ->
+                                  to_a_type({type, UnionType});
+                              ({atom, _, UnionType, undefined}) ->
+                                  to_a_type({literal, UnionType});
+                              ({atom, _, UnionType}) ->
+                                  to_a_type({literal, UnionType})
                           end,
                           TypeAttrs),
-            [{union, UnionFields}]
+            [{union, UnionFields}];
+        {type, Type} ->
+            [to_a_type({type, Type})]
     end.
 
+-spec map_field_info(term()) -> [{map_field_assoc | map_field_exact, atom(), a_type()}].
 map_field_info({TypeOfType, _, Type, TypeAttrs}) ->
     case {TypeOfType, Type} of
         {type, map_field_assoc} ->
             [{atom, _, MapFieldName}, {type, _, MapFieldType, []}] = TypeAttrs,
-            [{map_field_assoc, MapFieldName, MapFieldType}];
+            true = is_atom(MapFieldName),
+            [{map_field_assoc, MapFieldName, to_a_type({type, MapFieldType})}];
         {type, map_field_exact} ->
             [{atom, _, MapFieldName}, {type, _, MapFieldType, []}] = TypeAttrs,
-            [{map_field_exact, MapFieldName, MapFieldType}]
+            true = is_atom(MapFieldName),
+            [{map_field_exact, MapFieldName, to_a_type({type, MapFieldType})}]
     end.
 
--spec record_field_info(term()) -> #a_field{}.
+
+to_a_type({type, PrimarfyType} = Type) when ?is_primary_type(PrimaryType) ->
+    Type;
+to_a_type({literal, _Literal} = Type) ->
+    Type.
+
+-spec record_field_info(term()) -> {atom(), a_type()}.
 record_field_info({typed_record_field, {record_field, _, {atom, _, FieldName}}, Type}) ->
     [TypeInfo] = type_field_info(Type),
     true = is_atom(FieldName),
-    #a_field{name = FieldName, type = TypeInfo}.
+    {FieldName, TypeInfo}.
