@@ -1,13 +1,12 @@
 -module(record_type_introspect).
 
+-include("../include/record_type_introspect.hrl").
+
+-compile({parse_transform, parse_trans_codegen}).
+
 -export([parse_transform/2, record_from_json/3, from_json/3]).
 %% export for test
 -export([type_in_form/1]).
-
--record(a_tuple, {fields :: [a_type()]}).
--record(a_map,
-        {fields :: [{map_field_assoc | map_field_exact, Name :: atom(), a_type()}]}).
--record(a_rec, {name :: atom(), fields :: [{atom(), a_type()}]}).
 
 -type user_type_name() :: atom().
 -type a_type() ::
@@ -19,7 +18,8 @@
     #a_tuple{} |
     {union, [a_type()]} |
     {literal, term()}.
--type type_of_type() :: record | type.
+
+-export_type([a_type/0]).
 
 -define(is_primary_type(PrimaryType),
         PrimaryType =:= string orelse PrimaryType =:= integer orelse PrimaryType =:= boolean).
@@ -30,16 +30,14 @@ from_json(TypeInfo, {record_ref, RecordName}, Json) ->
     record_from_json(TypeInfo, RecordName, Json);
 from_json(TypeInfo, {user_type_ref, TypeName}, Json) ->
     type_from_json(TypeInfo, TypeName, Json);
-from_json(_TypeInfo, {type, integer}, Json) ->
-    Json;
-from_json(_TypeInfo, {type, string}, Json) ->
+from_json(_TypeInfo, {type, PrimaryType}, Json) when ?is_primary_type(PrimaryType) ->
     Json;
 from_json(TypeInfo, {type, TypeName}, Json) ->
     type_from_json(TypeInfo, TypeName, Json).
 
 type_from_json(TypeInfo, TypeName, Json) ->
     case maps:get({type, TypeName}, TypeInfo) of
-        {map, MapFieldType} ->
+        #a_map{fields =  MapFieldType} ->
             Fields =
                 lists:zf(fun ({map_field_assoc, FieldName, _FieldType}) ->
                                  case maps:find(atom_to_binary(FieldName), Json) of
@@ -57,6 +55,7 @@ type_from_json(TypeInfo, TypeName, Json) ->
         #a_rec{name = RecordName, fields = RecordInfo} ->
             do_record_from_json(TypeInfo, RecordName, RecordInfo, Json)
     end.
+
 record_from_json(TypeInfo, RecordName, Json) ->
     #a_rec{name = RecordName, fields = RecordInfo} = maps:get({record, RecordName}, TypeInfo),
     do_record_from_json(TypeInfo, RecordName, RecordInfo, Json).
@@ -73,13 +72,71 @@ do_record_from_json(TypeInfo, RecordName, RecordInfo, Json) ->
 
 parse_transform(Forms, _Options) ->
     io:format("Inspecting records at compile-time...~n"),
-    RecordInfo =
-        maps:from_list(
-            lists:filtermap(fun type_in_form/1, Forms)),
-    io:format("Record information:~n~p~n", [RecordInfo]),
-    Forms.
 
--spec type_in_form(term()) -> {true, {{type_of_type(), atom()}, a_type()}} | false.
+    NamedTypes = lists:filtermap(fun type_in_form/1, Forms),
+
+    trans_add_to_from_json(Forms, NamedTypes).
+
+trans_add_to_from_json(Forms, NamedTypes) ->
+    {BeforeFunctions, Functions} =
+        lists:splitwith(fun ({function, _Pos, _F, _A, _Body}) ->
+                                false;
+                            ({attribute, _, spec, _}) ->
+                                false;
+                            (_) ->
+                                true
+                        end,
+                        Forms),
+    {BeforeExports, ExportsUntilFunctions} =
+        lists:splitwith(fun ({attribute, _, export, _}) ->
+                                false;
+                            (_) ->
+                                true
+                        end,
+                        BeforeFunctions),
+    io:format("Before Exports: ~p~n", [BeforeExports]),
+    io:format("Exports Until Functions: ~p~n", [ExportsUntilFunctions]),
+    io:format("Functions: ~p~n", [Functions]),
+    BeforeExports
+    ++ named_types_to_exports(NamedTypes)
+    ++ ExportsUntilFunctions
+    ++ named_types_to_functions(NamedTypes)
+    ++ Functions.
+
+named_types_to_functions(NamedTypes) ->
+    % {NewNamedTypes, _} =
+    %     lists:mapfoldl(fun({{TypeOfThing, TypeName}, Info}, Acc) ->
+    %                       Name =
+    %                           case sets:is_element(TypeName, Acc) of
+    %                               true ->
+    %                                   binary_to_atom(iolist_to_binary([TypeOfThing, "_", TypeName]),
+    %                                                  utf8);
+    %                               _ -> TypeName
+    %                           end,
+    %                       {{Name, Info}, sets:add_element(Name, Acc)}
+    %                    end,
+    %                    sets:new([{version, 2}]),
+    %                    NamedTypes),
+    % [].
+    M = maps:from_list(NamedTypes),
+    lists:map(fun (A) -> named_type_to_function(A, M) end, NamedTypes).
+
+named_types_to_exports(NamedTypes) ->
+    Exports =
+        lists:map(fun({{_, TypeName}, _}) -> {function_name(TypeName), 1} end, NamedTypes),
+    [{attribute, {5, 2}, export, Exports}].
+
+named_type_to_function({{TypeOfThing, TypeName}, _Info}, Infos) ->
+    codegen:gen_function(function_name(TypeName),
+                         fun(Json) ->
+                            record_type_introspect:from_json({'$var', Infos},
+                                                             {{'$var', TypeOfThing}, {'$var', TypeName}},
+                                                             Json)
+                         end).
+
+function_name(TypeName) ->
+    binary_to_atom(iolist_to_binary([atom_to_list(TypeName), "_from_json"])).
+
 type_in_form({attribute, _, record, {RecordName, Fields}})
     when is_list(Fields) andalso is_atom(RecordName) ->
     FieldInfos = lists:map(fun record_field_info/1, Fields),
