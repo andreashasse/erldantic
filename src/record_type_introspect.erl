@@ -4,7 +4,6 @@
 
 -export([parse_transform/2, from_json/3]).
 
-
 -type user_type_name() :: atom().
 -type a_type() ::
     {type, string | integer | boolean} |
@@ -18,8 +17,6 @@
 
 -export_type([a_type/0]).
 
-
-%% EXPORTS
 parse_transform(Forms, _Options) ->
     erldantic_parse_transform:parse_transform(Forms, _Options).
 

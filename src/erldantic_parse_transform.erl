@@ -6,7 +6,6 @@
 
 -compile({parse_transform, parse_trans_codegen}).
 
-
 parse_transform(Forms, _Options) ->
     io:format("Inspecting records at compile-time...~n"),
 
@@ -85,7 +84,7 @@ type_in_form({attribute, _, type, {TypeName, {type, _, record, Attrs}, []}})
     true = is_atom(RecordName),
     FieldTypes =
         lists:map(fun({type, _, field_type, [{atom, _, FieldName}, {type, _, FieldType, []}]})
-                     when is_atom(FieldName) ->
+                         when is_atom(FieldName) ->
                      {FieldName, to_a_type({type, FieldType})}
                   end,
                   FieldInfo),
@@ -96,15 +95,15 @@ type_in_form({attribute, _, type, {TypeName, {type, _, map, Attrs}, []}})
     {true, {{type, TypeName}, #a_map{fields = FieldInfos}}};
 type_in_form({attribute, _, type, {TypeName, {type, _, Type, Attrs}, []}})
     when is_list(Attrs) andalso is_atom(TypeName) ->
-    FieldInfos = lists:flatmap(fun type_field_info/1, Attrs),
+    FieldInfos = lists:flatmap(fun field_into_to_type/1, Attrs),
     {true, {{type, TypeName}, to_a_type({Type, FieldInfos})}};
 type_in_form(_) ->
     false.
 
--spec type_field_info(term()) -> [record_type_introspect:a_type()].
-type_field_info({ann_type, _, [{var, _, _VarName}, {type, _, _TypeAnnType, []}]}) ->
+-spec field_into_to_type(term()) -> [record_type_introspect:a_type()].
+field_into_to_type({ann_type, _, [{var, _, _VarName}, {type, _, _TypeAnnType, []}]}) ->
     [];
-type_field_info({TypeOfType, _, Type, TypeAttrs}) ->
+field_into_to_type({TypeOfType, _, Type, TypeAttrs}) ->
     true = is_list(TypeAttrs),
     case {TypeOfType, Type} of
         {type, record} ->
@@ -118,7 +117,7 @@ type_field_info({TypeOfType, _, Type, TypeAttrs}) ->
             MapFields = lists:flatmap(fun map_field_info/1, TypeAttrs),
             [#a_map{fields = MapFields}];
         {type, tuple} ->
-            TupleFields = lists:flatmap(fun type_field_info/1, TypeAttrs),
+            TupleFields = lists:flatmap(fun field_into_to_type/1, TypeAttrs),
             [#a_tuple{fields = TupleFields}];
         {type, union} ->
             UnionFields =
@@ -135,7 +134,10 @@ type_field_info({TypeOfType, _, Type, TypeAttrs}) ->
             [to_a_type({type, Type})]
     end.
 
--spec map_field_info(term()) -> [{map_field_assoc | map_field_exact, atom(), record_type_introspect:a_type()}].
+-spec map_field_info(term()) ->
+                        [{map_field_assoc | map_field_exact,
+                          atom(),
+                          record_type_introspect:a_type()}].
 map_field_info({TypeOfType, _, Type, TypeAttrs}) ->
     case {TypeOfType, Type} of
         {type, map_field_assoc} ->
@@ -156,6 +158,6 @@ to_a_type({literal, _Literal} = Type) ->
 
 -spec record_field_info(term()) -> {atom(), record_type_introspect:a_type()}.
 record_field_info({typed_record_field, {record_field, _, {atom, _, FieldName}}, Type}) ->
-    [TypeInfo] = type_field_info(Type),
+    [TypeInfo] = field_into_to_type(Type),
     true = is_atom(FieldName),
     {FieldName, TypeInfo}.
