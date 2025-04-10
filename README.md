@@ -1,9 +1,30 @@
-erldantic
-=====
+# erldantic
 
-An OTP library
 
-Build
------
+This is Pydantic, but for erlang. Hopefully for Elixir and Gleam in the future!
 
+## TODO
+- [ ] Document special behaviour for `undefined`.
+- [ ] All types expect `pid()`, `port()`, `Fun` and `reference()`.
+    - [ ] List
+    - [ ] Float
+    - [ ] Atom
+    - [ ] Boolean
+    - [ ] Number? or will it always show up as integer()|float()?
+    - [ ] Integer range
+    - [ ] non_empty ... binary, bitstring,
+- [ ] any()/term() and dynamic()? none()?
+
+## TODO Later
+- [ ] Handle references beween modules: Can I get the same info by looking at a beam with debug_info? or should I export a __erldantic_info__/0 function?
+- [ ] Add type spec to generated functions.
+- [ ] Only generate to_json from_json if not pressent. Call to_json / from_json instead of looking up type in type_info. This will allow user to override generate for specific DTs.
+- [ ] to/from yaml
+- [ ] to property based test generator
+- [ ] to json schema / swagger snippet
+- [ ] to/from grpc
+- [ ] to/from sql
+
+
+## Build
     $ rebar3 compile
