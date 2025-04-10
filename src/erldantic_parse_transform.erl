@@ -30,9 +30,9 @@ trans_add_to_from_json(Forms, NamedTypes) ->
                                 true
                         end,
                         BeforeFunctions),
-    io:format("Before Exports: ~p~n", [BeforeExports]),
-    io:format("Exports Until Functions: ~p~n", [ExportsUntilFunctions]),
-    io:format("Functions: ~p~n", [Functions]),
+    %io:format("Before Exports: ~p~n", [BeforeExports]),
+    %io:format("Exports Until Functions: ~p~n", [ExportsUntilFunctions]),
+    %io:format("Functions: ~p~n", [Functions]),
     BeforeExports
     ++ named_types_to_exports(NamedTypes)
     ++ ExportsUntilFunctions
@@ -55,24 +55,35 @@ named_types_to_functions(NamedTypes) ->
     %                    NamedTypes),
     % [].
     M = maps:from_list(NamedTypes),
-    lists:map(fun(A) -> named_type_to_function(A, M) end, NamedTypes).
+    lists:flatmap(fun(A) -> named_type_to_function(A, M) end, NamedTypes).
 
 named_types_to_exports(NamedTypes) ->
     Exports =
-        lists:map(fun({{_, TypeName}, _}) -> {function_name(TypeName), 1} end, NamedTypes),
+        lists:flatmap(fun({{_, TypeName}, _}) ->
+                         [{function_name(TypeName, "_from_json"), 1},
+                          {function_name(TypeName, "_to_json"), 1}]
+                      end,
+                      NamedTypes),
     [{attribute, {5, 2}, export, Exports}].
 
 named_type_to_function({{TypeOfThing, TypeName}, _Info}, Infos) ->
-    codegen:gen_function(function_name(TypeName),
-                         fun(Json) ->
-                            record_type_introspect:from_json({'$var', Infos},
-                                                             {{'$var', TypeOfThing},
-                                                              {'$var', TypeName}},
-                                                             Json)
-                         end).
+    [codegen:gen_function(function_name(TypeName, "_from_json"),
+                          fun(Json) ->
+                             record_type_introspect:from_json({'$var', Infos},
+                                                              {{'$var', TypeOfThing},
+                                                               {'$var', TypeName}},
+                                                              Json)
+                          end),
+     codegen:gen_function(function_name(TypeName, "_to_json"),
+                          fun(Data) ->
+                             record_type_introspect:to_json({'$var', Infos},
+                                                            {{'$var', TypeOfThing},
+                                                             {'$var', TypeName}},
+                                                            Data)
+                          end)].
 
-function_name(TypeName) ->
-    binary_to_atom(iolist_to_binary([atom_to_list(TypeName), "_from_json"])).
+function_name(TypeName, PostFix) ->
+    binary_to_atom(iolist_to_binary([atom_to_list(TypeName), PostFix])).
 
 type_in_form({attribute, _, record, {RecordName, Fields}})
     when is_list(Fields) andalso is_atom(RecordName) ->

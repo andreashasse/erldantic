@@ -1,8 +1,53 @@
 -module(erldantic_json).
 
--export([from_json/3]).
+-export([from_json/3, to_json/3]).
 
 -include("../include/record_type_introspect.hrl").
+
+% FIXME: User can get 'skip' as return value.
+-spec to_json(TypeInfo :: map(), Type :: term(), Data :: term()) ->
+                   {ok, term()} | {error, list()} | skip.
+to_json(TypeInfo, {record, RecordName}, Record) when is_atom(RecordName) ->
+    record_to_json(TypeInfo, RecordName, Record);
+to_json(_TypeInfo, {type, PrimaryType}, Value) when ?is_primary_type(PrimaryType) ->
+    case check_type(PrimaryType, Value) of
+        true ->
+            {ok, Value};
+        false ->
+            {error, [{type_mismatch, PrimaryType}]}
+    end;
+to_json(_TypeInfo, {literal, undefined}, undefined) ->
+    skip;
+to_json(_TypeInfo, {literal, Literal}, Literal) ->
+    {ok, Literal};
+to_json(TypeInfo, {union, Types}, Data) ->
+    first(fun to_json/3, TypeInfo, Types, Data).
+
+record_to_json(TypeInfo, RecordName, Record) when is_tuple(Record) ->
+    io:format("recorc name = ~p~n", [RecordName]),
+    [RecordName | FieldsData] = tuple_to_list(Record),
+    #a_rec{name = RecordName, fields = RecordInfo} = maps:get({record, RecordName}, TypeInfo),
+    Mojs = lists:zip(RecordInfo, FieldsData),
+    {Fields, Errors} =
+        lists:foldl(fun({{FieldName, FieldType}, RecordFieldData}, {FieldsAcc, ErrorsAcc})
+                           when is_atom(FieldName) ->
+                       case to_json(TypeInfo, FieldType, RecordFieldData) of
+                           {ok, FieldJson} ->
+                               {FieldsAcc ++ [{FieldName, FieldJson}], ErrorsAcc};
+                            skip ->
+                               {FieldsAcc, ErrorsAcc};
+                           {error, _} ->
+                               {FieldsAcc, ErrorsAcc ++ [{unknown, FieldName}]}
+                       end
+                    end,
+                    {[], []},
+                    Mojs),
+    case Errors of
+        [] ->
+            {ok, maps:from_list(Fields)};
+        _ ->
+            {error, Errors}
+    end.
 
 -spec from_json(TypeInfo :: map(), Type :: term(), Json :: map() | undefined) ->
                    {ok, term()} | {error, list()}.
@@ -26,7 +71,7 @@ from_json(_TypeInfo, {type, TypeName}, undefined) ->
 from_json(TypeInfo, {type, TypeName}, Json) when is_atom(TypeName) ->
     type_from_json(TypeInfo, TypeName, Json);
 from_json(TypeInfo, {union, Types}, Json) ->
-    first(TypeInfo, Types, Json).
+    first(fun from_json/3, TypeInfo, Types, Json).
 
 check_type(integer, Json) when is_integer(Json) ->
     true;
@@ -37,14 +82,16 @@ check_type(boolean, Json) when is_boolean(Json) ->
 check_type(_Type, _Json) ->
     false.
 
-first(_TypeInfo, [], _Json) ->
+first(_F, _TypeInfo, [], _Json) ->
     {error, no_match};
-first(TypeInfo, [Type | Rest], Json) ->
-    case from_json(TypeInfo, Type, Json) of
+first(F, TypeInfo, [Type | Rest], Json) ->
+    case F(TypeInfo, Type, Json) of
+        skip ->
+            skip;
         {ok, Result} ->
             {ok, Result};
         {error, _} ->
-            first(TypeInfo, Rest, Json)
+            first(F, TypeInfo, Rest, Json)
     end.
 
 -spec type_from_json(TypeInfo :: map(), TypeName :: atom(), Json :: map()) ->
