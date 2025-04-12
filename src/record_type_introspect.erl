@@ -13,7 +13,8 @@
     #a_rec{} |
     #a_tuple{} |
     {union, [a_type()]} |
-    {literal, term()}.
+    {literal, term()} |
+    {range, integer, integer(), integer()}.
 
 -export_type([a_type/0]).
 

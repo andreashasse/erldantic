@@ -106,15 +106,15 @@ type_in_form({attribute, _, type, {TypeName, {type, _, map, Attrs}, []}})
     {true, {{type, TypeName}, #a_map{fields = FieldInfos}}};
 type_in_form({attribute, _, type, {TypeName, {type, _, Type, Attrs}, []}})
     when is_list(Attrs) andalso is_atom(TypeName) ->
-    FieldInfos = lists:flatmap(fun field_into_to_type/1, Attrs),
+    FieldInfos = lists:flatmap(fun field_info_to_type/1, Attrs),
     {true, {{type, TypeName}, to_a_type({Type, FieldInfos})}};
 type_in_form(_) ->
     false.
 
--spec field_into_to_type(term()) -> [record_type_introspect:a_type()].
-field_into_to_type({ann_type, _, [{var, _, _VarName}, {type, _, _TypeAnnType, []}]}) ->
+-spec field_info_to_type(term()) -> [record_type_introspect:a_type()].
+field_info_to_type({ann_type, _, [{var, _, _VarName}, {type, _, _TypeAnnType, []}]}) ->
     [];
-field_into_to_type({TypeOfType, _, Type, TypeAttrs}) ->
+field_info_to_type({TypeOfType, _, Type, TypeAttrs}) ->
     true = is_list(TypeAttrs),
     case {TypeOfType, Type} of
         {type, record} ->
@@ -128,7 +128,7 @@ field_into_to_type({TypeOfType, _, Type, TypeAttrs}) ->
             MapFields = lists:flatmap(fun map_field_info/1, TypeAttrs),
             [#a_map{fields = MapFields}];
         {type, tuple} ->
-            TupleFields = lists:flatmap(fun field_into_to_type/1, TypeAttrs),
+            TupleFields = lists:flatmap(fun field_info_to_type/1, TypeAttrs),
             [#a_tuple{fields = TupleFields}];
         {type, union} ->
             UnionFields =
@@ -141,6 +141,12 @@ field_into_to_type({TypeOfType, _, Type, TypeAttrs}) ->
                           end,
                           TypeAttrs),
             [{union, UnionFields}];
+        {type, range} ->
+            [{RangeType, _, Min}, {RangeType, _, Max}] = TypeAttrs,
+            case {RangeType, Min, Max} of
+                {integer, Min, Max} when is_integer(Min), is_integer(Max) ->
+                    [{range, RangeType, Min, Max}]
+            end;
         {type, Type} ->
             [to_a_type({type, Type})]
     end.
@@ -152,23 +158,28 @@ field_into_to_type({TypeOfType, _, Type, TypeAttrs}) ->
 map_field_info({TypeOfType, _, Type, TypeAttrs}) ->
     case {TypeOfType, Type} of
         {type, map_field_assoc} ->
-            [{atom, _, MapFieldName}, {type, _, MapFieldType, []}] = TypeAttrs,
+            [{atom, _, MapFieldName}, FieldInfo] = TypeAttrs,
             true = is_atom(MapFieldName),
-            [{map_field_assoc, MapFieldName, to_a_type({type, MapFieldType})}];
+            [AType] = field_info_to_type(FieldInfo),
+            [{map_field_assoc, MapFieldName, AType}];
         {type, map_field_exact} ->
-            [{atom, _, MapFieldName}, {type, _, MapFieldType, []}] = TypeAttrs,
+            [{atom, _, MapFieldName}, FieldInfo] = TypeAttrs,
             true = is_atom(MapFieldName),
-            [{map_field_exact, MapFieldName, to_a_type({type, MapFieldType})}]
+            [AType] = field_info_to_type(FieldInfo),
+            [{map_field_exact, MapFieldName, AType}]
     end.
 
+to_a_type(T) ->
+    to_a_type(T, []).
+
 -spec to_a_type(term()) -> record_type_introspect:a_type().
-to_a_type({type, PrimaryType} = Type) when ?is_primary_type(PrimaryType) ->
+to_a_type({type, PrimaryType} = Type, []) when ?is_primary_type(PrimaryType) ->
     Type;
-to_a_type({literal, _Literal} = Type) ->
+to_a_type({literal, _Literal} = Type, []) ->
     Type.
 
 -spec record_field_info(term()) -> {atom(), record_type_introspect:a_type()}.
 record_field_info({typed_record_field, {record_field, _, {atom, _, FieldName}}, Type}) ->
-    [TypeInfo] = field_into_to_type(Type),
+    [TypeInfo] = field_info_to_type(Type),
     true = is_atom(FieldName),
     {FieldName, TypeInfo}.

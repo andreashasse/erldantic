@@ -13,7 +13,8 @@ This is Pydantic, but for erlang. Hopefully for Elixir and Gleam in the future!
     - [ ] Number? or will it always show up as integer()|float()?
     - [ ] Integer range
     - [ ] non_empty ... binary, bitstring,
-- [ ] any()/term() and dynamic()? none()?
+    - [ ] any()/term() and dynamic()? none()?
+- [ ] Good error messages
 
 ## TODO Later
 - [ ] Handle references beween modules: Can I get the same info by looking at a beam with debug_info? or should I export a __erldantic_info__/0 function?

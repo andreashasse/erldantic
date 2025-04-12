@@ -6,22 +6,53 @@
 
 % FIXME: User can get 'skip' as return value.
 -spec to_json(TypeInfo :: map(), Type :: term(), Data :: term()) ->
-                   {ok, term()} | {error, list()} | skip.
+                 {ok, term()} | {error, list()} | skip.
 to_json(TypeInfo, {record, RecordName}, Record) when is_atom(RecordName) ->
     record_to_json(TypeInfo, RecordName, Record);
+to_json(TypeInfo, {record_ref, RecordName}, Record) when is_atom(RecordName) ->
+    record_to_json(TypeInfo, RecordName, Record);
+to_json(TypeInfo, {user_type_ref, TypeName}, Data) when is_atom(TypeName) ->
+    data_to_json(TypeInfo, TypeName, Data);
 to_json(_TypeInfo, {type, PrimaryType}, Value) when ?is_primary_type(PrimaryType) ->
     case check_type(PrimaryType, Value) of
         true ->
             {ok, Value};
         false ->
-            {error, [{type_mismatch, PrimaryType}]}
+            {error, [{type_mismatch, PrimaryType, Value}]}
     end;
 to_json(_TypeInfo, {literal, undefined}, undefined) ->
     skip;
 to_json(_TypeInfo, {literal, Literal}, Literal) ->
     {ok, Literal};
 to_json(TypeInfo, {union, Types}, Data) ->
-    first(fun to_json/3, TypeInfo, Types, Data).
+    first(fun to_json/3, TypeInfo, Types, Data);
+to_json(TypeInfo, {type, TypeName}, Data) when is_atom(TypeName) ->
+    data_to_json(TypeInfo, TypeName, Data).
+
+data_to_json(TypeInfo, TypeName, Data) ->
+    case maps:get({type, TypeName}, TypeInfo) of
+        #a_rec{name = RecordName, fields = _RecordInfo} ->
+            record_to_json(TypeInfo, RecordName, Data);
+        #a_map{fields = MapFieldTypes} ->
+            map_to_json(MapFieldTypes, Data)
+    end.
+
+map_to_json(MapFieldTypes, Data) ->
+    MapFields =
+        lists:zf(fun ({map_field_assoc, FieldName, _FieldType}) ->
+                         case Data of
+                             #{FieldName := FieldData} ->
+                                 {true, {FieldName, FieldData}};
+                             _ ->
+                                 false
+                         end;
+                     ({map_field_exact, FieldName, _FieldType}) ->
+                         FieldData = maps:get(FieldName, Data),
+                         {true, {FieldName, FieldData}}
+                 end,
+                 MapFieldTypes),
+    %% FIXME: Handle missing fields
+    {ok, maps:from_list(MapFields)}.
 
 record_to_json(TypeInfo, RecordName, Record) when is_tuple(Record) ->
     io:format("recorc name = ~p~n", [RecordName]),
@@ -34,10 +65,10 @@ record_to_json(TypeInfo, RecordName, Record) when is_tuple(Record) ->
                        case to_json(TypeInfo, FieldType, RecordFieldData) of
                            {ok, FieldJson} ->
                                {FieldsAcc ++ [{FieldName, FieldJson}], ErrorsAcc};
-                            skip ->
+                           skip ->
                                {FieldsAcc, ErrorsAcc};
-                           {error, _} ->
-                               {FieldsAcc, ErrorsAcc ++ [{unknown, FieldName}]}
+                           {error, Err} ->
+                               {FieldsAcc, ErrorsAcc ++ [{Err, FieldName}]}
                        end
                     end,
                     {[], []},
@@ -55,6 +86,8 @@ from_json(TypeInfo, {record, RecordName}, Json) when is_atom(RecordName) ->
     record_from_json(TypeInfo, RecordName, Json);
 from_json(TypeInfo, {record_ref, RecordName}, Json) when is_atom(RecordName) ->
     record_from_json(TypeInfo, RecordName, Json);
+from_json(TypeInfo, #a_map{fields = MapFieldTypes}, Json) ->
+    map_from_json(TypeInfo, MapFieldTypes, Json);
 from_json(TypeInfo, {user_type_ref, TypeName}, Json) when is_atom(TypeName) ->
     type_from_json(TypeInfo, TypeName, Json);
 from_json(_TypeInfo, {type, PrimaryType}, Json) when ?is_primary_type(PrimaryType) ->
@@ -62,7 +95,7 @@ from_json(_TypeInfo, {type, PrimaryType}, Json) when ?is_primary_type(PrimaryTyp
         true ->
             {ok, Json};
         false ->
-            {error, [{type_mismatch, PrimaryType}]}
+            {error, [{type_mismatch, PrimaryType, Json}]}
     end;
 from_json(_TypeInfo, {literal, Literal}, Literal) ->
     {ok, Literal};
@@ -71,7 +104,9 @@ from_json(_TypeInfo, {type, TypeName}, undefined) ->
 from_json(TypeInfo, {type, TypeName}, Json) when is_atom(TypeName) ->
     type_from_json(TypeInfo, TypeName, Json);
 from_json(TypeInfo, {union, Types}, Json) ->
-    first(fun from_json/3, TypeInfo, Types, Json).
+    first(fun from_json/3, TypeInfo, Types, Json);
+from_json(_TypeInfo, {range, integer, Min, Max}, Value) when Min =< Value, Value =< Max ->
+    {ok, Value}.
 
 check_type(integer, Json) when is_integer(Json) ->
     true;
@@ -99,24 +134,33 @@ first(F, TypeInfo, [Type | Rest], Json) ->
 type_from_json(TypeInfo, TypeName, Json) ->
     case maps:get({type, TypeName}, TypeInfo) of
         #a_map{fields = MapFieldType} ->
-            Fields =
-                lists:zf(fun ({map_field_assoc, FieldName, _FieldType}) ->
-                                 case maps:find(atom_to_binary(FieldName), Json) of
-                                     {ok, FieldData} ->
-                                         {true, {FieldName, FieldData}};
-                                     _ ->
-                                         false
-                                 end;
-                             ({map_field_exact, FieldName, _FieldType}) ->
-                                 FieldData = maps:get(atom_to_binary(FieldName), Json),
-                                 {true, {FieldName, FieldData}}
-                         end,
-                         MapFieldType),
-            %% FIXME: Handle missing fields
-            {ok, maps:from_list(Fields)};
+            map_from_json(TypeInfo, MapFieldType, Json);
         #a_rec{name = RecordName, fields = RecordInfo} ->
             do_record_from_json(TypeInfo, RecordName, RecordInfo, Json)
     end.
+
+map_from_json(TypeInfo, MapFieldType, Json) ->
+    Fields =
+        lists:zf(fun ({map_field_assoc, FieldName, FieldType}) ->
+                         case maps:find(atom_to_binary(FieldName), Json) of
+                             {ok, FieldData} ->
+                                 case from_json(TypeInfo, FieldType, FieldData) of
+                                     {ok, FieldJson} ->
+                                         {true, {FieldName, FieldJson}};
+                                     skip ->
+                                         false
+                                 end;
+                             _ ->
+                                 false
+                         end;
+                     ({map_field_exact, FieldName, FieldType}) ->
+                         FieldData = maps:get(atom_to_binary(FieldName), Json),
+                         {ok, FieldJson} = from_json(TypeInfo, FieldType, FieldData),
+                         {true, {FieldName, FieldJson}}
+                 end,
+                 MapFieldType),
+    %% FIXME: Handle missing fields
+    {ok, maps:from_list(Fields)}.
 
 -spec record_from_json(TypeInfo :: map(),
                        RecordName :: atom(),
@@ -140,8 +184,8 @@ do_record_from_json(TypeInfo, RecordName, RecordInfo, Json) ->
                        case from_json(TypeInfo, FieldType, RecordFieldData) of
                            {ok, FieldJson} ->
                                {FieldsAcc ++ [FieldJson], ErrorsAcc};
-                           {error, _} ->
-                               {FieldsAcc, ErrorsAcc ++ [{unknown, FieldName}]}
+                           {error, Err} ->
+                               {FieldsAcc, ErrorsAcc ++ [{Err, FieldName}]}
                        end
                     end,
                     {[], []},

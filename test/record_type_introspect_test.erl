@@ -12,12 +12,16 @@ person_module_test_() ->
         {inparallel,
          [person_type_is_record(),
           person_person(),
+          person_person_to_json(),
+          score(),
           person_address(),
           person_address_undefined_city(),
           person_address_undefined_city_to_json(),
           person_address_undefined_street(),
+          person_address_undefined_street_to_json(),
           person_address_to_json(),
-          name_t()]}
+          name_t(),
+          name_t_to_json()]}
      end}.
 
 compile_person() ->
@@ -48,6 +52,26 @@ person_person() ->
      ?_assertEqual(22, Age),
      ?_assertEqual(#address{street = <<"mojs">>, city = <<"sollentuna">>}, Home)].
 
+score() ->
+    Json =
+        json:decode(<<"{\"value\": 5, \"comment\": {\"lang\": \"en\", \"text\": \"ok\"}}"/utf8>>),
+    {ok, #{value := Value, comment := Comment}} = person:score_from_json(Json),
+    [?_assertEqual(5, Value), ?_assertEqual(#{lang => <<"en">>, text => <<"ok">>}, Comment)].
+
+person_person_to_json() ->
+    Address = #address{street = <<"mojs">>, city = <<"sollentuna">>},
+    Name = #{first => <<"Andreas">>, last => <<"Hasselberg">>},
+    Person =
+        #person{name = Name,
+                age = 22,
+                home = Address},
+    {ok, Json} = person:person_to_json(Person),
+    Expect =
+        #{name => #{first => <<"Andreas">>, last => <<"Hasselberg">>},
+          age => 22,
+          home => #{street => <<"mojs">>, city => <<"sollentuna">>}},
+    [?_assertEqual(Expect, Json)].
+
 person_address() ->
     Json = json:decode(<<"{\"street\": \"mojs\", \"city\": \"sollentuna\"}"/utf8>>),
     Expect = {ok, #address{street = <<"mojs">>, city = <<"sollentuna">>}},
@@ -76,6 +100,11 @@ person_address_undefined_street() ->
     Expr = person:address_from_json(Json),
     [?_assertMatch({error, _}, Expr)].
 
+person_address_undefined_street_to_json() ->
+    Data = #address{street = undefined, city = <<"sollentuna">>},
+    Expr = person:address_to_json(Data),
+    [?_assertMatch({error, _}, Expr)].
+
 name_t() ->
     Json =
         json:decode(<<"{\"first\": \"Andreas\", \"last\": \"Hasselberg\", \"not_present\": "
@@ -83,3 +112,12 @@ name_t() ->
     {ok, M} = person:name_t_from_json(Json),
     Expect = #{first => <<"Andreas">>, last => <<"Hasselberg">>},
     [?_assertEqual(Expect, M), ?_assertEqual([first, last], maps:keys(M))].
+
+name_t_to_json() ->
+    Data =
+        #{first => <<"Andreas">>,
+          last => <<"Hasselberg">>,
+          not_present => 22},
+    Resp = person:name_t_to_json(Data),
+    Expected = {ok, #{first => <<"Andreas">>, last => <<"Hasselberg">>}},
+    [?_assertEqual(Resp, Expected)].

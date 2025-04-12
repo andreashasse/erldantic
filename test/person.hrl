@@ -1,6 +1,6 @@
 -record(address, {street :: string(), city :: string() | undefined}).
 -record(person, {name :: name_t(), age :: integer(), home :: #address{}}).
 
--type name_t() :: #{first => string(), last := string()}.
-% | {A :: string(), string()}.
+-type score() :: #{value := 1..10, comment => #{lang := string(), text := string()}}.
+-type name_t() :: #{first => string(), last => string()}.
 -type address_t() :: #address{street :: string(), city :: string()}.
