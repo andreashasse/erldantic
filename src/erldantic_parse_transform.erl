@@ -104,9 +104,12 @@ type_in_form({attribute, _, type, {TypeName, {type, _, map, Attrs}, []}})
     when is_list(Attrs) andalso is_atom(TypeName) ->
     FieldInfos = lists:flatmap(fun map_field_info/1, Attrs),
     {true, {{type, TypeName}, #a_map{fields = FieldInfos}}};
+type_in_form({attribute, _, type, {TypeName, {type, _, union, UnionTypes}, []}}) ->
+    FieldInfos = lists:flatmap(fun field_info_to_type/1, UnionTypes),
+    {true, {{type, TypeName}, {union, FieldInfos}}};
 type_in_form({attribute, _, type, {TypeName, {type, _, Type, Attrs}, []}})
     when is_list(Attrs) andalso is_atom(TypeName) ->
-    FieldInfos = lists:flatmap(fun field_info_to_type/1, Attrs),
+        FieldInfos = lists:flatmap(fun field_info_to_type/1, Attrs),
     {true, {{type, TypeName}, to_a_type({Type, FieldInfos})}};
 type_in_form(_) ->
     false.

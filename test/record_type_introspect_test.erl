@@ -14,6 +14,9 @@ person_module_test_() ->
           person_person(),
           person_person_to_json(),
           score(),
+          score_to_json(),
+          weird_union(),
+          weird_union_to_json(),
           person_address(),
           person_address_undefined_city(),
           person_address_undefined_city_to_json(),
@@ -57,6 +60,29 @@ score() ->
         json:decode(<<"{\"value\": 5, \"comment\": {\"lang\": \"en\", \"text\": \"ok\"}}"/utf8>>),
     {ok, #{value := Value, comment := Comment}} = person:score_from_json(Json),
     [?_assertEqual(5, Value), ?_assertEqual(#{lang => <<"en">>, text => <<"ok">>}, Comment)].
+
+score_to_json() ->
+    Data = #{value => 5, comment => #{lang => <<"en">>, text => <<"ok">>}},
+    {ok, Json} = person:score_to_json(Data),
+    Expect = #{value => 5, comment => #{lang => <<"en">>, text => <<"ok">>}},
+    [?_assertEqual(Expect, Json)].
+
+weird_union() ->
+    Json =
+        json:decode(<<"{\"city\": \"sollentuna\", \"score\": {\"value\": 5, "
+                      "\"comment\": {\"lang\": \"en\", \"text\": \"ok\"}}}"/utf8>>),
+    {ok, #{city := City, score := Score}} = person:weird_union_from_json(Json),
+    [?_assertEqual(<<"sollentuna">>, City),
+     ?_assertEqual(5, maps:get(value, Score)),
+     ?_assertEqual(#{lang => <<"en">>, text => <<"ok">>}, maps:get(comment, Score))].
+
+weird_union_to_json() ->
+    Data = #{city => <<"sollentuna">>,
+             score => #{value => 5, comment => #{lang => <<"en">>, text => <<"ok">>}}},
+    {ok, Json} = person:weird_union_to_json(Data),
+    Expect = #{city => <<"sollentuna">>,
+               score => #{value => 5, comment => #{lang => <<"en">>, text => <<"ok">>}}},
+    [?_assertEqual(Expect, Json)].
 
 person_person_to_json() ->
     Address = #address{street = <<"mojs">>, city = <<"sollentuna">>},

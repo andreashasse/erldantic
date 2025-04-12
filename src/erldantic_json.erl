@@ -136,7 +136,9 @@ type_from_json(TypeInfo, TypeName, Json) ->
         #a_map{fields = MapFieldType} ->
             map_from_json(TypeInfo, MapFieldType, Json);
         #a_rec{name = RecordName, fields = RecordInfo} ->
-            do_record_from_json(TypeInfo, RecordName, RecordInfo, Json)
+            do_record_from_json(TypeInfo, RecordName, RecordInfo, Json);
+        {union, Types} ->
+            first(fun from_json/3, TypeInfo, Types, Json)
     end.
 
 map_from_json(TypeInfo, MapFieldType, Json) ->
