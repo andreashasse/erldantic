@@ -27,14 +27,19 @@ to_json(_TypeInfo, {literal, Literal}, Literal) ->
 to_json(TypeInfo, {union, Types}, Data) ->
     first(fun to_json/3, TypeInfo, Types, Data);
 to_json(TypeInfo, {type, TypeName}, Data) when is_atom(TypeName) ->
-    data_to_json(TypeInfo, TypeName, Data).
+    data_to_json(TypeInfo, TypeName, Data);
+to_json(_TypeInfo, #a_map{fields = MapFieldTypes}, Data) ->
+    map_to_json(MapFieldTypes, Data).
+
 
 data_to_json(TypeInfo, TypeName, Data) ->
     case maps:get({type, TypeName}, TypeInfo) of
         #a_rec{name = RecordName, fields = _RecordInfo} ->
             record_to_json(TypeInfo, RecordName, Data);
         #a_map{fields = MapFieldTypes} ->
-            map_to_json(MapFieldTypes, Data)
+            map_to_json(MapFieldTypes, Data);
+        {union, Types} ->
+            first(fun to_json/3, TypeInfo, Types, Data)
     end.
 
 map_to_json(MapFieldTypes, Data) ->
@@ -78,7 +83,9 @@ record_to_json(TypeInfo, RecordName, Record) when is_tuple(Record) ->
             {ok, maps:from_list(Fields)};
         _ ->
             {error, Errors}
-    end.
+    end;
+record_to_json(_TypeInfo, RecordName, Record) ->
+    {error, [{record_type_mismatch, RecordName, Record}]}.
 
 -spec from_json(TypeInfo :: map(), Type :: term(), Json :: map() | undefined) ->
                    {ok, term()} | {error, list()}.
