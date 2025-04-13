@@ -107,9 +107,12 @@ type_in_form({attribute, _, type, {TypeName, {type, _, map, Attrs}, []}})
 type_in_form({attribute, _, type, {TypeName, {type, _, union, UnionTypes}, []}}) ->
     FieldInfos = lists:flatmap(fun field_info_to_type/1, UnionTypes),
     {true, {{type, TypeName}, {union, FieldInfos}}};
+type_in_form({attribute, _, type, {TypeName, {type, _, list, _Attrs} = RawType, []}}) ->
+    [Type] = field_info_to_type(RawType),
+    {true, {{type, TypeName}, Type}};
 type_in_form({attribute, _, type, {TypeName, {type, _, Type, Attrs}, []}})
     when is_list(Attrs) andalso is_atom(TypeName) ->
-        FieldInfos = lists:flatmap(fun field_info_to_type/1, Attrs),
+    FieldInfos = lists:flatmap(fun field_info_to_type/1, Attrs),
     {true, {{type, TypeName}, to_a_type({Type, FieldInfos})}};
 type_in_form(_) ->
     false.
@@ -119,6 +122,7 @@ field_info_to_type({ann_type, _, [{var, _, _VarName}, {type, _, _TypeAnnType, []
     [];
 field_info_to_type({TypeOfType, _, Type, TypeAttrs}) ->
     true = is_list(TypeAttrs),
+    io:format("~p ~p TypeAttrs: ~p~n", [TypeOfType, Type, TypeAttrs]),
     case {TypeOfType, Type} of
         {type, record} ->
             [{atom, _, SubTypeRecordName}] = TypeAttrs,
@@ -150,7 +154,11 @@ field_info_to_type({TypeOfType, _, Type, TypeAttrs}) ->
                 {integer, Min, Max} when is_integer(Min), is_integer(Max) ->
                     [{range, RangeType, Min, Max}]
             end;
+        {type, list} ->
+            [ListType] = lists:flatmap(fun field_info_to_type/1, TypeAttrs),
+            [{list, ListType}];
         {type, Type} ->
+            io:format("~p~n", [Type]),
             [to_a_type({type, Type})]
     end.
 

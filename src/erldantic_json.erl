@@ -24,13 +24,32 @@ to_json(_TypeInfo, {literal, undefined}, undefined) ->
     skip;
 to_json(_TypeInfo, {literal, Literal}, Literal) ->
     {ok, Literal};
+to_json(_TypeInfo, {literal, TypeName}, OtherValue) ->
+    {error, [{unexpected_literal, TypeName, OtherValue}]};
 to_json(TypeInfo, {union, Types}, Data) ->
     first(fun to_json/3, TypeInfo, Types, Data);
+to_json(TypeInfo, {list, Type}, Data) ->
+    list_to_json(TypeInfo, Type, Data);
 to_json(TypeInfo, {type, TypeName}, Data) when is_atom(TypeName) ->
     data_to_json(TypeInfo, TypeName, Data);
 to_json(_TypeInfo, #a_map{fields = MapFieldTypes}, Data) ->
     map_to_json(MapFieldTypes, Data).
 
+list_to_json(TypeInfo, Type, Data) when is_list(Data) ->
+    JsonRes = lists:map(fun(Item) -> to_json(TypeInfo, Type, Item) end, Data),
+    AllOk =
+        lists:all(fun ({ok, _}) ->
+                          true;
+                      (_) ->
+                          false
+                  end,
+                  JsonRes),
+    case AllOk of
+        true ->
+            {ok, lists:map(fun({ok, Json}) -> Json end, JsonRes)};
+        false ->
+            {error, [{type_mismatch, list, Data}]}
+    end.
 
 data_to_json(TypeInfo, TypeName, Data) ->
     case maps:get({type, TypeName}, TypeInfo) of
@@ -39,7 +58,9 @@ data_to_json(TypeInfo, TypeName, Data) ->
         #a_map{fields = MapFieldTypes} ->
             map_to_json(MapFieldTypes, Data);
         {union, Types} ->
-            first(fun to_json/3, TypeInfo, Types, Data)
+            first(fun to_json/3, TypeInfo, Types, Data);
+        {list, Type} ->
+            list_to_json(TypeInfo, Type, Data)
     end.
 
 map_to_json(MapFieldTypes, Data) ->
@@ -97,6 +118,8 @@ from_json(TypeInfo, #a_map{fields = MapFieldTypes}, Json) ->
     map_from_json(TypeInfo, MapFieldTypes, Json);
 from_json(TypeInfo, {user_type_ref, TypeName}, Json) when is_atom(TypeName) ->
     type_from_json(TypeInfo, TypeName, Json);
+from_json(TypeInfo, {list, Type}, Data) ->
+    list_from_json(TypeInfo, Type, Data);
 from_json(_TypeInfo, {type, PrimaryType}, Json) when ?is_primary_type(PrimaryType) ->
     case check_type(PrimaryType, Json) of
         true ->
@@ -106,6 +129,13 @@ from_json(_TypeInfo, {type, PrimaryType}, Json) when ?is_primary_type(PrimaryTyp
     end;
 from_json(_TypeInfo, {literal, Literal}, Literal) ->
     {ok, Literal};
+from_json(_TypeInfo, {literal, Literal}, Value) ->
+    case try_convert_to_literal(Literal, Value) of
+        {ok, Literal} ->
+            {ok, Literal};
+        false ->
+            {error, [{type_mismatch, literal, Literal, Value}]}
+    end;
 from_json(_TypeInfo, {type, TypeName}, undefined) ->
     {error, [{missing_type, TypeName}]};
 from_json(TypeInfo, {type, TypeName}, Json) when is_atom(TypeName) ->
@@ -114,6 +144,33 @@ from_json(TypeInfo, {union, Types}, Json) ->
     first(fun from_json/3, TypeInfo, Types, Json);
 from_json(_TypeInfo, {range, integer, Min, Max}, Value) when Min =< Value, Value =< Max ->
     {ok, Value}.
+
+try_convert_to_literal(Literal, Value) when is_atom(Literal) andalso is_binary(Value) ->
+    try binary_to_existing_atom(Value, utf8) of
+        Literal when is_atom(Literal) ->
+            {ok, Literal};
+        _ ->
+            false
+    catch
+        error:badarg ->
+            false
+    end.
+
+list_from_json(TypeInfo, Type, Data) ->
+            JsonRes = lists:map(fun(Item) -> from_json(TypeInfo, Type, Item) end, Data),
+            AllOk =
+                lists:all(fun ({ok, _}) ->
+                              true;
+                          (_) ->
+                              false
+                      end,
+                      JsonRes),
+            case AllOk of
+                true ->
+                    {ok, lists:map(fun({ok, Json}) -> Json end, JsonRes)};
+                false ->
+                    {error, [{type_mismatch, list, Data}]}
+            end.
 
 check_type(integer, Json) when is_integer(Json) ->
     true;
@@ -145,7 +202,9 @@ type_from_json(TypeInfo, TypeName, Json) ->
         #a_rec{name = RecordName, fields = RecordInfo} ->
             do_record_from_json(TypeInfo, RecordName, RecordInfo, Json);
         {union, Types} ->
-            first(fun from_json/3, TypeInfo, Types, Json)
+            first(fun from_json/3, TypeInfo, Types, Json);
+        {list, Type} ->
+            list_from_json(TypeInfo, Type, Json)
     end.
 
 map_from_json(TypeInfo, MapFieldType, Json) ->

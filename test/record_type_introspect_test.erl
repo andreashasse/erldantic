@@ -23,6 +23,10 @@ person_module_test_() ->
           person_address_undefined_street(),
           person_address_undefined_street_to_json(),
           person_address_to_json(),
+          accesses_test(),
+          accesses_test_to_json(),
+          tup_list_test(),
+          tup_list_test_to_json(),
           name_t(),
           name_t_to_json()]}
      end}.
@@ -77,11 +81,13 @@ weird_union() ->
      ?_assertEqual(#{lang => <<"en">>, text => <<"ok">>}, maps:get(comment, Score))].
 
 weird_union_to_json() ->
-    Data = #{city => <<"sollentuna">>,
-             score => #{value => 5, comment => #{lang => <<"en">>, text => <<"ok">>}}},
+    Data =
+        #{city => <<"sollentuna">>,
+          score => #{value => 5, comment => #{lang => <<"en">>, text => <<"ok">>}}},
     {ok, Json} = person:weird_union_to_json(Data),
-    Expect = #{city => <<"sollentuna">>,
-               score => #{value => 5, comment => #{lang => <<"en">>, text => <<"ok">>}}},
+    Expect =
+        #{city => <<"sollentuna">>,
+          score => #{value => 5, comment => #{lang => <<"en">>, text => <<"ok">>}}},
     [?_assertEqual(Expect, Json)].
 
 person_person_to_json() ->
@@ -108,6 +114,26 @@ person_address_to_json() ->
     Address = #address{street = <<"mojs">>, city = <<"sollentuna">>},
     {ok, Json} = person:address_to_json(Address),
     [?_assertEqual(#{street => <<"mojs">>, city => <<"sollentuna">>}, Json)].
+
+accesses_test() ->
+    Json = json:decode(<<"[\"read\", \"write\"]"/utf8>>),
+    [?_assertEqual({ok, [read, write]}, person:accesses_from_json(Json))].
+
+accesses_test_to_json() ->
+    Data = [read, write],
+    {ok, Json} = person:accesses_to_json(Data),
+    Expect = [read, write],
+    [?_assertEqual(Expect, Json)].
+
+tup_list_test() ->
+    Json = json:decode(<<"{\"a\": [1, 2, 3]}"/utf8>>),
+    [?_assertEqual({ok, #{a => [1, 2, 3]}}, person:tup_list_from_json(Json))].
+
+tup_list_test_to_json() ->
+    Data = #{a => [1, 2, 3]},
+    {ok, Json} = person:tup_list_to_json(Data),
+    Expect = #{a => [1, 2, 3]},
+    [?_assertEqual(Expect, Json)].
 
 person_address_undefined_city() ->
     Json = json:decode(<<"{\"street\": \"mojs\"}"/utf8>>),

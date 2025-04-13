@@ -3,8 +3,7 @@
 
 This is Pydantic, but for erlang. Hopefully for Elixir and Gleam in the future!
 
-## TODO
-- [ ] Document special behaviour for `undefined`.
+## TODO PoC
 - [ ] All types expect `pid()`, `port()`, `Fun` and `reference()`.
     - [ ] List
     - [ ] Float
@@ -15,14 +14,23 @@ This is Pydantic, but for erlang. Hopefully for Elixir and Gleam in the future!
     - [ ] non_empty ... binary, bitstring,
     - [ ] any()/term() and dynamic()? none()?
 - [ ] Good error messages
+- [ ] Add type spec to generated functions.
+- [ ] Document special behaviour for `undefined`.
+
+## TODO PoC FastApi
+- [ ] How should I get example values into the mix? Some macro ?spec(example = 2, type = integer) that I write to integer and keep the example separate? Can that be done without IDEs going bananas?
+- [ ] Get types from function specs.
+- [ ] Declerative router for Elli/Cowboy
+- [ ] OpenAPI spec
 
 ## TODO Later
 - [ ] Handle references beween modules: Can I get the same info by looking at a beam with debug_info? or should I export a __erldantic_info__/0 function?
-- [ ] Add type spec to generated functions.
 - [ ] Only generate to_json from_json if not pressent. Call to_json / from_json instead of looking up type in type_info. This will allow user to override generate for specific DTs.
 - [ ] to/from yaml
 - [ ] to property based test generator
-- [ ] to json schema / swagger snippet
+
+## Not in scope for now
+- [ ] to/from Dynamo DB
 - [ ] to/from grpc
 - [ ] to/from sql
 

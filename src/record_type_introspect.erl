@@ -14,7 +14,8 @@
     #a_tuple{} |
     {union, [a_type()]} |
     {literal, term()} |
-    {range, integer, integer(), integer()}.
+    {range, integer, integer(), integer()} |
+    {list, a_type()}.
 
 -export_type([a_type/0]).
 
