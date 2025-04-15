@@ -8,3 +8,8 @@
 
 -define(is_primary_type(PrimaryType),
         PrimaryType =:= string orelse PrimaryType =:= integer orelse PrimaryType =:= boolean).
+
+-record(ed_error,
+        {location :: [string() | atom()],
+         type :: type_mismatch | no_match | record_type_mismatch | missing_data,
+         ctx :: term()}).

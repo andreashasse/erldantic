@@ -3,6 +3,7 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -include("person.hrl").
+-include("record_type_introspect.hrl").
 
 person_module_test_() ->
     {setup,
@@ -26,9 +27,11 @@ person_module_test_() ->
           accesses_test(),
           accesses_test_to_json(),
           tup_list_test(),
+          tup_list_test_bad(),
           tup_list_test_to_json(),
           name_t(),
-          name_t_to_json()]}
+          name_t_error(),
+          name_t_to_json()]}        %  name_t_to_json_error()
      end}.
 
 compile_person() ->
@@ -129,6 +132,14 @@ tup_list_test() ->
     Json = json:decode(<<"{\"a\": [1, 2, 3]}"/utf8>>),
     [?_assertEqual({ok, #{a => [1, 2, 3]}}, person:tup_list_from_json(Json))].
 
+tup_list_test_bad() ->
+    Json = json:decode(<<"{\"a\": [1, \"p\", 3]}"/utf8>>),
+    [?_assertEqual({error,
+                    [#ed_error{type = type_mismatch,
+                               location = [a],
+                               ctx = #{type => {type, integer}, value => <<"p">>}}]},
+                   person:tup_list_from_json(Json))].
+
 tup_list_test_to_json() ->
     Data = #{a => [1, 2, 3]},
     {ok, Json} = person:tup_list_to_json(Data),
@@ -164,6 +175,11 @@ name_t() ->
     {ok, M} = person:name_t_from_json(Json),
     Expect = #{first => <<"Andreas">>, last => <<"Hasselberg">>},
     [?_assertEqual(Expect, M), ?_assertEqual([first, last], maps:keys(M))].
+
+name_t_error() ->
+    Json = json:decode(<<"{\"first\": \"Andreas\"}"/utf8>>),
+    [?_assertEqual({error, [#ed_error{type = missing_data, location = [last]}]},
+                   person:name_t_from_json(Json))].
 
 name_t_to_json() ->
     Data =

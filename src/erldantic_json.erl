@@ -6,26 +6,32 @@
 
 % FIXME: User can get 'skip' as return value.
 -spec to_json(TypeInfo :: map(), Type :: term(), Data :: term()) ->
-                 {ok, term()} | {error, list()} | skip.
+                 {ok, term()} | {error, [#ed_error{}]} | skip.
 to_json(TypeInfo, {record, RecordName}, Record) when is_atom(RecordName) ->
     record_to_json(TypeInfo, RecordName, Record);
 to_json(TypeInfo, {record_ref, RecordName}, Record) when is_atom(RecordName) ->
     record_to_json(TypeInfo, RecordName, Record);
 to_json(TypeInfo, {user_type_ref, TypeName}, Data) when is_atom(TypeName) ->
     data_to_json(TypeInfo, TypeName, Data);
-to_json(_TypeInfo, {type, PrimaryType}, Value) when ?is_primary_type(PrimaryType) ->
+to_json(_TypeInfo, {type, PrimaryType} = T, Value) when ?is_primary_type(PrimaryType) ->
     case check_type(PrimaryType, Value) of
         true ->
             {ok, Value};
         false ->
-            {error, [{type_mismatch, PrimaryType, Value}]}
+            {error,
+             [#ed_error{type = type_mismatch,
+                        location = [],
+                        ctx = #{type => T, value => Value}}]}
     end;
 to_json(_TypeInfo, {literal, undefined}, undefined) ->
     skip;
 to_json(_TypeInfo, {literal, Literal}, Literal) ->
     {ok, Literal};
-to_json(_TypeInfo, {literal, TypeName}, OtherValue) ->
-    {error, [{unexpected_literal, TypeName, OtherValue}]};
+to_json(_TypeInfo, {literal, _} = T, OtherValue) ->
+    {error,
+     [#ed_error{type = type_mismatch,
+                location = [],
+                ctx = #{type => T, value => OtherValue}}]};
 to_json(TypeInfo, {union, Types}, Data) ->
     first(fun to_json/3, TypeInfo, Types, Data);
 to_json(TypeInfo, {list, Type}, Data) ->
@@ -37,18 +43,18 @@ to_json(_TypeInfo, #a_map{fields = MapFieldTypes}, Data) ->
 
 list_to_json(TypeInfo, Type, Data) when is_list(Data) ->
     JsonRes = lists:map(fun(Item) -> to_json(TypeInfo, Type, Item) end, Data),
-    AllOk =
-        lists:all(fun ({ok, _}) ->
-                          true;
-                      (_) ->
-                          false
-                  end,
-                  JsonRes),
-    case AllOk of
-        true ->
-            {ok, lists:map(fun({ok, Json}) -> Json end, JsonRes)};
-        false ->
-            {error, [{type_mismatch, list, Data}]}
+    {AllOk, Errors} =
+        lists:partition(fun ({ok, _}) ->
+                                true;
+                            (_) ->
+                                false
+                        end,
+                        JsonRes),
+    case Errors of
+        [] ->
+            {ok, lists:map(fun({ok, Json}) -> Json end, AllOk)};
+        _ ->
+            {error, Errors}
     end.
 
 data_to_json(TypeInfo, TypeName, Data) ->
@@ -80,6 +86,8 @@ map_to_json(MapFieldTypes, Data) ->
     %% FIXME: Handle missing fields
     {ok, maps:from_list(MapFields)}.
 
+-spec record_to_json(TypeInfo :: map(), RecordName :: atom(), Record :: term()) ->
+                        {ok, #{atom() => term()}} | {error, [#ed_error{}]}.
 record_to_json(TypeInfo, RecordName, Record) when is_tuple(Record) ->
     io:format("recorc name = ~p~n", [RecordName]),
     [RecordName | FieldsData] = tuple_to_list(Record),
@@ -93,8 +101,11 @@ record_to_json(TypeInfo, RecordName, Record) when is_tuple(Record) ->
                                {FieldsAcc ++ [{FieldName, FieldJson}], ErrorsAcc};
                            skip ->
                                {FieldsAcc, ErrorsAcc};
-                           {error, Err} ->
-                               {FieldsAcc, ErrorsAcc ++ [{Err, FieldName}]}
+                           {error, Errs} ->
+                               Errs2 =
+                                   lists:map(fun(Err) -> err_append_location(Err, FieldName) end,
+                                             Errs),
+                               {FieldsAcc, ErrorsAcc ++ Errs2}
                        end
                     end,
                     {[], []},
@@ -106,7 +117,13 @@ record_to_json(TypeInfo, RecordName, Record) when is_tuple(Record) ->
             {error, Errors}
     end;
 record_to_json(_TypeInfo, RecordName, Record) ->
-    {error, [{record_type_mismatch, RecordName, Record}]}.
+    {error,
+     [#ed_error{type = record_type_mismatch,
+                location = [RecordName],
+                ctx = #{record_name => RecordName, record => Record}}]}.
+
+err_append_location(Err, FieldName) ->
+    Err#ed_error{location = [FieldName | Err#ed_error.location]}.
 
 -spec from_json(TypeInfo :: map(), Type :: term(), Json :: map() | undefined) ->
                    {ok, term()} | {error, list()}.
@@ -120,21 +137,27 @@ from_json(TypeInfo, {user_type_ref, TypeName}, Json) when is_atom(TypeName) ->
     type_from_json(TypeInfo, TypeName, Json);
 from_json(TypeInfo, {list, Type}, Data) ->
     list_from_json(TypeInfo, Type, Data);
-from_json(_TypeInfo, {type, PrimaryType}, Json) when ?is_primary_type(PrimaryType) ->
+from_json(_TypeInfo, {type, PrimaryType} = T, Json) when ?is_primary_type(PrimaryType) ->
     case check_type(PrimaryType, Json) of
         true ->
             {ok, Json};
         false ->
-            {error, [{type_mismatch, PrimaryType, Json}]}
+            {error,
+             [#ed_error{type = type_mismatch,
+                        location = [],
+                        ctx = #{type => T, value => Json}}]}
     end;
 from_json(_TypeInfo, {literal, Literal}, Literal) ->
     {ok, Literal};
-from_json(_TypeInfo, {literal, Literal}, Value) ->
+from_json(_TypeInfo, {literal, Literal} = T, Value) ->
     case try_convert_to_literal(Literal, Value) of
         {ok, Literal} ->
             {ok, Literal};
         false ->
-            {error, [{type_mismatch, literal, Literal, Value}]}
+            {error,
+             [#ed_error{type = type_mismatch,
+                        location = [],
+                        ctx = #{type => T, value => Value}}]}
     end;
 from_json(_TypeInfo, {type, TypeName}, undefined) ->
     {error, [{missing_type, TypeName}]};
@@ -157,20 +180,20 @@ try_convert_to_literal(Literal, Value) when is_atom(Literal) andalso is_binary(V
     end.
 
 list_from_json(TypeInfo, Type, Data) ->
-            JsonRes = lists:map(fun(Item) -> from_json(TypeInfo, Type, Item) end, Data),
-            AllOk =
-                lists:all(fun ({ok, _}) ->
-                              true;
-                          (_) ->
-                              false
-                      end,
-                      JsonRes),
-            case AllOk of
-                true ->
-                    {ok, lists:map(fun({ok, Json}) -> Json end, JsonRes)};
-                false ->
-                    {error, [{type_mismatch, list, Data}]}
-            end.
+    JsonRes = lists:map(fun(Item) -> from_json(TypeInfo, Type, Item) end, Data),
+    {AllOk, Errors} =
+        lists:partition(fun ({ok, _}) ->
+                                true;
+                            (_) ->
+                                false
+                        end,
+                        JsonRes),
+    case Errors of
+        [] ->
+            {ok, lists:map(fun({ok, Json}) -> Json end, AllOk)};
+        _ ->
+            {error, lists:flatmap(fun({error, EdErrors}) -> EdErrors end, Errors)}
+    end.
 
 check_type(integer, Json) when is_integer(Json) ->
     true;
@@ -181,20 +204,31 @@ check_type(boolean, Json) when is_boolean(Json) ->
 check_type(_Type, _Json) ->
     false.
 
-first(_F, _TypeInfo, [], _Json) ->
+first(F, TypeInfo, Types, Json) ->
+    case do_first(F, TypeInfo, Types, Json) of
+        {error, no_match} ->
+            {error,
+             #ed_error{type = no_match,
+                       location = [],
+                       ctx = #{type => Types, value => Json}}};
+        Result ->
+            Result
+    end.
+
+do_first(_F, _TypeInfo, [], _Json) ->
     {error, no_match};
-first(F, TypeInfo, [Type | Rest], Json) ->
+do_first(F, TypeInfo, [Type | Rest], Json) ->
     case F(TypeInfo, Type, Json) of
         skip ->
             skip;
         {ok, Result} ->
             {ok, Result};
         {error, _} ->
-            first(F, TypeInfo, Rest, Json)
+            do_first(F, TypeInfo, Rest, Json)
     end.
 
 -spec type_from_json(TypeInfo :: map(), TypeName :: atom(), Json :: map()) ->
-                        {ok, term()} | {error, list()}.
+                        {ok, term()} | {error, [#ed_error{}]}.
 type_from_json(TypeInfo, TypeName, Json) ->
     case maps:get({type, TypeName}, TypeInfo) of
         #a_map{fields = MapFieldType} ->
@@ -208,27 +242,52 @@ type_from_json(TypeInfo, TypeName, Json) ->
     end.
 
 map_from_json(TypeInfo, MapFieldType, Json) ->
-    Fields =
-        lists:zf(fun ({map_field_assoc, FieldName, FieldType}) ->
-                         case maps:find(atom_to_binary(FieldName), Json) of
-                             {ok, FieldData} ->
-                                 case from_json(TypeInfo, FieldType, FieldData) of
-                                     {ok, FieldJson} ->
-                                         {true, {FieldName, FieldJson}};
-                                     skip ->
-                                         false
-                                 end;
-                             _ ->
-                                 false
-                         end;
-                     ({map_field_exact, FieldName, FieldType}) ->
-                         FieldData = maps:get(atom_to_binary(FieldName), Json),
-                         {ok, FieldJson} = from_json(TypeInfo, FieldType, FieldData),
-                         {true, {FieldName, FieldJson}}
-                 end,
-                 MapFieldType),
+    {Fields, Errors} =
+        lists:foldl(fun ({map_field_assoc, FieldName, FieldType}, {FieldsAcc, ErrAcc}) ->
+                            case maps:find(atom_to_binary(FieldName), Json) of
+                                {ok, FieldData} ->
+                                    case from_json(TypeInfo, FieldType, FieldData) of
+                                        {ok, FieldJson} ->
+                                            {FieldsAcc ++ [{FieldName, FieldJson}], ErrAcc};
+                                        {error, Errs} ->
+                                            Errs2 =
+                                                lists:map(fun(Err) ->
+                                                             err_append_location(Err, FieldName)
+                                                          end,
+                                                          Errs),
+                                            {FieldsAcc, ErrAcc ++ Errs2}
+                                    end;
+                                error ->
+                                    {FieldsAcc, ErrAcc}
+                            end;
+                        ({map_field_exact, FieldName, FieldType}, {FieldsAcc, ErrAcc}) ->
+                            case maps:find(atom_to_binary(FieldName), Json) of
+                                {ok, FieldData} ->
+                                    case from_json(TypeInfo, FieldType, FieldData) of
+                                        {ok, FieldJson} ->
+                                            {FieldsAcc ++ [{FieldName, FieldJson}], ErrAcc};
+                                        {error, Errs} ->
+                                            Errs2 =
+                                                lists:map(fun(Err) ->
+                                                             err_append_location(Err, FieldName)
+                                                          end,
+                                                          Errs),
+                                            {FieldsAcc, ErrAcc ++ Errs2}
+                                    end;
+                                error ->
+                                    {FieldsAcc,
+                                     ErrAcc
+                                     ++ [#ed_error{type = missing_data, location = [FieldName]}]}
+                            end
+                    end,
+                    {[], []},
+                    MapFieldType),
     %% FIXME: Handle missing fields
-    {ok, maps:from_list(Fields)}.
+    if Errors =:= [] ->
+           {ok, maps:from_list(Fields)};
+       true ->
+           {error, Errors}
+    end.
 
 -spec record_from_json(TypeInfo :: map(),
                        RecordName :: atom(),
@@ -244,7 +303,10 @@ record_from_json(TypeInfo, RecordName, Json) ->
                           Json :: map() | undefined) ->
                              {ok, term()} | {error, list()}.
 do_record_from_json(_TypeInfo, RecordName, _RecordInfo, undefined) ->
-    {error, [missing, RecordName]};
+    {error,
+     [#ed_error{type = missing_data,
+                location = [RecordName],
+                ctx = #{record_name => RecordName}}]};
 do_record_from_json(TypeInfo, RecordName, RecordInfo, Json) ->
     {Fields, Errors} =
         lists:foldl(fun({FieldName, FieldType}, {FieldsAcc, ErrorsAcc}) when is_atom(FieldName) ->
@@ -252,8 +314,11 @@ do_record_from_json(TypeInfo, RecordName, RecordInfo, Json) ->
                        case from_json(TypeInfo, FieldType, RecordFieldData) of
                            {ok, FieldJson} ->
                                {FieldsAcc ++ [FieldJson], ErrorsAcc};
-                           {error, Err} ->
-                               {FieldsAcc, ErrorsAcc ++ [{Err, FieldName}]}
+                           {error, Errs} ->
+                               Errs2 =
+                                   lists:map(fun(Err) -> err_append_location(Err, FieldName) end,
+                                             Errs),
+                               {FieldsAcc, ErrorsAcc ++ Errs2}
                        end
                     end,
                     {[], []},
