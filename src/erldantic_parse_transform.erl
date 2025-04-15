@@ -122,7 +122,6 @@ field_info_to_type({ann_type, _, [{var, _, _VarName}, {type, _, _TypeAnnType, []
     [];
 field_info_to_type({TypeOfType, _, Type, TypeAttrs}) ->
     true = is_list(TypeAttrs),
-    io:format("~p ~p TypeAttrs: ~p~n", [TypeOfType, Type, TypeAttrs]),
     case {TypeOfType, Type} of
         {type, record} ->
             [{atom, _, SubTypeRecordName}] = TypeAttrs,
@@ -158,7 +157,6 @@ field_info_to_type({TypeOfType, _, Type, TypeAttrs}) ->
             [ListType] = lists:flatmap(fun field_info_to_type/1, TypeAttrs),
             [{list, ListType}];
         {type, Type} ->
-            io:format("~p~n", [Type]),
             [to_a_type({type, Type})]
     end.
 

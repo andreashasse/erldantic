@@ -13,12 +13,16 @@ person_module_test_() ->
         {inparallel,
          [person_type_is_record(),
           person_person(),
+          person_person_bad(),
           person_person_to_json(),
           score(),
+          score_bad(),
           score_to_json(),
           weird_union(),
+          weird_union_bad(),
           weird_union_to_json(),
           person_address(),
+          person_address_bad(),
           person_address_undefined_city(),
           person_address_undefined_city_to_json(),
           person_address_undefined_street(),
@@ -62,11 +66,28 @@ person_person() ->
      ?_assertEqual(22, Age),
      ?_assertEqual(#address{street = <<"mojs">>, city = <<"sollentuna">>}, Home)].
 
+person_person_bad() ->
+    Json =
+        json:decode(<<"{\"name\": {\"first\": \"Andreas\", \"last\": \"Hasselberg\"}, "
+                      "\"age\": 22, \"home\": {\"city\": \"sollentuna\""
+                      "}}"/utf8>>),
+    [?_assertEqual({error, [#ed_error{type = missing_data, location = [home, street]}]},
+                   person:person_from_json(Json))].
+
 score() ->
     Json =
         json:decode(<<"{\"value\": 5, \"comment\": {\"lang\": \"en\", \"text\": \"ok\"}}"/utf8>>),
     {ok, #{value := Value, comment := Comment}} = person:score_from_json(Json),
     [?_assertEqual(5, Value), ?_assertEqual(#{lang => <<"en">>, text => <<"ok">>}, Comment)].
+
+score_bad() ->
+    Json =
+        json:decode(<<"{\"value\": 5, \"comment\": {\"lang\": \"en\", \"text\": 5}}"/utf8>>),
+    [?_assertEqual({error,
+                    [#ed_error{type = type_mismatch,
+                               location = [comment, text],
+                               ctx = #{type => {type, string}, value => 5}}]},
+                   person:score_from_json(Json))].
 
 score_to_json() ->
     Data = #{value => 5, comment => #{lang => <<"en">>, text => <<"ok">>}},
@@ -82,6 +103,13 @@ weird_union() ->
     [?_assertEqual(<<"sollentuna">>, City),
      ?_assertEqual(5, maps:get(value, Score)),
      ?_assertEqual(#{lang => <<"en">>, text => <<"ok">>}, maps:get(comment, Score))].
+
+weird_union_bad() ->
+    Json =
+        json:decode(<<"{\"city\": \"sollentuna\", \"score\": {\"value\": 5, "
+                      "\"comment\": {\"lang\": \"en\", \"text\": 5}}}"/utf8>>),
+    [?_assertMatch({error, [#ed_error{type = no_match, location = []}]},
+                   person:weird_union_from_json(Json))].
 
 weird_union_to_json() ->
     Data =
@@ -112,6 +140,15 @@ person_address() ->
     Expect = {ok, #address{street = <<"mojs">>, city = <<"sollentuna">>}},
     Expr = person:address_from_json(Json),
     [?_assertEqual(Expect, Expr)].
+
+person_address_bad() ->
+    Json = json:decode(<<"{\"street\": \"mojs\", \"city\": 5}"/utf8>>),
+    [?_assertEqual({error,
+                    [#ed_error{type = no_match,
+                               location = [city],
+                               ctx =
+                                   #{type => [{type, string}, {literal, undefined}], value => 5}}]},
+                   person:address_from_json(Json))].
 
 person_address_to_json() ->
     Address = #address{street = <<"mojs">>, city = <<"sollentuna">>},
