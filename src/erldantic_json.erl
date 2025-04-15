@@ -180,7 +180,17 @@ try_convert_to_literal(Literal, Value) when is_atom(Literal) andalso is_binary(V
     end.
 
 list_from_json(TypeInfo, Type, Data) ->
-    JsonRes = lists:map(fun(Item) -> from_json(TypeInfo, Type, Item) end, Data),
+    JsonRes =
+        lists:map(fun({Nr, Item}) ->
+                     case from_json(TypeInfo, Type, Item) of
+                         {ok, Json} ->
+                             {ok, Json};
+                         {error, Errs} ->
+                             Errs2 = lists:map(fun(Err) -> err_append_location(Err, Nr) end, Errs),
+                             {error, Errs2}
+                     end
+                  end,
+                  lists:enumerate(Data)),
     {AllOk, Errors} =
         lists:partition(fun ({ok, _}) ->
                                 true;

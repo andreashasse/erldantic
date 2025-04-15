@@ -136,7 +136,7 @@ tup_list_test_bad() ->
     Json = json:decode(<<"{\"a\": [1, \"p\", 3]}"/utf8>>),
     [?_assertEqual({error,
                     [#ed_error{type = type_mismatch,
-                               location = [a],
+                               location = [a, 2],
                                ctx = #{type => {type, integer}, value => <<"p">>}}]},
                    person:tup_list_from_json(Json))].
 
