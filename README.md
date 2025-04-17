@@ -13,6 +13,9 @@ This is Pydantic, but for erlang. Hopefully for Elixir and Gleam in the future!
     - [ ] Integer range
     - [ ] non_empty ... binary, bitstring,
     - [ ] any()/term() and dynamic()? none()?
+    - [x] non_neg_integer
+    - [ ] pos_integer
+    - [ ] neg_integer
 - [ ] Good error messages
   - [X] Path of the error
   - [ ] Test the path with Adams library for nested access.

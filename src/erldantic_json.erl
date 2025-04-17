@@ -18,8 +18,6 @@ to_json(TypeInfo, {record_ref, RecordName}, Record) when is_atom(RecordName) ->
     record_to_json(TypeInfo, RecordName, Record);
 to_json(TypeInfo, {user_type_ref, TypeName}, Data) when is_atom(TypeName) ->
     data_to_json(TypeInfo, TypeName, Data);
-to_json(_TypeInfo, {non_neg_integer, []}, Data) when is_integer(Data) andalso Data >= 0 ->
-    {ok, Data};
 to_json(_TypeInfo, {type, PrimaryType} = T, Value) when ?is_primary_type(PrimaryType) ->
     case check_type(PrimaryType, Value) of
         true ->
@@ -78,7 +76,7 @@ data_to_json(TypeInfo, TypeName, Data) ->
             first(fun to_json/3, TypeInfo, Types, Data);
         {list, Type} ->
             list_to_json(TypeInfo, Type, Data);
-        {non_neg_integer, []} when is_integer(Data) andalso Data >= 0 ->
+        {type, non_neg_integer} when is_integer(Data) andalso Data >= 0 ->
             {ok, Data}
     end.
 
@@ -261,7 +259,7 @@ type_from_json(TypeInfo, TypeName, Json) ->
             first(fun from_json/3, TypeInfo, Types, Json);
         {list, Type} when is_list(Json) ->
             list_from_json(TypeInfo, Type, Json);
-        {non_neg_integer, []} when is_integer(Json) andalso Json >= 0 ->
+        {type, non_neg_integer} when is_integer(Json) andalso Json >= 0 ->
             {ok, Json};
         Type ->
             {error,

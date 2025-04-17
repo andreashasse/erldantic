@@ -41,7 +41,7 @@ age_bad() ->
                     [{ed_error,
                       [],
                       type_mismatch,
-                      #{type => {non_neg_integer, []}, value => -12}}]},
+                      #{type => {type, non_neg_integer}, value => -12}}]},
                    person:age_from_json(Json))].
 
 age_to_json() ->
