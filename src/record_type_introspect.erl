@@ -17,10 +17,11 @@
     {literal, term()} |
     {range, integer, integer(), integer()} |
     {list, a_type()}.
+-type a_type_reference() :: {record, atom()} | {record_ref, atom()}.
+%% What is the empty list?
+-type a_type_or_ref() :: a_type() | a_type_reference().
 
-                            %% What is the empty list?
-
--export_type([a_type/0]).
+-export_type([a_type/0, a_type_reference/0, a_type_or_ref/0]).
 
 parse_transform(Forms, _Options) ->
     erldantic_parse_transform:parse_transform(Forms, _Options).

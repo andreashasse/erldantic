@@ -5,12 +5,13 @@
 -include("../include/record_type_introspect.hrl").
 
 -type key() :: any(). %% fixme
+-type json__encode_value() :: term(). %% Should be json:encode_value()
 
 % FIXME: User can get 'skip' as return value.
 -spec to_json(TypeInfo :: #{key() => record_type_introspect:a_type()},
-              Type :: term(),
+              Type :: record_type_introspect:a_type_or_ref(),
               Data :: term()) ->
-                 {ok, term()} | {error, [#ed_error{}]} | skip.
+                 {ok, json__encode_value()} | {error, [#ed_error{}]} | skip.
 to_json(TypeInfo, {record, RecordName}, Record) when is_atom(RecordName) ->
     record_to_json(TypeInfo, RecordName, Record);
 to_json(TypeInfo, {record_ref, RecordName}, Record) when is_atom(RecordName) ->
@@ -40,15 +41,17 @@ to_json(_TypeInfo, {literal, _} = T, OtherValue) ->
                 ctx = #{type => T, value => OtherValue}}]};
 to_json(TypeInfo, {union, Types}, Data) ->
     first(fun to_json/3, TypeInfo, Types, Data);
-to_json(TypeInfo, {list, Type}, Data) ->
+to_json(TypeInfo, {list, Type}, Data) when is_list(Data) ->
     list_to_json(TypeInfo, Type, Data);
 to_json(TypeInfo, {type, TypeName}, Data) when is_atom(TypeName) ->
     data_to_json(TypeInfo, TypeName, Data);
 to_json(_TypeInfo, #a_map{fields = MapFieldTypes}, Data) ->
     map_to_json(MapFieldTypes, Data).
 
--spec list_to_json(TypeInfo :: map(), Type :: term(), Data :: term()) ->
-                      {ok, [term()]} | {error, [#ed_error{}]}.
+-spec list_to_json(TypeInfo :: map(),
+                   Type :: record_type_introspect:a_type_or_ref(),
+                   Data :: [term()]) ->
+                      {ok, [json__encode_value()]} | {error, [#ed_error{}]}.
 list_to_json(TypeInfo, Type, Data) when is_list(Data) ->
     JsonRes = lists:map(fun(Item) -> to_json(TypeInfo, Type, Item) end, Data),
     {AllOk, Errors} =
@@ -97,7 +100,7 @@ map_to_json(MapFieldTypes, Data) ->
     {ok, maps:from_list(MapFields)}.
 
 -spec record_to_json(TypeInfo :: map(), RecordName :: atom(), Record :: term()) ->
-                        {ok, #{atom() => term()}} | {error, [#ed_error{}]}.
+                        {ok, #{atom() => json__encode_value()}} | {error, [#ed_error{}]}.
 record_to_json(TypeInfo, RecordName, Record) when is_tuple(Record) ->
     [RecordName | FieldsData] = tuple_to_list(Record),
     #a_rec{name = RecordName, fields = RecordInfo} = maps:get({record, RecordName}, TypeInfo),
