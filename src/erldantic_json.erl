@@ -17,6 +17,8 @@ to_json(TypeInfo, {record_ref, RecordName}, Record) when is_atom(RecordName) ->
     record_to_json(TypeInfo, RecordName, Record);
 to_json(TypeInfo, {user_type_ref, TypeName}, Data) when is_atom(TypeName) ->
     data_to_json(TypeInfo, TypeName, Data);
+to_json(_TypeInfo, {non_neg_integer, []}, Data) when is_integer(Data) andalso Data >= 0 ->
+    {ok, Data};
 to_json(_TypeInfo, {type, PrimaryType} = T, Value) when ?is_primary_type(PrimaryType) ->
     case check_type(PrimaryType, Value) of
         true ->
@@ -45,6 +47,8 @@ to_json(TypeInfo, {type, TypeName}, Data) when is_atom(TypeName) ->
 to_json(_TypeInfo, #a_map{fields = MapFieldTypes}, Data) ->
     map_to_json(MapFieldTypes, Data).
 
+-spec list_to_json(TypeInfo :: map(), Type :: term(), Data :: term()) ->
+                      {ok, [term()]} | {error, [#ed_error{}]}.
 list_to_json(TypeInfo, Type, Data) when is_list(Data) ->
     JsonRes = lists:map(fun(Item) -> to_json(TypeInfo, Type, Item) end, Data),
     {AllOk, Errors} =
@@ -58,7 +62,7 @@ list_to_json(TypeInfo, Type, Data) when is_list(Data) ->
         [] ->
             {ok, lists:map(fun({ok, Json}) -> Json end, AllOk)};
         _ ->
-            {error, Errors}
+            {error, lists:flatmap(fun({error, Errs}) -> Errs end, Errors)}
     end.
 
 data_to_json(TypeInfo, TypeName, Data) ->
@@ -70,7 +74,9 @@ data_to_json(TypeInfo, TypeName, Data) ->
         {union, Types} ->
             first(fun to_json/3, TypeInfo, Types, Data);
         {list, Type} ->
-            list_to_json(TypeInfo, Type, Data)
+            list_to_json(TypeInfo, Type, Data);
+        {non_neg_integer, []} when is_integer(Data) andalso Data >= 0 ->
+            {ok, Data}
     end.
 
 map_to_json(MapFieldTypes, Data) ->
@@ -129,7 +135,7 @@ err_append_location(Err, FieldName) ->
     Err#ed_error{location = [FieldName | Err#ed_error.location]}.
 
 -spec from_json(TypeInfo :: map(), Type :: term(), Json :: map()) ->
-                   {ok, term()} | {error, list()}.
+                   {ok, term()} | {error, [#ed_error{}]}.
 from_json(TypeInfo, {record, RecordName}, Json) when is_atom(RecordName) ->
     record_from_json(TypeInfo, RecordName, Json);
 from_json(TypeInfo, {record_ref, RecordName}, Json) when is_atom(RecordName) ->
@@ -240,18 +246,25 @@ do_first(F, TypeInfo, [Type | Rest], Json) ->
             do_first(F, TypeInfo, Rest, Json)
     end.
 
--spec type_from_json(TypeInfo :: map(), TypeName :: atom(), Json :: map()) ->
+-spec type_from_json(TypeInfo :: map(), TypeName :: atom(), Json :: term()) ->
                         {ok, term()} | {error, [#ed_error{}]}.
 type_from_json(TypeInfo, TypeName, Json) ->
     case maps:get({type, TypeName}, TypeInfo) of
-        #a_map{fields = MapFieldType} ->
+        #a_map{fields = MapFieldType} when is_map(Json) ->
             map_from_json(TypeInfo, MapFieldType, Json);
-        #a_rec{name = RecordName, fields = RecordInfo} ->
+        #a_rec{name = RecordName, fields = RecordInfo} when is_map(Json) ->
             do_record_from_json(TypeInfo, RecordName, RecordInfo, Json);
         {union, Types} ->
             first(fun from_json/3, TypeInfo, Types, Json);
-        {list, Type} ->
-            list_from_json(TypeInfo, Type, Json)
+        {list, Type} when is_list(Json) ->
+            list_from_json(TypeInfo, Type, Json);
+        {non_neg_integer, []} when is_integer(Json) andalso Json >= 0 ->
+            {ok, Json};
+        Type ->
+            {error,
+             [#ed_error{type = type_mismatch,
+                        location = [],
+                        ctx = #{type => Type, value => Json}}]}
     end.
 
 map_from_json(TypeInfo, MapFieldType, Json) ->

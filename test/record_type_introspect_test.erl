@@ -11,30 +11,14 @@ person_module_test_() ->
      fun noop/1,
      fun(_SetupData) ->
         {inparallel,
-         [person_type_is_record(),
-          person_person(),
-          person_person_bad(),
-          person_person_to_json(),
-          score(),
-          score_bad(),
-          score_to_json(),
-          weird_union(),
-          weird_union_bad(),
-          weird_union_to_json(),
-          person_address(),
-          person_address_bad(),
-          person_address_undefined_city(),
-          person_address_undefined_city_to_json(),
-          person_address_undefined_street(),
-          person_address_undefined_street_to_json(),
-          person_address_to_json(),
-          accesses_test(),
-          accesses_test_to_json(),
-          tup_list_test(),
-          tup_list_test_bad(),
-          tup_list_test_to_json(),
-          name_t(),
-          name_t_error(),
+         [age(), age_bad(), age_to_json(), person_type_is_record(), person_person(),
+          person_person_bad(), person_person_to_json(), score(), score_bad(), score_to_json(),
+          weird_union(), weird_union_bad(), weird_union_to_json(), person_address(),
+          person_address_bad(), person_address_undefined_city(),
+          person_address_undefined_city_to_json(), person_address_undefined_street(),
+          person_address_undefined_street_to_json(), person_address_to_json(), accesses_test(),
+          accesses_test_to_json(), tup_list_test(), tup_list_test_bad(), tup_list_test_to_json(),
+          name_t(), name_t_error(),
           name_t_to_json()]}        %  name_t_to_json_error()
      end}.
 
@@ -46,6 +30,25 @@ compile_person() ->
 
 noop(_) ->
     ok.
+
+age() ->
+    Json = json:decode(<<"22"/utf8>>),
+    [?_assertEqual({ok, 22}, person:age_from_json(Json))].
+
+age_bad() ->
+    Json = json:decode(<<"-12"/utf8>>),
+    [?_assertEqual({error,
+                    [{ed_error,
+                      [],
+                      type_mismatch,
+                      #{type => {non_neg_integer, []}, value => -12}}]},
+                   person:age_from_json(Json))].
+
+age_to_json() ->
+    Data = 22,
+    {ok, Json} = person:age_to_json(Data),
+    Expect = 22,
+    [?_assertEqual(Expect, Json)].
 
 person_type_is_record() ->
     Json = json:decode(<<"{\"street\": \"mojs\", \"city\": \"sollentuna\"}"/utf8>>),

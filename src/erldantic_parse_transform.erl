@@ -178,13 +178,12 @@ map_field_info({TypeOfType, _, Type, TypeAttrs}) ->
             [{map_field_exact, MapFieldName, AType}]
     end.
 
-to_a_type(T) ->
-    to_a_type(T, []).
-
 -spec to_a_type(term()) -> record_type_introspect:a_type().
-to_a_type({type, PrimaryType} = Type, []) when ?is_primary_type(PrimaryType) ->
+to_a_type({type, PrimaryType} = Type) when ?is_primary_type(PrimaryType) ->
     Type;
-to_a_type({literal, _Literal} = Type, []) ->
+to_a_type({non_neg_integer, []}) ->
+    {non_neg_integer, []};
+to_a_type({literal, _Literal} = Type) ->
     Type.
 
 -spec record_field_info(term()) -> {atom(), record_type_introspect:a_type()}.

@@ -5,7 +5,7 @@ This is Pydantic, but for erlang. Hopefully for Elixir and Gleam in the future!
 
 ## TODO PoC
 - [ ] All types expect `pid()`, `port()`, `Fun` and `reference()`.
-    - [ ] List
+    - [X] List
     - [ ] Float
     - [ ] Atom
     - [ ] Boolean
@@ -14,11 +14,14 @@ This is Pydantic, but for erlang. Hopefully for Elixir and Gleam in the future!
     - [ ] non_empty ... binary, bitstring,
     - [ ] any()/term() and dynamic()? none()?
 - [ ] Good error messages
+  - [X] Path of the error
+  - [ ] Test the path with Adams library for nested access.
 - [ ] Add type spec to generated functions.
 - [ ] Document special behaviour for `undefined`.
 
 ## TODO PoC FastApi
 - [ ] How should I get example values into the mix? Some macro ?spec(example = 2, type = integer) that I write to integer and keep the example separate? Can that be done without IDEs going bananas?
+  - [ ] An alternative is to add an example value to the router in the PoC
 - [ ] Get types from function specs.
 - [ ] Declerative router for Elli/Cowboy
 - [ ] OpenAPI spec

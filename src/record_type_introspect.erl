@@ -7,6 +7,7 @@
 -type user_type_name() :: atom().
 -type a_type() ::
     {type, string | integer | boolean} |
+    {non_neg_integer, []} |
     {record_ref, user_type_name()} |
     {user_type_ref, user_type_name()} |
     #a_map{} |
@@ -16,6 +17,8 @@
     {literal, term()} |
     {range, integer, integer(), integer()} |
     {list, a_type()}.
+
+                            %% What is the empty list?
 
 -export_type([a_type/0]).
 
