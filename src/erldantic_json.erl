@@ -77,21 +77,40 @@ data_to_json(TypeInfo, TypeName, Data) ->
     end.
 
 map_to_json(MapFieldTypes, Data) ->
-    MapFields =
-        lists:zf(fun ({map_field_assoc, FieldName, _FieldType}) ->
-                         case Data of
-                             #{FieldName := FieldData} ->
-                                 {true, {FieldName, FieldData}};
-                             _ ->
-                                 false
-                         end;
-                     ({map_field_exact, FieldName, _FieldType}) ->
-                         FieldData = maps:get(FieldName, Data),
-                         {true, {FieldName, FieldData}}
-                 end,
-                 MapFieldTypes),
-    %% FIXME: Handle missing fields
-    {ok, maps:from_list(MapFields)}.
+    {MapFields, Errors} =
+        lists:foldl(fun ({map_field_assoc, FieldName, _FieldType}, {FieldsAcc, ErrorsAcc}) ->
+                            case Data of
+                                #{FieldName := FieldData} ->
+                                    {FieldsAcc ++ [{FieldName, FieldData}], ErrorsAcc};
+                                _ ->
+                                    {FieldsAcc, ErrorsAcc}
+                            end;
+                        ({map_field_exact, FieldName, FieldType}, {FieldsAcc, ErrorsAcc}) ->
+                            case maps:find(FieldName, Data) of
+                                {ok, FieldData} ->
+                                    {FieldsAcc ++ [{FieldName, FieldData}], ErrorsAcc};
+                                error ->
+                                    case can_be_undefined(FieldType) of
+                                        true ->
+                                            %% ADD test case
+                                            {FieldsAcc ++ [{FieldName, undefined}], ErrorsAcc};
+                                        false ->
+                                            %% ADD test case
+                                            {FieldsAcc,
+                                             ErrorsAcc
+                                             ++ [#ed_error{type = missing_data,
+                                                           location = [FieldName]}]}
+                                    end
+                            end
+                    end,
+                    {[], []},
+                    MapFieldTypes),
+    case Errors of
+        [] ->
+            {ok, maps:from_list(MapFields)};
+        _ ->
+            {error, Errors}
+    end.
 
 -spec record_to_json(TypeInfo :: map(), RecordName :: atom(), Record :: term()) ->
                         {ok, #{atom() => json__encode_value()}} | {error, [#ed_error{}]}.
