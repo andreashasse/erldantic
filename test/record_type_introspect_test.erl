@@ -16,9 +16,10 @@ person_module_test_() ->
           weird_union(), weird_union_bad(), weird_union_to_json(), person_address(),
           person_address_bad(), person_address_undefined_city(),
           person_address_undefined_city_to_json(), person_address_undefined_street(),
-          person_address_undefined_street_to_json(), person_address_to_json(), accesses_test(),
-          accesses_test_to_json(), tup_list_test(), tup_list_test_bad(), tup_list_test_to_json(),
-          name_t(), name_t_error(),
+          person_address_undefined_street_to_json(), person_address_to_json(), level(), level_bad(),
+          level_to_json(), level_to_json_bad(), negative(), negative_bad(), negative_to_json(),
+          negative_to_json_bad(), accesses_test(), accesses_test_to_json(), tup_list_test(),
+          tup_list_test_bad(), tup_list_test_to_json(), name_t(), name_t_error(),
           name_t_to_json()]}        %  name_t_to_json_error()
      end}.
 
@@ -197,6 +198,50 @@ person_address_undefined_city_to_json() ->
     Expect = {ok, #{street => <<"mojs">>}},
     Expr = person:address_to_json(Data),
     [?_assertEqual(Expect, Expr)].
+
+level() ->
+    Json = json:decode(<<"5"/utf8>>),
+    [?_assertEqual({ok, 5}, person:level_from_json(Json))].
+
+level_bad() ->
+    Json = json:decode(<<"-5"/utf8>>),
+    [?_assertEqual({error,
+                    [{ed_error, [], type_mismatch, #{type => {type, pos_integer}, value => -5}}]},
+                   person:level_from_json(Json))].
+
+level_to_json() ->
+    Data = 5,
+    {ok, Json} = person:level_to_json(Data),
+    Expect = 5,
+    [?_assertEqual(Expect, Json)].
+
+level_to_json_bad() ->
+    Data = -5,
+    [?_assertEqual({error,
+                    [{ed_error, [], type_mismatch, #{type => {type, pos_integer}, value => -5}}]},
+                   person:level_to_json(Data))].
+
+negative() ->
+    Json = json:decode(<<"-5"/utf8>>),
+    [?_assertEqual({ok, -5}, person:negative_from_json(Json))].
+
+negative_bad() ->
+    Json = json:decode(<<"5"/utf8>>),
+    [?_assertEqual({error,
+                    [{ed_error, [], type_mismatch, #{type => {type, neg_integer}, value => 5}}]},
+                   person:negative_from_json(Json))].
+
+negative_to_json() ->
+    Data = -5,
+    {ok, Json} = person:negative_to_json(Data),
+    Expect = -5,
+    [?_assertEqual(Expect, Json)].
+
+negative_to_json_bad() ->
+    Data = 5,
+    [?_assertEqual({error,
+                    [{ed_error, [], type_mismatch, #{type => {type, neg_integer}, value => 5}}]},
+                   person:negative_to_json(Data))].
 
 person_address_undefined_street() ->
     Json = json:decode(<<"{\"city\": \"sollentuna\"}"/utf8>>),

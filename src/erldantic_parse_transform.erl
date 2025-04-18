@@ -148,8 +148,8 @@ field_info_to_type({TypeOfType, _, Type, TypeAttrs}) ->
             [{list, ListType}];
         {type, PrimaryType} when ?is_primary_type(PrimaryType) ->
             [{type, PrimaryType}];
-        {type, non_neg_integer} ->
-            [{type, non_neg_integer}];
+        {type, PartailRangeInteger} when ?is_predefined_int_range(PartailRangeInteger) ->
+            [{type, PartailRangeInteger}];
         {literal, Literal} ->
             [{literal, Literal}]
     end.

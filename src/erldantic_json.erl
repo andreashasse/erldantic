@@ -18,8 +18,9 @@ to_json(TypeInfo, {record_ref, RecordName}, Record) when is_atom(RecordName) ->
     record_to_json(TypeInfo, RecordName, Record);
 to_json(TypeInfo, {user_type_ref, TypeName}, Data) when is_atom(TypeName) ->
     data_to_json(TypeInfo, TypeName, Data);
-to_json(_TypeInfo, {type, PrimaryType} = T, Value) when ?is_primary_type(PrimaryType) ->
-    case check_type(PrimaryType, Value) of
+to_json(_TypeInfo, {type, Type} = T, Value)
+    when ?is_primary_type(Type) orelse ?is_predefined_int_range(Type) ->
+    case check_type(Type, Value) of
         true ->
             {ok, Value};
         false ->
@@ -67,17 +68,12 @@ list_to_json(TypeInfo, Type, Data) when is_list(Data) ->
     end.
 
 data_to_json(TypeInfo, TypeName, Data) ->
-    case maps:get({type, TypeName}, TypeInfo) of
-        #a_rec{name = RecordName, fields = _RecordInfo} ->
-            record_to_json(TypeInfo, RecordName, Data);
-        #a_map{fields = MapFieldTypes} ->
-            map_to_json(MapFieldTypes, Data);
-        {union, Types} ->
-            first(fun to_json/3, TypeInfo, Types, Data);
-        {list, Type} ->
-            list_to_json(TypeInfo, Type, Data);
-        {type, non_neg_integer} when is_integer(Data) andalso Data >= 0 ->
-            {ok, Data}
+    case maps:find({type, TypeName}, TypeInfo) of
+        {ok, Mojs} ->
+            to_json(TypeInfo, Mojs, Data);
+        error ->
+            %% ADD TESTS
+            {error, [#ed_error{type = missing_type, location = [TypeName]}]}
     end.
 
 map_to_json(MapFieldTypes, Data) ->
@@ -147,7 +143,8 @@ from_json(TypeInfo, {user_type_ref, TypeName}, Json) when is_atom(TypeName) ->
     type_from_json(TypeInfo, TypeName, Json);
 from_json(TypeInfo, {list, Type}, Data) ->
     list_from_json(TypeInfo, Type, Data);
-from_json(_TypeInfo, {type, PrimaryType} = T, Json) when ?is_primary_type(PrimaryType) ->
+from_json(_TypeInfo, {type, PrimaryType} = T, Json)
+    when ?is_primary_type(PrimaryType) orelse ?is_predefined_int_range(PrimaryType) ->
     case check_type(PrimaryType, Json) of
         true ->
             {ok, Json};
@@ -221,6 +218,12 @@ check_type(string, Json) when is_binary(Json) ->
     true;
 check_type(boolean, Json) when is_boolean(Json) ->
     true;
+check_type(non_neg_integer, Json) when is_integer(Json) andalso Json >= 0 ->
+    true;
+check_type(pos_integer, Json) when is_integer(Json) andalso Json > 0 ->
+    true;
+check_type(neg_integer, Json) when is_integer(Json) andalso Json < 0 ->
+    true;
 check_type(_Type, _Json) ->
     false.
 
@@ -250,22 +253,12 @@ do_first(F, TypeInfo, [Type | Rest], Json) ->
 -spec type_from_json(TypeInfo :: map(), TypeName :: atom(), Json :: term()) ->
                         {ok, term()} | {error, [#ed_error{}]}.
 type_from_json(TypeInfo, TypeName, Json) ->
-    case maps:get({type, TypeName}, TypeInfo) of
-        #a_map{fields = MapFieldType} when is_map(Json) ->
-            map_from_json(TypeInfo, MapFieldType, Json);
-        #a_rec{name = RecordName, fields = RecordInfo} when is_map(Json) ->
-            do_record_from_json(TypeInfo, RecordName, RecordInfo, Json);
-        {union, Types} ->
-            first(fun from_json/3, TypeInfo, Types, Json);
-        {list, Type} when is_list(Json) ->
-            list_from_json(TypeInfo, Type, Json);
-        {type, non_neg_integer} when is_integer(Json) andalso Json >= 0 ->
-            {ok, Json};
-        Type ->
-            {error,
-             [#ed_error{type = type_mismatch,
-                        location = [],
-                        ctx = #{type => Type, value => Json}}]}
+    case maps:find({type, TypeName}, TypeInfo) of
+        {ok, Type} ->
+            from_json(TypeInfo, Type, Json);
+        error ->
+            %% ADD TESTS
+            {error, [#ed_error{type = missing_type, location = [TypeName]}]}
     end.
 
 map_from_json(TypeInfo, MapFieldType, Json) ->
