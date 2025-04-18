@@ -32,11 +32,6 @@ to_json(_TypeInfo, {literal, undefined}, undefined) ->
     skip;
 to_json(_TypeInfo, {literal, Literal}, Literal) ->
     {ok, Literal};
-to_json(_TypeInfo, {literal, _} = T, OtherValue) ->
-    {error,
-     [#ed_error{type = type_mismatch,
-                location = [],
-                ctx = #{type => T, value => OtherValue}}]};
 to_json(TypeInfo, {union, Types}, Data) ->
     first(fun to_json/3, TypeInfo, Types, Data);
 to_json(TypeInfo, {list, Type}, Data) when is_list(Data) ->
@@ -44,7 +39,12 @@ to_json(TypeInfo, {list, Type}, Data) when is_list(Data) ->
 to_json(TypeInfo, {type, TypeName}, Data) when is_atom(TypeName) ->
     data_to_json(TypeInfo, TypeName, Data);
 to_json(_TypeInfo, #a_map{fields = MapFieldTypes}, Data) ->
-    map_to_json(MapFieldTypes, Data).
+    map_to_json(MapFieldTypes, Data);
+to_json(_TypeInfo, T, OtherValue) ->
+    {error,
+     [#ed_error{type = type_mismatch,
+                location = [],
+                ctx = #{type => T, value => OtherValue}}]}.
 
 -spec list_to_json(TypeInfo :: map(),
                    Type :: record_type_introspect:a_type_or_ref(),
