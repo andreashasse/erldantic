@@ -11,15 +11,16 @@ person_module_test_() ->
      fun noop/1,
      fun(_SetupData) ->
         {inparallel,
-         [age(), age_bad(), age_to_json(), person_type_is_record(), person_person(),
-          person_person_bad(), person_person_to_json(), score(), score_bad(), score_to_json(),
-          weird_union(), weird_union_bad(), weird_union_to_json(), person_address(),
-          person_address_bad(), person_address_undefined_city(),
-          person_address_undefined_city_to_json(), person_address_undefined_street(),
-          person_address_undefined_street_to_json(), person_address_to_json(), level(), level_bad(),
-          level_to_json(), level_to_json_bad(), negative(), negative_bad(), negative_to_json(),
-          negative_to_json_bad(), accesses_test(), accesses_test_to_json(), tup_list_test(),
-          tup_list_test_bad(), tup_list_test_to_json(), name_t(), name_t_error(),
+         [active(), active_bad(), active_to_json(), active_to_json_bad(), age(), age_bad(),
+          age_to_json(), person_type_is_record(), person_person(), person_person_bad(),
+          person_person_to_json(), score(), score_bad(), score_to_json(), weird_union(),
+          weird_union_bad(), weird_union_to_json(), person_address(), person_address_bad(),
+          person_address_undefined_city(), person_address_undefined_city_to_json(),
+          person_address_undefined_street(), person_address_undefined_street_to_json(),
+          person_address_to_json(), level(), level_bad(), level_to_json(), level_to_json_bad(),
+          negative(), negative_bad(), negative_to_json(), negative_to_json_bad(), accesses_test(),
+          accesses_test_to_json(), tup_list_test(), tup_list_test_bad(), tup_list_test_to_json(),
+          name_t(), name_t_error(),
           name_t_to_json()]}        %  name_t_to_json_error()
      end}.
 
@@ -31,6 +32,28 @@ compile_person() ->
 
 noop(_) ->
     ok.
+
+active() ->
+    Json = json:decode(<<"true"/utf8>>),
+    [?_assertEqual({ok, true}, person:active_from_json(Json))].
+
+active_bad() ->
+    Json = json:decode(<<"1"/utf8>>),
+    [?_assertEqual({error,
+                    [{ed_error, [], type_mismatch, #{type => {type, boolean}, value => 1}}]},
+                   person:active_from_json(Json))].
+
+active_to_json() ->
+    Data = true,
+    {ok, Json} = person:active_to_json(Data),
+    Expect = true,
+    [?_assertEqual(Expect, Json)].
+
+active_to_json_bad() ->
+    Data = 1,
+    [?_assertEqual({error,
+                    [{ed_error, [], type_mismatch, #{type => {type, boolean}, value => 1}}]},
+                   person:active_to_json(Data))].
 
 age() ->
     Json = json:decode(<<"22"/utf8>>),

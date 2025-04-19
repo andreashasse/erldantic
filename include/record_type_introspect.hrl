@@ -7,7 +7,10 @@
 -record(a_rec, {name :: atom(), fields :: [{atom(), record_type_introspect:a_type()}]}).
 
 -define(is_primary_type(PrimaryType),
-        PrimaryType =:= string orelse PrimaryType =:= integer orelse PrimaryType =:= boolean).
+        PrimaryType =:= string
+        orelse PrimaryType =:= integer
+        orelse PrimaryType =:= boolean
+        orelse PrimaryType =:= atom).
 -define(is_predefined_int_range(_Type),
         _Type =:= non_neg_integer orelse _Type =:= neg_integer orelse _Type =:= pos_integer).
 

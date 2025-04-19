@@ -243,6 +243,8 @@ check_type(pos_integer, Json) when is_integer(Json) andalso Json > 0 ->
     true;
 check_type(neg_integer, Json) when is_integer(Json) andalso Json < 0 ->
     true;
+check_type(atom, Json) when is_atom(Json) ->
+    true;
 check_type(_Type, _Json) ->
     false.
 
