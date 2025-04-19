@@ -6,7 +6,7 @@
 
 -type user_type_name() :: atom().
 -type a_type() ::
-    {type, string | integer | boolean | non_neg_integer} |
+    {type, string | integer | boolean | float | non_neg_integer} |
     {record_ref, user_type_name()} |
     {user_type_ref, user_type_name()} |
     #a_map{} |

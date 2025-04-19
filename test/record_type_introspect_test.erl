@@ -20,8 +20,8 @@ person_module_test_() ->
           person_address_to_json(), level(), level_bad(), level_to_json(), level_to_json_bad(),
           negative(), negative_bad(), negative_to_json(), negative_to_json_bad(), accesses_test(),
           accesses_test_to_json(), tup_list_test(), tup_list_test_bad(), tup_list_test_to_json(),
-          name_t(), name_t_error(),
-          name_t_to_json()]}        %  name_t_to_json_error()
+          name_t(), name_t_error(), name_t_to_json(), temp(), temp_bad(), temp_to_json(),
+          temp_to_json_bad()]}        %  name_t_to_json_error()
      end}.
 
 compile_person() ->
@@ -297,3 +297,28 @@ name_t_to_json() ->
     Resp = person:name_t_to_json(Data),
     Expected = {ok, #{first => <<"Andreas">>, last => <<"Hasselberg">>}},
     [?_assertEqual(Resp, Expected)].
+
+temp() ->
+    Json = json:decode(<<"3.14"/utf8>>),
+    [?_assertEqual({ok, 3.14}, person:temp_from_json(Json))].
+
+temp_bad() ->
+    Json = json:decode(<<"\"not_a_float\""/utf8>>),
+    [?_assertEqual({error,
+                    [{ed_error,
+                      [],
+                      type_mismatch,
+                      #{type => {type, float}, value => <<"not_a_float">>}}]},
+                   person:temp_from_json(Json))].
+
+temp_to_json() ->
+    Data = 3.14,
+    {ok, Json} = person:temp_to_json(Data),
+    Expect = 3.14,
+    [?_assertEqual(Expect, Json)].
+
+temp_to_json_bad() ->
+    Data = 42,
+    [?_assertEqual({error,
+                    [{ed_error, [], type_mismatch, #{type => {type, float}, value => 42}}]},
+                   person:temp_to_json(Data))].

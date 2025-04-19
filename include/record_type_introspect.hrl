@@ -10,7 +10,8 @@
         PrimaryType =:= string
         orelse PrimaryType =:= integer
         orelse PrimaryType =:= boolean
-        orelse PrimaryType =:= atom).
+        orelse PrimaryType =:= atom
+        orelse PrimaryType =:= float).
 -define(is_predefined_int_range(_Type),
         _Type =:= non_neg_integer orelse _Type =:= neg_integer orelse _Type =:= pos_integer).
 
