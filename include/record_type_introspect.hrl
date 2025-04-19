@@ -13,5 +13,11 @@
 
 -record(ed_error,
         {location :: [string() | atom()],
-         type :: type_mismatch | no_match | record_type_mismatch | missing_data,
+         type ::
+             type_mismatch |
+             no_match |
+             record_type_mismatch |
+             missing_data |
+             missing_type |
+             json_type_mismatch,
          ctx :: term()}).

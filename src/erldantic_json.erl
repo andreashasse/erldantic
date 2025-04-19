@@ -6,6 +6,7 @@
 
 -type key() :: any(). %% fixme
 -type json__encode_value() :: term(). %% Should be json:encode_value()
+-type json() :: json:decode_value().
 
 % FIXME: User can get 'skip' as return value.
 -spec to_json(TypeInfo :: #{key() => record_type_introspect:a_type()},
@@ -68,11 +69,10 @@ list_to_json(TypeInfo, Type, Data) when is_list(Data) ->
     end.
 
 data_to_json(TypeInfo, TypeName, Data) ->
-    case maps:find({type, TypeName}, TypeInfo) of
-        {ok, Mojs} ->
+    case TypeInfo of
+        #{{type, TypeName} := Mojs} ->
             to_json(TypeInfo, Mojs, Data);
-        error ->
-            %% ADD TESTS
+        #{} ->
             {error, [#ed_error{type = missing_type, location = [TypeName]}]}
     end.
 
@@ -86,10 +86,10 @@ map_to_json(MapFieldTypes, Data) ->
                                     {FieldsAcc, ErrorsAcc}
                             end;
                         ({map_field_exact, FieldName, FieldType}, {FieldsAcc, ErrorsAcc}) ->
-                            case maps:find(FieldName, Data) of
-                                {ok, FieldData} ->
+                            case Data of
+                                #{FieldName := FieldData} ->
                                     {FieldsAcc ++ [{FieldName, FieldData}], ErrorsAcc};
-                                error ->
+                                #{} ->
                                     case can_be_undefined(FieldType) of
                                         true ->
                                             %% ADD test case
@@ -150,7 +150,7 @@ record_to_json(_TypeInfo, RecordName, Record) ->
 err_append_location(Err, FieldName) ->
     Err#ed_error{location = [FieldName | Err#ed_error.location]}.
 
--spec from_json(TypeInfo :: map(), Type :: term(), Json :: map()) ->
+-spec from_json(TypeInfo :: map(), Type :: term(), Json :: json()) ->
                    {ok, term()} | {error, [#ed_error{}]}.
 from_json(TypeInfo, {record, RecordName}, Json) when is_atom(RecordName) ->
     record_from_json(TypeInfo, RecordName, Json);
@@ -269,14 +269,13 @@ do_first(F, TypeInfo, [Type | Rest], Json) ->
             do_first(F, TypeInfo, Rest, Json)
     end.
 
--spec type_from_json(TypeInfo :: map(), TypeName :: atom(), Json :: term()) ->
+-spec type_from_json(TypeInfo :: map(), TypeName :: atom(), Json :: json()) ->
                         {ok, term()} | {error, [#ed_error{}]}.
 type_from_json(TypeInfo, TypeName, Json) ->
-    case maps:find({type, TypeName}, TypeInfo) of
-        {ok, Type} ->
+    case TypeInfo of
+        #{{type, TypeName} := Type} ->
             from_json(TypeInfo, Type, Json);
-        error ->
-            %% ADD TESTS
+        #{} ->
             {error, [#ed_error{type = missing_type, location = [TypeName]}]}
     end.
 
@@ -328,7 +327,7 @@ map_from_json(TypeInfo, MapFieldType, Json) ->
            {error, Errors}
     end.
 
--spec record_from_json(TypeInfo :: map(), RecordName :: atom(), Json :: map()) ->
+-spec record_from_json(TypeInfo :: map(), RecordName :: atom(), Json :: json()) ->
                           {ok, term()} | {error, list()}.
 record_from_json(TypeInfo, RecordName, Json) ->
     #a_rec{name = RecordName, fields = RecordInfo} = maps:get({record, RecordName}, TypeInfo),
@@ -337,9 +336,9 @@ record_from_json(TypeInfo, RecordName, Json) ->
 -spec do_record_from_json(TypeInfo :: map(),
                           RecordName :: atom(),
                           RecordInfo :: list(),
-                          Json :: map()) ->
+                          Json :: json()) ->
                              {ok, term()} | {error, list()}.
-do_record_from_json(TypeInfo, RecordName, RecordInfo, Json) ->
+do_record_from_json(TypeInfo, RecordName, RecordInfo, Json) when is_map(Json) ->
     {Fields, Errors} =
         lists:foldl(fun({FieldName, FieldType}, {FieldsAcc, ErrorsAcc}) when is_atom(FieldName) ->
                        case maps:find(atom_to_binary(FieldName), Json) of
@@ -372,7 +371,12 @@ do_record_from_json(TypeInfo, RecordName, RecordInfo, Json) ->
             {ok, list_to_tuple([RecordName | Fields])};
         _ ->
             {error, Errors}
-    end.
+    end;
+do_record_from_json(_TypeInfo, RecordName, _RecordInfo, Json) ->
+    {error,
+     [#ed_error{type = json_type_mismatch,
+                location = [RecordName],
+                ctx = #{record_name => RecordName, record => Json}}]}.
 
 can_be_undefined(Type) ->
     case Type of
