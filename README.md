@@ -6,11 +6,11 @@ This is Pydantic, but for erlang. Hopefully for Elixir and Gleam in the future!
 ## TODO PoC
 - [ ] All types expect `pid()`, `port()`, `Fun` and `reference()`.
     - [X] List
-    - [ ] Float
-    - [ ] Atom
-    - [ ] Boolean
+    - [x] Float
+    - [x] Atom
+    - [x] Boolean
     - [ ] Number? or will it always show up as integer()|float()?
-    - [ ] Integer range
+    - [x] Integer range
     - [ ] non_empty ... binary, bitstring,
     - [ ] any()/term() and dynamic()? none()?
     - [x] non_neg_integer

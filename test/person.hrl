@@ -1,6 +1,7 @@
 -record(address, {street :: string(), city :: string() | undefined}).
 -record(person, {name :: name_t(), age :: integer(), home :: #address{}}).
 
+-type role() :: admin | user | guest.
 -type active() :: boolean().
 -type temp() :: float().
 -type age() :: non_neg_integer().

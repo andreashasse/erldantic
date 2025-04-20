@@ -30,6 +30,9 @@ to_json(_TypeInfo, {type, Type} = T, Value)
                         location = [],
                         ctx = #{type => T, value => Value}}]}
     end;
+to_json(_TypeInfo, {range, integer, Min, Max}, Value)
+    when is_integer(Value) andalso Min =< Value, Value =< Max ->
+    {ok, Value};
 to_json(_TypeInfo, {literal, undefined}, undefined) ->
     skip;
 to_json(_TypeInfo, {literal, Literal}, Literal) ->
@@ -40,8 +43,8 @@ to_json(TypeInfo, {list, Type}, Data) when is_list(Data) ->
     list_to_json(TypeInfo, Type, Data);
 to_json(TypeInfo, {type, TypeName}, Data) when is_atom(TypeName) ->
     data_to_json(TypeInfo, TypeName, Data);
-to_json(_TypeInfo, #a_map{fields = MapFieldTypes}, Data) ->
-    map_to_json(MapFieldTypes, Data);
+to_json(TypeInfo, #a_map{fields = MapFieldTypes}, Data) ->
+    map_to_json(TypeInfo, MapFieldTypes, Data);
 to_json(_TypeInfo, T, OtherValue) ->
     {error,
      [#ed_error{type = type_mismatch,
@@ -76,19 +79,41 @@ data_to_json(TypeInfo, TypeName, Data) ->
             {error, [#ed_error{type = missing_type, location = [TypeName]}]}
     end.
 
-map_to_json(MapFieldTypes, Data) ->
+map_to_json(TypeInfo, MapFieldTypes, Data) ->
     {MapFields, Errors} =
-        lists:foldl(fun ({map_field_assoc, FieldName, _FieldType}, {FieldsAcc, ErrorsAcc}) ->
+        lists:foldl(fun ({map_field_assoc, FieldName, FieldType}, {FieldsAcc, ErrorsAcc}) ->
                             case Data of
                                 #{FieldName := FieldData} ->
-                                    {FieldsAcc ++ [{FieldName, FieldData}], ErrorsAcc};
+                                    %% ADD test case for bad and good data in map
+                                    case to_json(TypeInfo, FieldType, FieldData) of
+                                        {ok, FieldJson} ->
+                                            {FieldsAcc ++ [{FieldName, FieldJson}], ErrorsAcc};
+                                        {error, Errs} ->
+                                            Errs2 =
+                                                lists:map(fun(Err) ->
+                                                             err_append_location(Err, FieldName)
+                                                          end,
+                                                          Errs),
+                                            {FieldsAcc, ErrorsAcc ++ Errs2}
+                                    end;
                                 _ ->
                                     {FieldsAcc, ErrorsAcc}
                             end;
                         ({map_field_exact, FieldName, FieldType}, {FieldsAcc, ErrorsAcc}) ->
                             case Data of
                                 #{FieldName := FieldData} ->
-                                    {FieldsAcc ++ [{FieldName, FieldData}], ErrorsAcc};
+                                    %% ADD test case for bad and good data in map
+                                    case to_json(TypeInfo, FieldType, FieldData) of
+                                        {ok, FieldJson} ->
+                                            {FieldsAcc ++ [{FieldName, FieldJson}], ErrorsAcc};
+                                        {error, Errs} ->
+                                            Errs2 =
+                                                lists:map(fun(Err) ->
+                                                             err_append_location(Err, FieldName)
+                                                          end,
+                                                          Errs),
+                                            {FieldsAcc, ErrorsAcc ++ Errs2}
+                                    end;
                                 #{} ->
                                     case can_be_undefined(FieldType) of
                                         true ->
@@ -190,7 +215,12 @@ from_json(TypeInfo, {type, TypeName}, Json) when is_atom(TypeName) ->
 from_json(TypeInfo, {union, Types}, Json) ->
     first(fun from_json/3, TypeInfo, Types, Json);
 from_json(_TypeInfo, {range, integer, Min, Max}, Value) when Min =< Value, Value =< Max ->
-    {ok, Value}.
+    {ok, Value};
+from_json(_TypeInfo, {range, integer, Min, Max}, Value) when is_integer(Value) ->
+    {error,
+     [#ed_error{type = type_mismatch,
+                location = [],
+                ctx = #{type => {range, integer, Min, Max}, value => Value}}]}.
 
 try_convert_to_literal(Literal, Value) when is_atom(Literal) andalso is_binary(Value) ->
     try binary_to_existing_atom(Value, utf8) of
@@ -317,6 +347,7 @@ map_from_json(TypeInfo, MapFieldType, Json) ->
                                             {FieldsAcc, ErrAcc ++ Errs2}
                                     end;
                                 error ->
+                                    %% Should check if can be undefined?
                                     {FieldsAcc,
                                      ErrAcc
                                      ++ [#ed_error{type = missing_data, location = [FieldName]}]}

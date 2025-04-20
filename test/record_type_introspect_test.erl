@@ -13,15 +13,17 @@ person_module_test_() ->
         {inparallel,
          [active(), active_bad(), active_to_json(), active_to_json_bad(), age(), age_bad(),
           age_to_json(), person_type_is_record(), person_person(), person_person_bad(),
-          person_person_to_json(), score(), score_bad(), score_to_json(), weird_union(),
-          weird_union_bad(), weird_union_to_json(), person_address(), person_address_bad(),
-          person_address_undefined_city(), person_address_undefined_city_to_json(),
-          person_address_undefined_street(), person_address_undefined_street_to_json(),
-          person_address_to_json(), level(), level_bad(), level_to_json(), level_to_json_bad(),
-          negative(), negative_bad(), negative_to_json(), negative_to_json_bad(), accesses_test(),
-          accesses_test_to_json(), tup_list_test(), tup_list_test_bad(), tup_list_test_to_json(),
-          name_t(), name_t_error(), name_t_to_json(), temp(), temp_bad(), temp_to_json(),
-          temp_to_json_bad()]}        %  name_t_to_json_error()
+          person_person_to_json(), score(), score_bad(), score_value_bad(), score_to_json(),
+          score_to_json_value_bad(), weird_union(), weird_union_bad(), weird_union_to_json(),
+          person_address(), person_address_bad(), person_address_undefined_city(),
+          person_address_undefined_city_to_json(), person_address_undefined_street(),
+          person_address_undefined_street_to_json(), person_address_to_json(), level(), level_bad(),
+          level_to_json(), level_to_json_bad(), negative(), negative_bad(), negative_to_json(),
+          negative_to_json_bad(), accesses_test(), accesses_test_to_json(), tup_list_test(),
+          tup_list_test_bad(), tup_list_test_to_json(), name_t(), name_t_error(), name_t_to_json(),
+          temp(), temp_bad(), temp_to_json(), temp_to_json_bad(), role(), role_bad(),
+          role_to_json(),
+          role_to_json_bad()]}        %  name_t_to_json_error()
      end}.
 
 compile_person() ->
@@ -116,11 +118,30 @@ score_bad() ->
                                ctx = #{type => {type, string}, value => 5}}]},
                    person:score_from_json(Json))].
 
+score_value_bad() ->
+    Json =
+        json:decode(<<"{\"value\": 11, \"comment\": {\"lang\": \"en\", \"text\": \"ok\"}}"/utf8>>),
+    [?_assertEqual({error,
+                    [{ed_error,
+                      [value],
+                      type_mismatch,
+                      #{type => {range, integer, 1, 10}, value => 11}}]},
+                   person:score_from_json(Json))].
+
 score_to_json() ->
     Data = #{value => 5, comment => #{lang => <<"en">>, text => <<"ok">>}},
     {ok, Json} = person:score_to_json(Data),
     Expect = #{value => 5, comment => #{lang => <<"en">>, text => <<"ok">>}},
     [?_assertEqual(Expect, Json)].
+
+score_to_json_value_bad() ->
+    Data = #{value => 11, comment => #{lang => <<"en">>, text => <<"ok">>}},
+    [?_assertEqual({error,
+                    [{ed_error,
+                      [value],
+                      type_mismatch,
+                      #{type => {range, integer, 1, 10}, value => 11}}]},
+                   person:score_to_json(Data))].
 
 weird_union() ->
     Json =
@@ -322,3 +343,33 @@ temp_to_json_bad() ->
     [?_assertEqual({error,
                     [{ed_error, [], type_mismatch, #{type => {type, float}, value => 42}}]},
                    person:temp_to_json(Data))].
+
+role() ->
+    Json = json:decode(<<"\"admin\""/utf8>>),
+    [?_assertEqual({ok, admin}, person:role_from_json(Json))].
+
+role_bad() ->
+    Json = json:decode(<<"\"invalid_role\""/utf8>>),
+    [?_assertEqual({error,
+                    [{ed_error,
+                      [],
+                      no_match,
+                      #{type => [{literal, admin}, {literal, user}, {literal, guest}],
+                        value => <<"invalid_role">>}}]},
+                   person:role_from_json(Json))].
+
+role_to_json() ->
+    Data = admin,
+    {ok, Json} = person:role_to_json(Data),
+    Expect = admin,
+    [?_assertEqual(Expect, Json)].
+
+role_to_json_bad() ->
+    Data = invalid_role,
+    [?_assertEqual({error,
+                    [{ed_error,
+                      [],
+                      no_match,
+                      #{type => [{literal, admin}, {literal, user}, {literal, guest}],
+                        value => invalid_role}}]},
+                   person:role_to_json(Data))].
