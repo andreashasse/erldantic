@@ -4,7 +4,10 @@
 
 -include_lib("person.hrl").
 
--export([new/4, get_name/1, get_age/1]).
+-export([new/4, get_name/1, get_age/1, my_weird_union_from_json/1]).
+
+my_weird_union_from_json(Union) ->
+    erldantic_json:from_json_no_pt({?MODULE, weird_union, 0}, Union).
 
 -spec new(string(), string(), integer(), address_t()) -> #person{}.
 new(First, Last, Age, Home) ->
