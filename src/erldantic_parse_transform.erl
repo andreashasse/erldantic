@@ -1,6 +1,6 @@
 -module(erldantic_parse_transform).
 
--export([parse_transform/2]).
+-export([parse_transform/2, type_in_form/1]).
 
 -include("../include/record_type_introspect.hrl").
 

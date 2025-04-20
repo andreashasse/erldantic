@@ -1,12 +1,40 @@
 -module(erldantic_json).
 
--export([from_json/3, to_json/3]).
+-export([from_json/3, to_json/3, from_json_no_pt/2]).
 
 -include("../include/record_type_introspect.hrl").
 
 -type key() :: any(). %% fixme
 -type json__encode_value() :: term(). %% Should be json:encode_value()
 -type json() :: json:decode_value().
+
+pers_type() ->
+    persistent_term:get({?MODULE, pers_types}, #{}).
+
+pers_type(Type) ->
+    M = persistent_term:get({?MODULE, pers_types}, #{}),
+    maps:find(Type, M).
+
+pers_types_set(PersTypes) ->
+    persistent_term:put({?MODULE, pers_types}, PersTypes).
+
+from_json_no_pt({Module, Type, TypeArity}, Json) ->
+    TypeInfo = pers_type(),
+    case pers_type({Module, Type, TypeArity}) of
+        {ok, Type} ->
+            from_json(TypeInfo, Type, Json);
+        error ->
+            {ok, {Module, [{abstract_code, {_, Forms}}]}} =
+                beam_lib:chunks(
+                    code:which(Module), [abstract_code]),
+            %%io:format("~p~n", [AC]),
+            NamedTypes = lists:filtermap(fun erldantic_parse_transform:type_in_form/1, Forms),
+            M = maps:from_list(NamedTypes),
+            io:format("Named Types: ~p~n", [NamedTypes]),
+            io:format("Json: ~p~n", [Json]),
+            io:format("Type: ~p~n", [Type]),
+            from_json(M, {type, Type}, Json)
+    end.
 
 % FIXME: User can get 'skip' as return value.
 -spec to_json(TypeInfo :: #{key() => record_type_introspect:a_type()},

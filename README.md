@@ -1,26 +1,30 @@
 # erldantic
 
-
-This is Pydantic, but for erlang. Hopefully for Elixir and Gleam in the future!
+This is Pydantic, but for Erlang. Hopefully for Elixir and Gleam in the future!
 
 ## TODO PoC
-- [ ] All types expect `pid()`, `port()`, `Fun` and `reference()`.
-    - [X] List
-    - [x] Float
-    - [x] Atom
-    - [x] Boolean
-    - [ ] Number? or will it always show up as integer()|float()?
-    - [x] Integer range
-    - [ ] non_empty ... binary, bitstring,
-    - [ ] any()/term() and dynamic()? none()?
-    - [x] non_neg_integer
-    - [x] pos_integer
-    - [x] neg_integer
-- [ ] Good error messages
-  - [X] Path of the error
-  - [ ] Test the path with Adams library for nested map access.
+- [x] All straight foward types
+  - [X] List
+  - [x] Float
+  - [x] Atom
+  - [x] Boolean
+  - [x] Integer range
+  - [x] non_neg_integer
+  - [x] pos_integer
+  - [x] neg_integer
+- [X] Path in error messages
+
+## TODO PoC Not parse transform
+- [ ] Module that doens't use parse transform, but manually calls from to_json from_json function in this lib.
+
+## TODO Release
 - [ ] Add type spec to generated functions.
 - [ ] Document special behaviour for `undefined`.
+- [ ] All other types expect `pid()`, `port()`, `Fun` and `reference()`.
+    - [ ] Number? or will it always show up as integer()|float()?
+    - [ ] non_empty ... binary, bitstring,
+    - [ ] any()/term() and dynamic()? none()?
+- [ ] Test error message path with Adams library for nested access
 
 ## TODO PoC FastApi
 - [ ] How should I get example values into the mix? Some macro ?spec(example = 2, type = integer) that I write to integer and keep the example separate? Can that be done without IDEs going bananas?
