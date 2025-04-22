@@ -15,3 +15,4 @@
 %% Add tests for below types.
 -type accesses() :: [read | write].
 -type tup_list() :: #{a => [integer()]}.
+-type missing() :: #{a => pelle:kolle()}.

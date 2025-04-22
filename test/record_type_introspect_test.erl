@@ -20,10 +20,11 @@ person_module_test_() ->
           person_address_undefined_street_to_json(), person_address_to_json(), level(), level_bad(),
           level_to_json(), level_to_json_bad(), negative(), negative_bad(), negative_to_json(),
           negative_to_json_bad(), accesses_test(), accesses_test_to_json(), tup_list_test(),
-          tup_list_test_bad(), tup_list_test_to_json(), name_t(), name_t_error(), name_t_to_json(),
-          name_t_to_json_error(), temp(), temp_bad(), temp_to_json(), temp_to_json_bad(), role(),
-          role_bad(), role_to_json(), role_to_json_bad(), non_atom_enum(), non_atom_enum_bad(),
-          non_atom_enum_to_json(), non_atom_enum_to_json_bad()]}
+          tup_list_test_bad(), tup_list_test_to_json(), tup_list_test_to_json_bad(), name_t(),
+          name_t_error(), name_t_to_json(), name_t_to_json_error(), temp(), temp_bad(),
+          temp_to_json(), temp_to_json_bad(), role(), role_bad(), role_to_json(),
+          role_to_json_bad(), non_atom_enum(), non_atom_enum_bad(), non_atom_enum_to_json(),
+          non_atom_enum_to_json_bad(), missing(), missing_to_json()]}
      end}.
 
 compile_person() ->
@@ -231,6 +232,14 @@ tup_list_test_to_json() ->
     Expect = #{a => [1, 2, 3]},
     [?_assertEqual(Expect, Json)].
 
+tup_list_test_to_json_bad() ->
+    Data = #{a => [1, <<"p">>, 3]},
+    [?_assertEqual({error,
+                    [#ed_error{type = type_mismatch,
+                               location = [a, 2],
+                               ctx = #{type => {type, integer}, value => <<"p">>}}]},
+                   person:tup_list_to_json(Data))].
+
 person_address_undefined_city() ->
     Json = json:decode(<<"{\"street\": \"mojs\"}"/utf8>>),
     Expect = {ok, #address{street = <<"mojs">>, city = undefined}},
@@ -405,3 +414,16 @@ non_atom_enum_to_json_bad() ->
                       no_match,
                       #{type => [{literal, 1}, {literal, 3}], value => 2}}]},
                    person:non_atom_enum_to_json(Value))].
+
+missing() ->
+    Json = json:decode(<<"{\"a\": \"1\"}"/utf8>>),
+    [?_assertEqual({error,
+                    [{ed_error,
+                      [a],
+                      module_types_not_found,
+                      #{error => non_existing, module => pelle}}]},
+                   person:missing_from_json(Json))].
+
+missing_to_json() ->
+    Json = #{a => a},
+    [?_assertEqual({ok, #{a => a}}, person:missing_to_json(Json))].

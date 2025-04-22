@@ -15,7 +15,8 @@
     {union, [a_type()]} |
     {literal, term()} |
     {range, integer, integer(), integer()} |
-    {list, a_type()}.
+    {list, a_type()} |
+    {remote_type, {module(), atom(), [term()]}}.
 -type a_type_reference() :: {record, atom()} | {record_ref, atom()} | {type, atom()}.
 %% What is the empty list in non_negative integer?
 -type a_type_or_ref() :: a_type() | a_type_reference().

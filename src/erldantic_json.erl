@@ -8,32 +8,37 @@
 -type json__encode_value() :: term(). %% Should be json:encode_value()
 -type json() :: json:decode_value().
 
-pers_type() ->
-    persistent_term:get({?MODULE, pers_types}, #{}).
+pers_type(Module) ->
+    persistent_term:get({?MODULE, pers_types, Module}, undefined).
 
-pers_type(Type) ->
-    M = persistent_term:get({?MODULE, pers_types}, #{}),
-    maps:find(Type, M).
-
-pers_types_set(PersTypes) ->
-    persistent_term:put({?MODULE, pers_types}, PersTypes).
+pers_types_set(Module, TypeInfo) ->
+    persistent_term:put({?MODULE, pers_types, Module}, TypeInfo).
 
 from_json_no_pt({Module, Type, TypeArity}, Json) ->
-    TypeInfo = pers_type(),
-    case pers_type({Module, Type, TypeArity}) of
-        {ok, Type} ->
-            from_json(TypeInfo, Type, Json);
-        error ->
-            {ok, {Module, [{abstract_code, {_, Forms}}]}} =
-                beam_lib:chunks(
-                    code:which(Module), [abstract_code]),
-            %%io:format("~p~n", [AC]),
-            NamedTypes = lists:filtermap(fun erldantic_parse_transform:type_in_form/1, Forms),
-            M = maps:from_list(NamedTypes),
-            io:format("Named Types: ~p~n", [NamedTypes]),
-            io:format("Json: ~p~n", [Json]),
-            io:format("Type: ~p~n", [Type]),
-            from_json(M, {type, Type}, Json)
+    case pers_type(Module) of
+        TypeInfo when is_map(TypeInfo) ->
+            from_json(TypeInfo, {type, Type}, Json);
+        undefined ->
+            case code:which(Module) of
+                Error
+                    when Error =:= non_existing
+                         orelse Error =:= cover_compiled
+                         orelse Error =:= preloaded ->
+                    {error,
+                     [#ed_error{type = module_types_not_found,
+                                location = [],
+                                ctx = #{module => Module, error => Error}}]};
+                FilePath ->
+                    {ok, {Module, [{abstract_code, {_, Forms}}]}} =
+                        beam_lib:chunks(FilePath, [abstract_code]),
+                    %%io:format("~p~n", [AC]),
+                    NamedTypes =
+                        lists:filtermap(fun erldantic_parse_transform:type_in_form/1, Forms),
+                    TypeInfo = maps:from_list(NamedTypes),
+                    pers_types_set(Module, TypeInfo),
+
+                    from_json(TypeInfo, {type, Type}, Json)
+            end
     end.
 
 % FIXME: User can get 'skip' as return value.
@@ -84,7 +89,17 @@ to_json(_TypeInfo, T, OtherValue) ->
                    Data :: [term()]) ->
                       {ok, [json__encode_value()]} | {error, [#ed_error{}]}.
 list_to_json(TypeInfo, Type, Data) when is_list(Data) ->
-    JsonRes = lists:map(fun(Item) -> to_json(TypeInfo, Type, Item) end, Data),
+    JsonRes =
+        lists:map(fun({Nr, Item}) ->
+                     case to_json(TypeInfo, Type, Item) of
+                         {ok, Json} ->
+                             {ok, Json};
+                         {error, Errs} ->
+                             Errs2 = lists:map(fun(Err) -> err_append_location(Err, Nr) end, Errs),
+                             {error, Errs2}
+                     end
+                  end,
+                  lists:enumerate(Data)),
     {AllOk, Errors} =
         lists:partition(fun ({ok, _}) ->
                                 true;
@@ -207,6 +222,8 @@ err_append_location(Err, FieldName) ->
                    {ok, term()} | {error, [#ed_error{}]}.
 from_json(TypeInfo, {record, RecordName}, Json) when is_atom(RecordName) ->
     record_from_json(TypeInfo, RecordName, Json);
+from_json(TypeInfo, {remote_type, MTA}, Json) ->
+    from_json_no_pt(MTA, Json);
 from_json(TypeInfo, {record_ref, RecordName}, Json) when is_atom(RecordName) ->
     record_from_json(TypeInfo, RecordName, Json);
 from_json(TypeInfo, #a_map{fields = MapFieldTypes}, Json) ->

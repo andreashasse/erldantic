@@ -114,12 +114,13 @@ type_in_form(_) ->
     false.
 
 -spec field_info_to_type(term()) -> [record_type_introspect:a_type()].
-field_info_to_type({ann_type, _, [{var, _, _VarName}, {type, _, _TypeAnnType, []}]}) ->
-    [];
 field_info_to_type({atom, _, Value}) ->
     [{literal, Value}];
 field_info_to_type({integer, _, Value}) ->
     [{literal, Value}];
+field_info_to_type({remote_type, _, MTA}) ->
+    [{atom, _, Module}, {atom, _, Type}, Args] = MTA,
+    [{remote_type, {Module, Type, Args}}];
 field_info_to_type({TypeOfType, _, Type, TypeAttrs}) ->
     true = is_list(TypeAttrs),
     case {TypeOfType, Type} of

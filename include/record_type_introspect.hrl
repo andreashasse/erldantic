@@ -23,5 +23,6 @@
              record_type_mismatch |
              missing_data |
              missing_type |
-             json_type_mismatch,
+             json_type_mismatch |
+             module_types_not_found,
          ctx :: term()}).
