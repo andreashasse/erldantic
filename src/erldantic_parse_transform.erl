@@ -118,6 +118,8 @@ field_info_to_type({ann_type, _, [{var, _, _VarName}, {type, _, _TypeAnnType, []
     [];
 field_info_to_type({atom, _, Value}) ->
     [{literal, Value}];
+field_info_to_type({integer, _, Value}) ->
+    [{literal, Value}];
 field_info_to_type({TypeOfType, _, Type, TypeAttrs}) ->
     true = is_list(TypeAttrs),
     case {TypeOfType, Type} of

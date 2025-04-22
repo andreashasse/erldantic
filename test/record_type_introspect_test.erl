@@ -21,9 +21,9 @@ person_module_test_() ->
           level_to_json(), level_to_json_bad(), negative(), negative_bad(), negative_to_json(),
           negative_to_json_bad(), accesses_test(), accesses_test_to_json(), tup_list_test(),
           tup_list_test_bad(), tup_list_test_to_json(), name_t(), name_t_error(), name_t_to_json(),
-          temp(), temp_bad(), temp_to_json(), temp_to_json_bad(), role(), role_bad(),
-          role_to_json(),
-          role_to_json_bad()]}        %  name_t_to_json_error()
+          name_t_to_json_error(), temp(), temp_bad(), temp_to_json(), temp_to_json_bad(), role(),
+          role_bad(), role_to_json(), role_to_json_bad(), non_atom_enum(), non_atom_enum_bad(),
+          non_atom_enum_to_json(), non_atom_enum_to_json_bad()]}
      end}.
 
 compile_person() ->
@@ -319,6 +319,12 @@ name_t_to_json() ->
     Expected = {ok, #{first => <<"Andreas">>, last => <<"Hasselberg">>}},
     [?_assertEqual(Resp, Expected)].
 
+name_t_to_json_error() ->
+    Data = #{first => <<"Andreas">>},
+    Resp = person:name_t_to_json(Data),
+    Expected = {error, [#ed_error{type = missing_data, location = [last]}]},
+    [?_assertEqual(Resp, Expected)].
+
 temp() ->
     Json = json:decode(<<"3.14"/utf8>>),
     [?_assertEqual({ok, 3.14}, person:temp_from_json(Json))].
@@ -373,3 +379,29 @@ role_to_json_bad() ->
                       #{type => [{literal, admin}, {literal, user}, {literal, guest}],
                         value => invalid_role}}]},
                    person:role_to_json(Data))].
+
+non_atom_enum() ->
+    Json = json:decode(<<"1"/utf8>>),
+    [?_assertEqual({ok, 1}, person:non_atom_enum_from_json(Json))].
+
+non_atom_enum_bad() ->
+    Json = json:decode(<<"2"/utf8>>),
+    [?_assertEqual({error,
+                    [{ed_error,
+                      [],
+                      no_match,
+                      #{type => [{literal, 1}, {literal, 3}], value => 2}}]},
+                   person:non_atom_enum_from_json(Json))].
+
+non_atom_enum_to_json() ->
+    Value = 1,
+    [?_assertEqual({ok, 1}, person:non_atom_enum_to_json(Value))].
+
+non_atom_enum_to_json_bad() ->
+    Value = 2,
+    [?_assertEqual({error,
+                    [{ed_error,
+                      [],
+                      no_match,
+                      #{type => [{literal, 1}, {literal, 3}], value => 2}}]},
+                   person:non_atom_enum_to_json(Value))].

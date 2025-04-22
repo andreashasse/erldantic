@@ -1,6 +1,7 @@
 -record(address, {street :: string(), city :: string() | undefined}).
 -record(person, {name :: name_t(), age :: integer(), home :: #address{}}).
 
+-type non_atom_enum() :: 1 | 3.
 -type role() :: admin | user | guest.
 -type active() :: boolean().
 -type temp() :: float().
