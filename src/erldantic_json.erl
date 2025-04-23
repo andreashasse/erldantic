@@ -82,6 +82,8 @@ to_json(TypeInfo, {user_type_ref, TypeName}, Data) when is_atom(TypeName) ->
 to_json(_TypeInfo, {type, Type} = T, Value)
     when ?is_primary_type(Type) orelse ?is_predefined_int_range(Type) ->
     case check_type(Type, Value) of
+        {true, NewValue} ->
+            {ok, NewValue};
         true ->
             {ok, Value};
         false ->
@@ -264,6 +266,8 @@ from_json(TypeInfo, {list, Type}, Data) ->
 from_json(_TypeInfo, {type, PrimaryType} = T, Json)
     when ?is_primary_type(PrimaryType) orelse ?is_predefined_int_range(PrimaryType) ->
     case check_type(PrimaryType, Json) of
+        {true, NewValue} ->
+            {ok, NewValue};
         true ->
             {ok, Json};
         false ->
@@ -338,7 +342,7 @@ list_from_json(TypeInfo, Type, Data) ->
 check_type(integer, Json) when is_integer(Json) ->
     true;
 check_type(string, Json) when is_binary(Json) ->
-    true;
+    {true, binary_to_list(Json)};
 check_type(boolean, Json) when is_boolean(Json) ->
     true;
 check_type(float, Json) when is_float(Json) ->
