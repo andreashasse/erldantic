@@ -81,7 +81,7 @@ to_json(TypeInfo, {user_type_ref, TypeName}, Data) when is_atom(TypeName) ->
     data_to_json(TypeInfo, TypeName, Data);
 to_json(_TypeInfo, {type, Type} = T, Value)
     when ?is_primary_type(Type) orelse ?is_predefined_int_range(Type) ->
-    case check_type(Type, Value) of
+    case check_type_to_json(Type, Value) of
         {true, NewValue} ->
             {ok, NewValue};
         true ->
@@ -265,7 +265,7 @@ from_json(TypeInfo, {list, Type}, Data) ->
     list_from_json(TypeInfo, Type, Data);
 from_json(_TypeInfo, {type, PrimaryType} = T, Json)
     when ?is_primary_type(PrimaryType) orelse ?is_predefined_int_range(PrimaryType) ->
-    case check_type(PrimaryType, Json) of
+    case check_type_from_json(PrimaryType, Json) of
         {true, NewValue} ->
             {ok, NewValue};
         true ->
@@ -339,10 +339,20 @@ list_from_json(TypeInfo, Type, Data) ->
             {error, lists:flatmap(fun({error, EdErrors}) -> EdErrors end, Errors)}
     end.
 
+check_type_from_json(string, Json) when is_binary(Json) ->
+    {true, binary_to_list(Json)};
+check_type_from_json(Type, Json) ->
+    check_type(Type, Json).
+
+check_type_to_json(string, Json) when is_list(Json) ->
+    {true, list_to_binary(Json)};
+check_type_to_json(Type, Json) ->
+    check_type(Type, Json).
+
 check_type(integer, Json) when is_integer(Json) ->
     true;
-check_type(string, Json) when is_binary(Json) ->
-    {true, binary_to_list(Json)};
+check_type(string, Json) when is_list(Json) ->
+    true;
 check_type(boolean, Json) when is_boolean(Json) ->
     true;
 check_type(float, Json) when is_float(Json) ->
