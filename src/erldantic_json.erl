@@ -1,6 +1,6 @@
 -module(erldantic_json).
 
--export([from_json/3, to_json/3, from_json_no_pt/2]).
+-export([from_json/3, to_json/3, from_json_no_pt/2, to_json_no_pt/2]).
 
 -include("../include/record_type_introspect.hrl").
 
@@ -13,6 +13,33 @@ pers_type(Module) ->
 
 pers_types_set(Module, TypeInfo) ->
     persistent_term:put({?MODULE, pers_types, Module}, TypeInfo).
+
+to_json_no_pt({Module, Type, TypeArity}, Data) ->
+    case pers_type(Module) of
+        TypeInfo when is_map(TypeInfo) ->
+            to_json(TypeInfo, {type, Type}, Data);
+        undefined ->
+            case code:which(Module) of
+                Error
+                    when Error =:= non_existing
+                         orelse Error =:= cover_compiled
+                         orelse Error =:= preloaded ->
+                    {error,
+                     [#ed_error{type = module_types_not_found,
+                                location = [],
+                                ctx = #{module => Module, error => Error}}]};
+                FilePath ->
+                    {ok, {Module, [{abstract_code, {_, Forms}}]}} =
+                        beam_lib:chunks(FilePath, [abstract_code]),
+                    %%io:format("~p~n", [AC]),
+                    NamedTypes =
+                        lists:filtermap(fun erldantic_parse_transform:type_in_form/1, Forms),
+                    TypeInfo = maps:from_list(NamedTypes),
+                    pers_types_set(Module, TypeInfo),
+
+                    to_json(TypeInfo, {type, Type}, Data)
+            end
+    end.
 
 from_json_no_pt({Module, Type, TypeArity}, Json) ->
     case pers_type(Module) of
@@ -78,6 +105,8 @@ to_json(TypeInfo, {type, TypeName}, Data) when is_atom(TypeName) ->
     data_to_json(TypeInfo, TypeName, Data);
 to_json(TypeInfo, #a_map{fields = MapFieldTypes}, Data) ->
     map_to_json(TypeInfo, MapFieldTypes, Data);
+to_json(_TypeInfo, {remote_type, MTA}, Data) ->
+    to_json_no_pt(MTA, Data);
 to_json(_TypeInfo, T, OtherValue) ->
     {error,
      [#ed_error{type = type_mismatch,
@@ -222,7 +251,7 @@ err_append_location(Err, FieldName) ->
                    {ok, term()} | {error, [#ed_error{}]}.
 from_json(TypeInfo, {record, RecordName}, Json) when is_atom(RecordName) ->
     record_from_json(TypeInfo, RecordName, Json);
-from_json(TypeInfo, {remote_type, MTA}, Json) ->
+from_json(_TypeInfo, {remote_type, MTA}, Json) ->
     from_json_no_pt(MTA, Json);
 from_json(TypeInfo, {record_ref, RecordName}, Json) when is_atom(RecordName) ->
     record_from_json(TypeInfo, RecordName, Json);

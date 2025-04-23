@@ -12,8 +12,13 @@ This is Pydantic, but for Erlang. Hopefully for Elixir and Gleam in the future!
   - [x] non_neg_integer
   - [x] pos_integer
   - [x] neg_integer
+  - [ ] NonemptyString
 - [X] Path in error messages
 - [ ] Remote type
+  - [ ] Missing
+  - [ ] Not Missing
+- [ ] pass not map to map type
+- [ ] pass binary when expecting string
 - [ ] skip (undefined) in weird places.
 - [ ] Two types with same name but different arity.
 

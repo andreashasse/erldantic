@@ -16,3 +16,4 @@
 -type accesses() :: [read | write].
 -type tup_list() :: #{a => [integer()]}.
 -type missing() :: #{a => pelle:kolle()}.
+-type remote() :: #{a => other:account()}.

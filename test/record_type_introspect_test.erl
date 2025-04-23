@@ -24,11 +24,13 @@ person_module_test_() ->
           name_t_error(), name_t_to_json(), name_t_to_json_error(), temp(), temp_bad(),
           temp_to_json(), temp_to_json_bad(), role(), role_bad(), role_to_json(),
           role_to_json_bad(), non_atom_enum(), non_atom_enum_bad(), non_atom_enum_to_json(),
-          non_atom_enum_to_json_bad(), missing(), missing_to_json()]}
+          non_atom_enum_to_json_bad(), missing(), missing_to_json(), remote(), remote_bad(),
+          remote_to_json(), remote_to_json_bad()]}
      end}.
 
 compile_person() ->
     {ok, person} = c:c("test/person.erl"),
+    {ok, other} = c:c("test/other.erl", [debug_info]),
     true = erlang:function_exported(person, address_from_json, 1),
     %true = erlang:function_exported(person, address_to_json, 1),
     io:format("~p", [c:m(person)]).
@@ -426,4 +428,36 @@ missing() ->
 
 missing_to_json() ->
     Json = #{a => a},
-    [?_assertEqual({ok, #{a => a}}, person:missing_to_json(Json))].
+    [?_assertEqual({error,
+                    [{ed_error,
+                      [a],
+                      module_types_not_found,
+                      #{error => non_existing, module => pelle}}]},
+                   person:missing_to_json(Json))].
+
+remote() ->
+    Json = json:decode(<<"{\"a\": {\"id\": \"id1\", \"balance\": 100}}"/utf8>>),
+    [?_assertEqual({ok, #{a => #{id => <<"id1">>, balance => 100}}},
+                   person:remote_from_json(Json))].
+
+remote_bad() ->
+    Json = json:decode(<<"{\"a\": {\"id\": \"id1\", \"balance\": \"no_value\"}}"/utf8>>),
+    [?_assertEqual({error,
+                    [{ed_error,
+                      [a, balance],
+                      type_mismatch,
+                      #{type => {type, integer}, value => <<"no_value">>}}]},
+                   person:remote_from_json(Json))].
+
+remote_to_json() ->
+    Data = #{a => #{id => <<"id1">>, balance => 100}},
+    [?_assertEqual({ok, Data}, person:remote_to_json(Data))].
+
+remote_to_json_bad() ->
+    Data = #{a => #{id => <<"id1">>, balance => <<"no_value">>}},
+    [?_assertEqual({error,
+                    [{ed_error,
+                      [a, balance],
+                      type_mismatch,
+                      #{type => {type, integer}, value => <<"no_value">>}}]},
+                   person:remote_to_json(Data))].
