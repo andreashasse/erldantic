@@ -313,7 +313,7 @@ try_convert_to_literal(Literal, Value) when is_atom(Literal) andalso is_binary(V
 try_convert_to_literal(_Literal, _Value) ->
     false.
 
-list_from_json(TypeInfo, Type, Data) ->
+list_from_json(TypeInfo, Type, Data) when is_list(Data) ->
     JsonRes =
         lists:map(fun({Nr, Item}) ->
                      case from_json(TypeInfo, Type, Item) of
@@ -337,7 +337,12 @@ list_from_json(TypeInfo, Type, Data) ->
             {ok, lists:map(fun({ok, Json}) -> Json end, AllOk)};
         _ ->
             {error, lists:flatmap(fun({error, EdErrors}) -> EdErrors end, Errors)}
-    end.
+    end;
+list_from_json(_TypeInfo, Type, Data) ->
+    {error,
+     [#ed_error{type = type_mismatch,
+                location = [],
+                ctx = #{type => Type, value => Data}}]}.
 
 check_type_from_json(string, Json) when is_binary(Json) ->
     {true, binary_to_list(Json)};
@@ -352,7 +357,9 @@ check_type_to_json(Type, Json) ->
 check_type(integer, Json) when is_integer(Json) ->
     true;
 check_type(string, Json) when is_list(Json) ->
-    true;
+    %% All characters should be printable ASCII or it's probably not intended as a string
+    %% FIXME: Document this.
+    io_lib:printable_list(Json);
 check_type(boolean, Json) when is_boolean(Json) ->
     true;
 check_type(float, Json) when is_float(Json) ->
@@ -362,6 +369,8 @@ check_type(non_neg_integer, Json) when is_integer(Json) andalso Json >= 0 ->
 check_type(pos_integer, Json) when is_integer(Json) andalso Json > 0 ->
     true;
 check_type(neg_integer, Json) when is_integer(Json) andalso Json < 0 ->
+    true;
+check_type(binary, Json) when is_binary(Json) ->
     true;
 check_type(atom, Json) when is_atom(Json) ->
     true;

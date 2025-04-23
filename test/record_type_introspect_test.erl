@@ -25,7 +25,11 @@ person_module_test_() ->
           temp_to_json(), temp_to_json_bad(), role(), role_bad(), role_to_json(),
           role_to_json_bad(), non_atom_enum(), non_atom_enum_bad(), non_atom_enum_to_json(),
           non_atom_enum_to_json_bad(), missing(), missing_to_json(), remote(), remote_bad(),
-          remote_to_json(), remote_to_json_bad()]}
+          remote_to_json(), remote_to_json_bad(), binary_data(), binary_data_bad(),
+          binary_data_to_json(), binary_data_to_json_bad(), binary_map(), binary_map_bad(),
+          binary_map_to_json(), binary_map_to_json_bad(), string_type(), string_type_bad(),
+          string_type_to_json(), string_type_to_json_bad(), int_list_map(), int_list_map_bad(),
+          int_list_map_to_json(), int_list_map_to_json_bad()]}
      end}.
 
 compile_person() ->
@@ -52,7 +56,8 @@ active_to_json() ->
     Data = true,
     {ok, Json} = person:active_to_json(Data),
     Expect = true,
-    [?_assertEqual(Expect, Json)].
+    EncodedJson = json:encode(Json),
+    [?_assertEqual(Expect, Json), ?_assertEqual(<<"true">>, EncodedJson)].
 
 active_to_json_bad() ->
     Data = 1,
@@ -77,7 +82,8 @@ age_to_json() ->
     Data = 22,
     {ok, Json} = person:age_to_json(Data),
     Expect = 22,
-    [?_assertEqual(Expect, Json)].
+    EncodedJson = json:encode(Json),
+    [?_assertEqual(Expect, Json), ?_assertEqual(<<"22">>, EncodedJson)].
 
 person_type_is_record() ->
     Json = json:decode(<<"{\"street\": \"mojs\", \"city\": \"sollentuna\"}"/utf8>>),
@@ -135,7 +141,10 @@ score_to_json() ->
     Data = #{value => 5, comment => #{lang => "en", text => "ok"}},
     {ok, Json} = person:score_to_json(Data),
     Expect = #{value => 5, comment => #{lang => <<"en">>, text => <<"ok">>}},
-    [?_assertEqual(Expect, Json)].
+    EncodedJson = json:encode(Json),
+    [?_assertEqual(Expect, Json),
+     ?_assertEqual(<<"{\"comment\":{\"lang\":\"en\",\"text\":\"ok\"},\"value\":5}">>,
+                   EncodedJson)].
 
 score_to_json_value_bad() ->
     Data = #{value => 11, comment => #{lang => "en", text => "ok"}},
@@ -169,7 +178,10 @@ weird_union_to_json() ->
     Expect =
         #{city => <<"sollentuna">>,
           score => #{value => 5, comment => #{lang => <<"en">>, text => <<"ok">>}}},
-    [?_assertEqual(Expect, Json)].
+    EncodedJson = json:encode(Json),
+    [?_assertEqual(Expect, Json),
+     ?_assertEqual(<<"{\"city\":\"sollentuna\",\"score\":{\"comment\":{\"lang\":\"en\",\"text\":\"ok\"},\"value\":5}}">>,
+                   EncodedJson)].
 
 person_person_to_json() ->
     Address = #address{street = "mojs", city = "sollentuna"},
@@ -183,7 +195,10 @@ person_person_to_json() ->
         #{name => #{first => <<"Andreas">>, last => <<"Hasselberg">>},
           age => 22,
           home => #{street => <<"mojs">>, city => <<"sollentuna">>}},
-    [?_assertEqual(Expect, Json)].
+    EncodedJson = json:encode(Json),
+    [?_assertEqual(Expect, Json),
+     ?_assertEqual(<<"{\"age\":22,\"home\":{\"city\":\"sollentuna\",\"street\":\"mojs\"},\"name\":{\"first\":\"Andreas\",\"last\":\"Hasselberg\"}}">>,
+                   EncodedJson)].
 
 person_address() ->
     Json = json:decode(<<"{\"street\": \"mojs\", \"city\": \"sollentuna\"}"/utf8>>),
@@ -203,7 +218,9 @@ person_address_bad() ->
 person_address_to_json() ->
     Address = #address{street = "mojs", city = "sollentuna"},
     {ok, Json} = person:address_to_json(Address),
-    [?_assertEqual(#{street => <<"mojs">>, city => <<"sollentuna">>}, Json)].
+    EncodedJson = json:encode(Json),
+    [?_assertEqual(#{street => <<"mojs">>, city => <<"sollentuna">>}, Json),
+     ?_assertEqual(<<"{\"city\":\"sollentuna\",\"street\":\"mojs\"}">>, EncodedJson)].
 
 accesses_test() ->
     Json = json:decode(<<"[\"read\", \"write\"]"/utf8>>),
@@ -213,7 +230,8 @@ accesses_test_to_json() ->
     Data = [read, write],
     {ok, Json} = person:accesses_to_json(Data),
     Expect = [read, write],
-    [?_assertEqual(Expect, Json)].
+    EncodedJson = json:encode(Json),
+    [?_assertEqual(Expect, Json), ?_assertEqual(<<"[\"read\",\"write\"]">>, EncodedJson)].
 
 tup_list_test() ->
     Json = json:decode(<<"{\"a\": [1, 2, 3]}"/utf8>>),
@@ -231,7 +249,8 @@ tup_list_test_to_json() ->
     Data = #{a => [1, 2, 3]},
     {ok, Json} = person:tup_list_to_json(Data),
     Expect = #{a => [1, 2, 3]},
-    [?_assertEqual(Expect, Json)].
+    EncodedJson = json:encode(Json),
+    [?_assertEqual(Expect, Json), ?_assertEqual(<<"{\"a\":[1,2,3]}">>, EncodedJson)].
 
 tup_list_test_to_json_bad() ->
     Data = #{a => [1, <<"p">>, 3]},
@@ -267,7 +286,8 @@ level_to_json() ->
     Data = 5,
     {ok, Json} = person:level_to_json(Data),
     Expect = 5,
-    [?_assertEqual(Expect, Json)].
+    EncodedJson = json:encode(Json),
+    [?_assertEqual(Expect, Json), ?_assertEqual(<<"5">>, EncodedJson)].
 
 level_to_json_bad() ->
     Data = -5,
@@ -289,7 +309,8 @@ negative_to_json() ->
     Data = -5,
     {ok, Json} = person:negative_to_json(Data),
     Expect = -5,
-    [?_assertEqual(Expect, Json)].
+    EncodedJson = json:encode(Json),
+    [?_assertEqual(Expect, Json), ?_assertEqual(<<"-5">>, EncodedJson)].
 
 negative_to_json_bad() ->
     Data = 5,
@@ -352,7 +373,8 @@ temp_to_json() ->
     Data = 3.14,
     {ok, Json} = person:temp_to_json(Data),
     Expect = 3.14,
-    [?_assertEqual(Expect, Json)].
+    EncodedJson = json:encode(Json),
+    [?_assertEqual(Expect, Json), ?_assertEqual(<<"3.14">>, EncodedJson)].
 
 temp_to_json_bad() ->
     Data = 42,
@@ -378,7 +400,8 @@ role_to_json() ->
     Data = admin,
     {ok, Json} = person:role_to_json(Data),
     Expect = admin,
-    [?_assertEqual(Expect, Json)].
+    EncodedJson = json:encode(Json),
+    [?_assertEqual(Expect, Json), ?_assertEqual(<<"\"admin\"">>, EncodedJson)].
 
 role_to_json_bad() ->
     Data = invalid_role,
@@ -461,3 +484,123 @@ remote_to_json_bad() ->
                       type_mismatch,
                       #{type => {type, integer}, value => "no_value"}}]},
                    person:remote_to_json(Data))].
+
+binary_data() ->
+    Json = json:decode(<<"\"hello world\""/utf8>>),
+    [?_assertEqual({ok, <<"hello world">>}, person:binary_data_from_json(Json))].
+
+binary_data_bad() ->
+    Json = json:decode(<<"123"/utf8>>),
+    [?_assertEqual({error,
+                    [{ed_error, [], type_mismatch, #{type => {type, binary}, value => 123}}]},
+                   person:binary_data_from_json(Json))].
+
+binary_data_to_json() ->
+    Data = <<"hello world">>,
+    {ok, Json} = person:binary_data_to_json(Data),
+    EncodedJson = json:encode(Json),
+    [?_assertEqual(<<"hello world">>, Json),
+     ?_assertEqual(<<"\"hello world\"">>, EncodedJson)].
+
+binary_data_to_json_bad() ->
+    Data = "hello world", % String instead of binary
+    [?_assertEqual({error,
+                    [{ed_error,
+                      [],
+                      type_mismatch,
+                      #{type => {type, binary}, value => "hello world"}}]},
+                   person:binary_data_to_json(Data))].
+
+binary_map() ->
+    Json =
+        json:decode(<<"{\"data\": \"hello world\", \"description\": \"test data\"}"/utf8>>),
+    {ok, Result} = person:binary_map_from_json(Json),
+    [?_assertEqual(<<"hello world">>, maps:get(data, Result)),
+     ?_assertEqual("test data", maps:get(description, Result))].
+
+binary_map_bad() ->
+    Json = json:decode(<<"{\"data\": 123, \"description\": \"test data\"}"/utf8>>),
+    [?_assertEqual({error,
+                    [{ed_error, [data], type_mismatch, #{type => {type, binary}, value => 123}}]},
+                   person:binary_map_from_json(Json))].
+
+binary_map_to_json() ->
+    Data = #{data => <<"hello world">>, description => "test data"},
+    {ok, Json} = person:binary_map_to_json(Data),
+    EncodedJson = json:encode(Json),
+    [?_assertEqual(#{data => <<"hello world">>, description => <<"test data">>}, Json),
+     ?_assertEqual(<<"{\"data\":\"hello world\",\"description\":\"test data\"}">>,
+                   EncodedJson)].
+
+binary_map_to_json_bad() ->
+    Data = #{data => "hello world", description => "test data"}, % String instead of binary
+    [?_assertEqual({error,
+                    [{ed_error,
+                      [data],
+                      type_mismatch,
+                      #{type => {type, binary}, value => "hello world"}}]},
+                   person:binary_map_to_json(Data))].
+
+string_type() ->
+    Json = json:decode(<<"\"hello world\""/utf8>>),
+    [?_assertEqual({ok, "hello world"}, person:string_type_from_json(Json))].
+
+% Test passing an integer list when a string is expected
+% NOTE: This is a surprising but intended feature of the library.
+% FIXME: Document.
+string_type_bad() ->
+    Json =
+        json:decode(<<"[104, 101, 108, 108, 111]"/utf8>>), % JSON array of integers (ASCII for "hello")
+    [?_assertEqual({ok, "hello"}, person:string_type_from_json(Json))].
+
+string_type_to_json() ->
+    Data = "hello world",
+    {ok, Json} = person:string_type_to_json(Data),
+    EncodedJson = json:encode(Json),
+    [?_assertEqual(<<"hello world">>, Json),
+     ?_assertEqual(<<"\"hello world\"">>, EncodedJson)].
+
+% Test passing an integer list when a string is expected
+% NOTE: This is a surprising but intended feature of the library.
+string_type_to_json_bad() ->
+    Data = [104, 101, 108, 108, 111], % "hello" as int list (but still valid as a string)
+    [?_assertEqual({ok, <<"hello">>}, person:string_type_to_json(Data))].
+
+% Test for int_list_map
+int_list_map() ->
+    Json = json:decode(<<"{\"text\": \"example\", \"numbers\": [1, 2, 3]}"/utf8>>),
+    {ok, Result} = person:int_list_map_from_json(Json),
+    [?_assertEqual("example", maps:get(text, Result)),
+     ?_assertEqual([1, 2, 3], maps:get(numbers, Result))].
+
+% Test with a string instead of int list
+% This expects to fail since we want to distinguish between a binary "123"
+% and an actual list of integers
+int_list_map_bad() ->
+    Json = json:decode(<<"{\"text\": \"example\", \"numbers\": \"123\"}"/utf8>>),
+    % Expect the function to handle this error gracefully
+    Result = person:int_list_map_from_json(Json),
+    [?_assertMatch({error,
+                    [{ed_error,
+                      [numbers],
+                      type_mismatch,
+                      #{type := {type, integer}, value := <<"123">>}}]},
+                   Result)].
+
+int_list_map_to_json() ->
+    Data = #{text => "example", numbers => [1, 2, 3]},
+    {ok, Json} = person:int_list_map_to_json(Data),
+    EncodedJson = json:encode(Json),
+    [?_assertEqual(#{text => <<"example">>, numbers => [1, 2, 3]}, Json),
+     ?_assertEqual(<<"{\"numbers\":[1,2,3],\"text\":\"example\"}">>, EncodedJson)].
+
+% Test with a string instead of int list for encoding
+% NOTE: This is a surprising but intended feature of the library.
+% FIXME: Document.
+int_list_map_to_json_bad() ->
+    Data =
+        #{text => "example",
+          numbers => "123"}, % String instead of int list, but valid as list of integers
+    {ok, Json} = person:int_list_map_to_json(Data),
+    % The ASCII values for "123" are [49, 50, 51]
+    [?_assertEqual(#{text => <<"example">>, numbers => [49, 50, 51]}, Json)].

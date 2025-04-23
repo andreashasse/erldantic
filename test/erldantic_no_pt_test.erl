@@ -13,8 +13,10 @@ active_test() ->
 active_to_json_test() ->
     {ok, no_parse_trans} = c:c("test/no_parse_trans.erl", [debug_info]),
     Name = #{first => "John", last => "Doe"},
-    ?assertEqual({ok, #{first => <<"John">>, last => <<"Doe">>}},
-                 no_parse_trans:name_to_json(Name)).
+    {ok, Json} = no_parse_trans:name_to_json(Name),
+    EncodedJson = json:encode(Json),
+    ?assertEqual(#{first => <<"John">>, last => <<"Doe">>}, Json),
+    ?assertEqual(<<"{\"first\":\"John\",\"last\":\"Doe\"}">>, EncodedJson).
 
 my_weird_union_to_json_test() ->
     Json =

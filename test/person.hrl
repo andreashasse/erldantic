@@ -17,3 +17,9 @@
 -type tup_list() :: #{a => [integer()]}.
 -type missing() :: #{a => pelle:kolle()}.
 -type remote() :: #{a => other:account()}.
+%% Binary type for testing binary handling
+-type binary_data() :: binary().
+-type binary_map() :: #{data := binary(), description => string()}.
+%% Types for testing int list vs string confusion
+-type string_type() :: string().
+-type int_list_map() :: #{text := string(), numbers => [integer()]}.
