@@ -27,9 +27,10 @@ person_module_test_() ->
           non_atom_enum_to_json_bad(), missing(), missing_to_json(), remote(), remote_bad(),
           remote_to_json(), remote_to_json_bad(), binary_data(), binary_data_bad(),
           binary_data_to_json(), binary_data_to_json_bad(), binary_map(), binary_map_bad(),
-          binary_map_to_json(), binary_map_to_json_bad(), string_type(), string_type_bad(),
+          binary_map_to_json(), binary_map_to_json_bad(), binary_map_type_bad_from_json(),
+          score_record_like_bad_from_json(), string_type(), string_type_bad(),
           string_type_to_json(), string_type_to_json_bad(), int_list_map(), int_list_map_bad(),
-          int_list_map_to_json(), int_list_map_to_json_bad()]}
+          int_list_map_to_json(), int_list_map_to_json_bad(), int_list_map_type_bad_from_json()]}
      end}.
 
 compile_person() ->
@@ -575,3 +576,26 @@ int_list_map_to_json_bad() ->
     {ok, Json} = person:int_list_map_to_json(Data),
     % The ASCII values for "123" are [49, 50, 51]
     [?_assertEqual(#{text => <<"example">>, numbers => [49, 50, 51]}, Json)].
+
+% Test for passing a non-map value (integer) to int_list_map_from_json
+int_list_map_type_bad_from_json() ->
+    Json = json:decode(<<"42"/utf8>>),
+    Result = person:int_list_map_from_json(Json),
+    [?_assertEqual({error,
+                    [{ed_error, [], type_mismatch, #{type => {type, map}, value => 42}}]},
+                   Result)].
+
+% Test for passing a non-map value (list) to binary_map_from_json
+binary_map_type_bad_from_json() ->
+    Json = json:decode(<<"[1, 2, 3]"/utf8>>),
+    Result = person:binary_map_from_json(Json),
+    [?_assertEqual({error,
+                    [{ed_error, [], type_mismatch, #{type => {type, map}, value => [1, 2, 3]}}]},
+                   Result)].
+
+% Test for passing a record-like JSON object, but not matching the expected map structure
+score_record_like_bad_from_json() ->
+    % This JSON has fields like a record but doesn't match the expected score map structure
+    Json = json:decode(<<"{\"name\": \"test\", \"type\": \"record-like\"}"/utf8>>),
+    Result = person:score_from_json(Json),
+    [?_assertEqual({error, [#ed_error{type = missing_data, location = [value]}]}, Result)].

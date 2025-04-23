@@ -415,7 +415,7 @@ type_from_json(TypeInfo, TypeName, Json) ->
             {error, [#ed_error{type = missing_type, location = [TypeName]}]}
     end.
 
-map_from_json(TypeInfo, MapFieldType, Json) ->
+map_from_json(TypeInfo, MapFieldType, Json) when is_map(Json) ->
     {Fields, Errors} =
         lists:foldl(fun ({map_field_assoc, FieldName, FieldType}, {FieldsAcc, ErrAcc}) ->
                             case maps:find(atom_to_binary(FieldName), Json) of
@@ -462,7 +462,13 @@ map_from_json(TypeInfo, MapFieldType, Json) ->
            {ok, maps:from_list(Fields)};
        true ->
            {error, Errors}
-    end.
+    end;
+map_from_json(_TypeInfo, _MapFieldType, Json) ->
+    %% Return error when Json is not a map
+    {error,
+     [#ed_error{type = type_mismatch,
+                location = [],
+                ctx = #{type => {type, map}, value => Json}}]}.
 
 -spec record_from_json(TypeInfo :: map(), RecordName :: atom(), Json :: json()) ->
                           {ok, term()} | {error, list()}.
