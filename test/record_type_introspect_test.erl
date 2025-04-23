@@ -30,7 +30,8 @@ person_module_test_() ->
           binary_map_to_json(), binary_map_to_json_bad(), binary_map_type_bad_from_json(),
           score_record_like_bad_from_json(), string_type(), string_type_bad(),
           string_type_to_json(), string_type_to_json_bad(), int_list_map(), int_list_map_bad(),
-          int_list_map_to_json(), int_list_map_to_json_bad(), int_list_map_type_bad_from_json()]}
+          int_list_map_to_json(), int_list_map_to_json_bad(), int_list_map_type_bad_from_json(),
+          accesses_test_to_json_wrong_type(), tup_list_test_to_json_non_list()]}
      end}.
 
 compile_person() ->
@@ -599,3 +600,21 @@ score_record_like_bad_from_json() ->
     Json = json:decode(<<"{\"name\": \"test\", \"type\": \"record-like\"}"/utf8>>),
     Result = person:score_from_json(Json),
     [?_assertEqual({error, [#ed_error{type = missing_data, location = [value]}]}, Result)].
+
+accesses_test_to_json_wrong_type() ->
+    NonListData = 42,
+    [?_assertEqual({error,
+                    [#ed_error{type = type_mismatch,
+                               location = [],
+                               ctx =
+                                   #{type => {list, {union, [{literal, read}, {literal, write}]}},
+                                     value => 42}}]},
+                   person:accesses_to_json(NonListData))].
+
+tup_list_test_to_json_non_list() ->
+    Data = #{a => 42}, % integer instead of list of integers
+    [?_assertEqual({error,
+                    [#ed_error{type = type_mismatch,
+                               location = [a],
+                               ctx = #{type => {list, {type, integer}}, value => 42}}]},
+                   person:tup_list_to_json(Data))].

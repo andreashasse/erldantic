@@ -25,16 +25,18 @@ This is Pydantic, but for Erlang. Hopefully for Elixir and Gleam in the future!
 - [ ] Two types with same name but different arity.
 
 ## TODO PoC Not parse transform
-- [ ] Module that doens't use parse transform, but manually calls from to_json from_json function in this lib.
+- [x] Module that doens't use parse transform, but manually calls from to_json from_json function in this lib.
 
 ## TODO Release
-- [ ] Add type spec to generated functions.
 - [ ] Document special behaviour for `undefined`.
 - [ ] All other types expect `pid()`, `port()`, `Fun` and `reference()`.
     - [ ] Number? or will it always show up as integer()|float()?
     - [ ] non_empty ... binary, bitstring,
     - [ ] any()/term() and dynamic()? none()?
 - [ ] Test error message path with Adams library for nested access
+
+## TODO If I go with the parse transform:
+- [ ] Add type spec to generated functions.
 
 ## TODO PoC FastApi
 - [ ] How should I get example values into the mix? Some macro ?spec(example = 2, type = integer) that I write to integer and keep the example separate? Can that be done without IDEs going bananas?
