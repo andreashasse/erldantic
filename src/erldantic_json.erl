@@ -153,7 +153,7 @@ data_to_json(TypeInfo, TypeName, Data) ->
             {error, [#ed_error{type = missing_type, location = [TypeName]}]}
     end.
 
-map_to_json(TypeInfo, MapFieldTypes, Data) ->
+map_to_json(TypeInfo, MapFieldTypes, Data) when is_map(Data) ->
     {MapFields, Errors} =
         lists:foldl(fun ({map_field_assoc, FieldName, FieldType}, {FieldsAcc, ErrorsAcc}) ->
                             case Data of
@@ -209,7 +209,12 @@ map_to_json(TypeInfo, MapFieldTypes, Data) ->
             {ok, maps:from_list(MapFields)};
         _ ->
             {error, Errors}
-    end.
+    end;
+map_to_json(_TypeInfo, _MapFieldTypes, Data) ->
+    {error,
+     [#ed_error{type = type_mismatch,
+                location = [],
+                ctx = #{type => {type, map}, value => Data}}]}.
 
 -spec record_to_json(TypeInfo :: map(), RecordName :: atom(), Record :: term()) ->
                         {ok, #{atom() => json__encode_value()}} | {error, [#ed_error{}]}.

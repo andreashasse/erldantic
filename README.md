@@ -16,10 +16,10 @@ This is Pydantic, but for Erlang. Hopefully for Elixir and Gleam in the future!
   - [x] binary
     - [x] Binary should stay binary. Don't allow list when doing to_json
 - [X] Path in error messages
-- [ ] Remote type
-  - [ ] Missing
-  - [ ] Not Missing
-- [ ] pass not map to map type
+- [x] Remote type
+  - [x] Missing
+  - [x] Not Missing
+- [x] pass not map to map type
 - [x] pass binary when expecting string
 - [ ] skip (undefined) in weird places.
 - [ ] Two types with same name but different arity.

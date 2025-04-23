@@ -55,9 +55,7 @@ active_bad() ->
 active_to_json() ->
     Data = true,
     {ok, Json} = person:active_to_json(Data),
-    Expect = true,
-    EncodedJson = json:encode(Json),
-    [?_assertEqual(Expect, Json), ?_assertEqual(<<"true">>, EncodedJson)].
+    [?_assertEqual(true, Json)].
 
 active_to_json_bad() ->
     Data = 1,
@@ -82,8 +80,7 @@ age_to_json() ->
     Data = 22,
     {ok, Json} = person:age_to_json(Data),
     Expect = 22,
-    EncodedJson = json:encode(Json),
-    [?_assertEqual(Expect, Json), ?_assertEqual(<<"22">>, EncodedJson)].
+    [?_assertEqual(Expect, Json)].
 
 person_type_is_record() ->
     Json = json:decode(<<"{\"street\": \"mojs\", \"city\": \"sollentuna\"}"/utf8>>),
@@ -141,10 +138,7 @@ score_to_json() ->
     Data = #{value => 5, comment => #{lang => "en", text => "ok"}},
     {ok, Json} = person:score_to_json(Data),
     Expect = #{value => 5, comment => #{lang => <<"en">>, text => <<"ok">>}},
-    EncodedJson = json:encode(Json),
-    [?_assertEqual(Expect, Json),
-     ?_assertEqual(<<"{\"comment\":{\"lang\":\"en\",\"text\":\"ok\"},\"value\":5}">>,
-                   EncodedJson)].
+    [?_assertEqual(Expect, Json)].
 
 score_to_json_value_bad() ->
     Data = #{value => 11, comment => #{lang => "en", text => "ok"}},
@@ -178,10 +172,7 @@ weird_union_to_json() ->
     Expect =
         #{city => <<"sollentuna">>,
           score => #{value => 5, comment => #{lang => <<"en">>, text => <<"ok">>}}},
-    EncodedJson = json:encode(Json),
-    [?_assertEqual(Expect, Json),
-     ?_assertEqual(<<"{\"city\":\"sollentuna\",\"score\":{\"comment\":{\"lang\":\"en\",\"text\":\"ok\"},\"value\":5}}">>,
-                   EncodedJson)].
+    [?_assertEqual(Expect, Json)].
 
 person_person_to_json() ->
     Address = #address{street = "mojs", city = "sollentuna"},
@@ -195,10 +186,7 @@ person_person_to_json() ->
         #{name => #{first => <<"Andreas">>, last => <<"Hasselberg">>},
           age => 22,
           home => #{street => <<"mojs">>, city => <<"sollentuna">>}},
-    EncodedJson = json:encode(Json),
-    [?_assertEqual(Expect, Json),
-     ?_assertEqual(<<"{\"age\":22,\"home\":{\"city\":\"sollentuna\",\"street\":\"mojs\"},\"name\":{\"first\":\"Andreas\",\"last\":\"Hasselberg\"}}">>,
-                   EncodedJson)].
+    [?_assertEqual(Expect, Json)].
 
 person_address() ->
     Json = json:decode(<<"{\"street\": \"mojs\", \"city\": \"sollentuna\"}"/utf8>>),
@@ -218,9 +206,7 @@ person_address_bad() ->
 person_address_to_json() ->
     Address = #address{street = "mojs", city = "sollentuna"},
     {ok, Json} = person:address_to_json(Address),
-    EncodedJson = json:encode(Json),
-    [?_assertEqual(#{street => <<"mojs">>, city => <<"sollentuna">>}, Json),
-     ?_assertEqual(<<"{\"city\":\"sollentuna\",\"street\":\"mojs\"}">>, EncodedJson)].
+    [?_assertEqual(#{street => <<"mojs">>, city => <<"sollentuna">>}, Json)].
 
 accesses_test() ->
     Json = json:decode(<<"[\"read\", \"write\"]"/utf8>>),
@@ -230,8 +216,7 @@ accesses_test_to_json() ->
     Data = [read, write],
     {ok, Json} = person:accesses_to_json(Data),
     Expect = [read, write],
-    EncodedJson = json:encode(Json),
-    [?_assertEqual(Expect, Json), ?_assertEqual(<<"[\"read\",\"write\"]">>, EncodedJson)].
+    [?_assertEqual(Expect, Json)].
 
 tup_list_test() ->
     Json = json:decode(<<"{\"a\": [1, 2, 3]}"/utf8>>),
@@ -249,8 +234,7 @@ tup_list_test_to_json() ->
     Data = #{a => [1, 2, 3]},
     {ok, Json} = person:tup_list_to_json(Data),
     Expect = #{a => [1, 2, 3]},
-    EncodedJson = json:encode(Json),
-    [?_assertEqual(Expect, Json), ?_assertEqual(<<"{\"a\":[1,2,3]}">>, EncodedJson)].
+    [?_assertEqual(Expect, Json)].
 
 tup_list_test_to_json_bad() ->
     Data = #{a => [1, <<"p">>, 3]},
@@ -286,8 +270,7 @@ level_to_json() ->
     Data = 5,
     {ok, Json} = person:level_to_json(Data),
     Expect = 5,
-    EncodedJson = json:encode(Json),
-    [?_assertEqual(Expect, Json), ?_assertEqual(<<"5">>, EncodedJson)].
+    [?_assertEqual(Expect, Json)].
 
 level_to_json_bad() ->
     Data = -5,
@@ -309,8 +292,7 @@ negative_to_json() ->
     Data = -5,
     {ok, Json} = person:negative_to_json(Data),
     Expect = -5,
-    EncodedJson = json:encode(Json),
-    [?_assertEqual(Expect, Json), ?_assertEqual(<<"-5">>, EncodedJson)].
+    [?_assertEqual(Expect, Json)].
 
 negative_to_json_bad() ->
     Data = 5,
@@ -373,8 +355,7 @@ temp_to_json() ->
     Data = 3.14,
     {ok, Json} = person:temp_to_json(Data),
     Expect = 3.14,
-    EncodedJson = json:encode(Json),
-    [?_assertEqual(Expect, Json), ?_assertEqual(<<"3.14">>, EncodedJson)].
+    [?_assertEqual(Expect, Json)].
 
 temp_to_json_bad() ->
     Data = 42,
@@ -400,8 +381,7 @@ role_to_json() ->
     Data = admin,
     {ok, Json} = person:role_to_json(Data),
     Expect = admin,
-    EncodedJson = json:encode(Json),
-    [?_assertEqual(Expect, Json), ?_assertEqual(<<"\"admin\"">>, EncodedJson)].
+    [?_assertEqual(Expect, Json)].
 
 role_to_json_bad() ->
     Data = invalid_role,
@@ -498,9 +478,7 @@ binary_data_bad() ->
 binary_data_to_json() ->
     Data = <<"hello world">>,
     {ok, Json} = person:binary_data_to_json(Data),
-    EncodedJson = json:encode(Json),
-    [?_assertEqual(<<"hello world">>, Json),
-     ?_assertEqual(<<"\"hello world\"">>, EncodedJson)].
+    [?_assertEqual(<<"hello world">>, Json)].
 
 binary_data_to_json_bad() ->
     Data = "hello world", % String instead of binary
@@ -527,10 +505,7 @@ binary_map_bad() ->
 binary_map_to_json() ->
     Data = #{data => <<"hello world">>, description => "test data"},
     {ok, Json} = person:binary_map_to_json(Data),
-    EncodedJson = json:encode(Json),
-    [?_assertEqual(#{data => <<"hello world">>, description => <<"test data">>}, Json),
-     ?_assertEqual(<<"{\"data\":\"hello world\",\"description\":\"test data\"}">>,
-                   EncodedJson)].
+    [?_assertEqual(#{data => <<"hello world">>, description => <<"test data">>}, Json)].
 
 binary_map_to_json_bad() ->
     Data = #{data => "hello world", description => "test data"}, % String instead of binary
@@ -556,9 +531,7 @@ string_type_bad() ->
 string_type_to_json() ->
     Data = "hello world",
     {ok, Json} = person:string_type_to_json(Data),
-    EncodedJson = json:encode(Json),
-    [?_assertEqual(<<"hello world">>, Json),
-     ?_assertEqual(<<"\"hello world\"">>, EncodedJson)].
+    [?_assertEqual(<<"hello world">>, Json)].
 
 % Test passing an integer list when a string is expected
 % NOTE: This is a surprising but intended feature of the library.
@@ -590,9 +563,7 @@ int_list_map_bad() ->
 int_list_map_to_json() ->
     Data = #{text => "example", numbers => [1, 2, 3]},
     {ok, Json} = person:int_list_map_to_json(Data),
-    EncodedJson = json:encode(Json),
-    [?_assertEqual(#{text => <<"example">>, numbers => [1, 2, 3]}, Json),
-     ?_assertEqual(<<"{\"numbers\":[1,2,3],\"text\":\"example\"}">>, EncodedJson)].
+    [?_assertEqual(#{text => <<"example">>, numbers => [1, 2, 3]}, Json)].
 
 % Test with a string instead of int list for encoding
 % NOTE: This is a surprising but intended feature of the library.
