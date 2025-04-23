@@ -81,7 +81,7 @@ age_to_json() ->
 
 person_type_is_record() ->
     Json = json:decode(<<"{\"street\": \"mojs\", \"city\": \"sollentuna\"}"/utf8>>),
-    [?_assertEqual({ok, #address{street = <<"mojs">>, city = <<"sollentuna">>}},
+    [?_assertEqual({ok, #address{street = "mojs", city = "sollentuna"}},
                    person:address_from_json(Json))].
 
 person_person() ->
@@ -94,9 +94,9 @@ person_person() ->
              age = Age,
              home = Home}} =
         person:person_from_json(Json),
-    [?_assertEqual(#{first => <<"Andreas">>, last => <<"Hasselberg">>}, Name),
+    [?_assertEqual(#{first => "Andreas", last => "Hasselberg"}, Name),
      ?_assertEqual(22, Age),
-     ?_assertEqual(#address{street = <<"mojs">>, city = <<"sollentuna">>}, Home)].
+     ?_assertEqual(#address{street = "mojs", city = "sollentuna"}, Home)].
 
 person_person_bad() ->
     Json =
@@ -110,7 +110,7 @@ score() ->
     Json =
         json:decode(<<"{\"value\": 5, \"comment\": {\"lang\": \"en\", \"text\": \"ok\"}}"/utf8>>),
     {ok, #{value := Value, comment := Comment}} = person:score_from_json(Json),
-    [?_assertEqual(5, Value), ?_assertEqual(#{lang => <<"en">>, text => <<"ok">>}, Comment)].
+    [?_assertEqual(5, Value), ?_assertEqual(#{lang => "en", text => "ok"}, Comment)].
 
 score_bad() ->
     Json =
@@ -132,13 +132,13 @@ score_value_bad() ->
                    person:score_from_json(Json))].
 
 score_to_json() ->
-    Data = #{value => 5, comment => #{lang => <<"en">>, text => <<"ok">>}},
+    Data = #{value => 5, comment => #{lang => "en", text => "ok"}},
     {ok, Json} = person:score_to_json(Data),
     Expect = #{value => 5, comment => #{lang => <<"en">>, text => <<"ok">>}},
     [?_assertEqual(Expect, Json)].
 
 score_to_json_value_bad() ->
-    Data = #{value => 11, comment => #{lang => <<"en">>, text => <<"ok">>}},
+    Data = #{value => 11, comment => #{lang => "en", text => "ok"}},
     [?_assertEqual({error,
                     [{ed_error,
                       [value],
@@ -151,9 +151,9 @@ weird_union() ->
         json:decode(<<"{\"city\": \"sollentuna\", \"score\": {\"value\": 5, "
                       "\"comment\": {\"lang\": \"en\", \"text\": \"ok\"}}}"/utf8>>),
     {ok, #{city := City, score := Score}} = person:weird_union_from_json(Json),
-    [?_assertEqual(<<"sollentuna">>, City),
+    [?_assertEqual("sollentuna", City),
      ?_assertEqual(5, maps:get(value, Score)),
-     ?_assertEqual(#{lang => <<"en">>, text => <<"ok">>}, maps:get(comment, Score))].
+     ?_assertEqual(#{lang => "en", text => "ok"}, maps:get(comment, Score))].
 
 weird_union_bad() ->
     Json =
@@ -164,8 +164,7 @@ weird_union_bad() ->
 
 weird_union_to_json() ->
     Data =
-        #{city => <<"sollentuna">>,
-          score => #{value => 5, comment => #{lang => <<"en">>, text => <<"ok">>}}},
+        #{city => "sollentuna", score => #{value => 5, comment => #{lang => "en", text => "ok"}}},
     {ok, Json} = person:weird_union_to_json(Data),
     Expect =
         #{city => <<"sollentuna">>,
@@ -173,8 +172,8 @@ weird_union_to_json() ->
     [?_assertEqual(Expect, Json)].
 
 person_person_to_json() ->
-    Address = #address{street = <<"mojs">>, city = <<"sollentuna">>},
-    Name = #{first => <<"Andreas">>, last => <<"Hasselberg">>},
+    Address = #address{street = "mojs", city = "sollentuna"},
+    Name = #{first => "Andreas", last => "Hasselberg"},
     Person =
         #person{name = Name,
                 age = 22,
@@ -188,7 +187,7 @@ person_person_to_json() ->
 
 person_address() ->
     Json = json:decode(<<"{\"street\": \"mojs\", \"city\": \"sollentuna\"}"/utf8>>),
-    Expect = {ok, #address{street = <<"mojs">>, city = <<"sollentuna">>}},
+    Expect = {ok, #address{street = "mojs", city = "sollentuna"}},
     Expr = person:address_from_json(Json),
     [?_assertEqual(Expect, Expr)].
 
@@ -202,7 +201,7 @@ person_address_bad() ->
                    person:address_from_json(Json))].
 
 person_address_to_json() ->
-    Address = #address{street = <<"mojs">>, city = <<"sollentuna">>},
+    Address = #address{street = "mojs", city = "sollentuna"},
     {ok, Json} = person:address_to_json(Address),
     [?_assertEqual(#{street => <<"mojs">>, city => <<"sollentuna">>}, Json)].
 
@@ -244,12 +243,12 @@ tup_list_test_to_json_bad() ->
 
 person_address_undefined_city() ->
     Json = json:decode(<<"{\"street\": \"mojs\"}"/utf8>>),
-    Expect = {ok, #address{street = <<"mojs">>, city = undefined}},
+    Expect = {ok, #address{street = "mojs", city = undefined}},
     Expr = person:address_from_json(Json),
     [?_assertEqual(Expect, Expr)].
 
 person_address_undefined_city_to_json() ->
-    Data = #address{street = <<"mojs">>, city = undefined},
+    Data = #address{street = "mojs", city = undefined},
     Expect = {ok, #{street => <<"mojs">>}},
     Expr = person:address_to_json(Data),
     [?_assertEqual(Expect, Expr)].
@@ -313,7 +312,7 @@ name_t() ->
         json:decode(<<"{\"first\": \"Andreas\", \"last\": \"Hasselberg\", \"not_present\": "
                       "22}"/utf8>>),
     {ok, M} = person:name_t_from_json(Json),
-    Expect = #{first => <<"Andreas">>, last => <<"Hasselberg">>},
+    Expect = #{first => "Andreas", last => "Hasselberg"},
     [?_assertEqual(Expect, M), ?_assertEqual([first, last], maps:keys(M))].
 
 name_t_error() ->
@@ -323,15 +322,15 @@ name_t_error() ->
 
 name_t_to_json() ->
     Data =
-        #{first => <<"Andreas">>,
-          last => <<"Hasselberg">>,
+        #{first => "Andreas",
+          last => "Hasselberg",
           not_present => 22},
     Resp = person:name_t_to_json(Data),
     Expected = {ok, #{first => <<"Andreas">>, last => <<"Hasselberg">>}},
     [?_assertEqual(Resp, Expected)].
 
 name_t_to_json_error() ->
-    Data = #{first => <<"Andreas">>},
+    Data = #{first => "Andreas"},
     Resp = person:name_t_to_json(Data),
     Expected = {error, [#ed_error{type = missing_data, location = [last]}]},
     [?_assertEqual(Resp, Expected)].
@@ -437,7 +436,7 @@ missing_to_json() ->
 
 remote() ->
     Json = json:decode(<<"{\"a\": {\"id\": \"id1\", \"balance\": 100}}"/utf8>>),
-    [?_assertEqual({ok, #{a => #{id => <<"id1">>, balance => 100}}},
+    [?_assertEqual({ok, #{a => #{id => "id1", balance => 100}}},
                    person:remote_from_json(Json))].
 
 remote_bad() ->
@@ -450,14 +449,15 @@ remote_bad() ->
                    person:remote_from_json(Json))].
 
 remote_to_json() ->
-    Data = #{a => #{id => <<"id1">>, balance => 100}},
-    [?_assertEqual({ok, Data}, person:remote_to_json(Data))].
+    Data = #{a => #{id => "id1", balance => 100}},
+    [?_assertEqual({ok, #{a => #{id => <<"id1">>, balance => 100}}},
+                   person:remote_to_json(Data))].
 
 remote_to_json_bad() ->
-    Data = #{a => #{id => <<"id1">>, balance => <<"no_value">>}},
+    Data = #{a => #{id => "id1", balance => "no_value"}},
     [?_assertEqual({error,
                     [{ed_error,
                       [a, balance],
                       type_mismatch,
-                      #{type => {type, integer}, value => <<"no_value">>}}]},
+                      #{type => {type, integer}, value => "no_value"}}]},
                    person:remote_to_json(Data))].
