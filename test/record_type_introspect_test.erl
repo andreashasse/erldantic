@@ -559,7 +559,7 @@ int_list_map_bad() ->
                     [{ed_error,
                       [numbers],
                       type_mismatch,
-                      #{type := {type, integer}, value := <<"123">>}}]},
+                      #{type := {list, {type, integer}}, value := <<"123">>}}]},
                    Result)].
 
 int_list_map_to_json() ->

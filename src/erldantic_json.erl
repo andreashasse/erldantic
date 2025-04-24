@@ -101,6 +101,8 @@ to_json(_TypeInfo, {literal, Literal}, Literal) ->
     {ok, Literal};
 to_json(TypeInfo, {union, Types}, Data) ->
     first(fun to_json/3, TypeInfo, Types, Data);
+to_json(TypeInfo, {nonempty_list, Type}, Data) ->
+    nonempty_list_to_json(TypeInfo, Type, Data);
 to_json(TypeInfo, {list, Type}, Data) when is_list(Data) ->
     list_to_json(TypeInfo, Type, Data);
 to_json(TypeInfo, {type, TypeName}, Data) when is_atom(TypeName) ->
@@ -114,6 +116,14 @@ to_json(_TypeInfo, T, OtherValue) ->
      [#ed_error{type = type_mismatch,
                 location = [],
                 ctx = #{type => T, value => OtherValue}}]}.
+
+nonempty_list_to_json(TypeInfo, Type, Data) when is_list(Data) andalso Data =/= [] ->
+    list_to_json(TypeInfo, Type, Data);
+nonempty_list_to_json(_TypeInfo, Type, Data) ->
+    {error,
+     [#ed_error{type = type_mismatch,
+                location = [],
+                ctx = #{type => {nonempty_list, Type}, value => Data}}]}.
 
 -spec list_to_json(TypeInfo :: map(),
                    Type :: record_type_introspect:a_type_or_ref(),
@@ -266,6 +276,8 @@ from_json(TypeInfo, #a_map{fields = MapFieldTypes}, Json) ->
     map_from_json(TypeInfo, MapFieldTypes, Json);
 from_json(TypeInfo, {user_type_ref, TypeName}, Json) when is_atom(TypeName) ->
     type_from_json(TypeInfo, TypeName, Json);
+from_json(TypeInfo, {nonempty_list, Type}, Data) ->
+    nonempty_list_from_json(TypeInfo, Type, Data);
 from_json(TypeInfo, {list, Type}, Data) ->
     list_from_json(TypeInfo, Type, Data);
 from_json(_TypeInfo, {type, PrimaryType} = T, Json)
@@ -318,6 +330,14 @@ try_convert_to_literal(Literal, Value) when is_atom(Literal) andalso is_binary(V
 try_convert_to_literal(_Literal, _Value) ->
     false.
 
+nonempty_list_from_json(TypeInfo, Type, Data) when is_list(Data) andalso Data =/= [] ->
+    list_from_json(TypeInfo, Type, Data);
+nonempty_list_from_json(_TypeInfo, Type, Data) ->
+    {error,
+     [#ed_error{type = type_mismatch,
+                location = [],
+                ctx = #{type => {nonempty_list, Type}, value => Data}}]}.
+
 list_from_json(TypeInfo, Type, Data) when is_list(Data) ->
     JsonRes =
         lists:map(fun({Nr, Item}) ->
@@ -347,7 +367,7 @@ list_from_json(_TypeInfo, Type, Data) ->
     {error,
      [#ed_error{type = type_mismatch,
                 location = [],
-                ctx = #{type => Type, value => Data}}]}.
+                ctx = #{type => {list, Type}, value => Data}}]}.
 
 check_type_from_json(string, Json) when is_binary(Json) ->
     {true, binary_to_list(Json)};

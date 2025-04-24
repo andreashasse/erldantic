@@ -6,7 +6,7 @@
 
 -type user_type_name() :: atom().
 -type a_type() ::
-    {type, string | integer | boolean | float | non_neg_integer} |
+    {type, string | nonempty_string | integer | boolean | float | non_neg_integer} |
     {record_ref, user_type_name()} |
     {user_type_ref, user_type_name()} |
     #a_map{} |
@@ -15,7 +15,7 @@
     {union, [a_type()]} |
     {literal, term()} |
     {range, integer, integer(), integer()} |
-    {list, a_type()} |
+    {list | nonempty_list, a_type()} |
     {remote_type, {module(), atom(), [term()]}}.
 -type a_type_reference() :: {record, atom()} | {record_ref, atom()} | {type, atom()}.
 %% What is the empty list in non_negative integer?

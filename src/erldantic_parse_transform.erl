@@ -151,6 +151,9 @@ field_info_to_type({TypeOfType, _, Type, TypeAttrs}) ->
         {type, list} ->
             [ListType] = lists:flatmap(fun field_info_to_type/1, TypeAttrs),
             [{list, ListType}];
+        {type, nonempty_list} ->
+            [ListType] = lists:flatmap(fun field_info_to_type/1, TypeAttrs),
+            [{nonempty_list, ListType}];
         {type, PrimaryType} when ?is_primary_type(PrimaryType) ->
             [{type, PrimaryType}];
         {type, PartailRangeInteger} when ?is_predefined_int_range(PartailRangeInteger) ->
