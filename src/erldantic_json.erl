@@ -14,7 +14,8 @@ pers_type(Module) ->
 pers_types_set(Module, TypeInfo) ->
     persistent_term:put({?MODULE, pers_types, Module}, TypeInfo).
 
-to_json_no_pt({Module, Type, TypeArity}, Data) ->
+%% FIXME: use TypeArity
+to_json_no_pt({Module, Type, _TypeArity}, Data) ->
     case pers_type(Module) of
         TypeInfo when is_map(TypeInfo) ->
             to_json(TypeInfo, {type, Type}, Data);
@@ -41,7 +42,8 @@ to_json_no_pt({Module, Type, TypeArity}, Data) ->
             end
     end.
 
-from_json_no_pt({Module, Type, TypeArity}, Json) ->
+%% FIXME: use TypeArity
+from_json_no_pt({Module, Type, _TypeArity}, Json) ->
     case pers_type(Module) of
         TypeInfo when is_map(TypeInfo) ->
             from_json(TypeInfo, {type, Type}, Json);

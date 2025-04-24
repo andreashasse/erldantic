@@ -120,8 +120,8 @@ field_info_to_type({atom, _, Value}) ->
     [{literal, Value}];
 field_info_to_type({integer, _, Value}) ->
     [{literal, Value}];
-field_info_to_type({remote_type, _, MTA}) ->
-    [{atom, _, Module}, {atom, _, Type}, Args] = MTA,
+field_info_to_type({remote_type, _, [{atom, _, Module}, {atom, _, Type}, Args]})
+    when is_atom(Module) andalso is_atom(Type) andalso is_list(Args) ->
     [{remote_type, {Module, Type, Args}}];
 field_info_to_type({TypeOfType, _, Type, TypeAttrs}) ->
     true = is_list(TypeAttrs),
