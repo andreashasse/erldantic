@@ -404,6 +404,8 @@ check_type(boolean, Json) when is_boolean(Json) ->
     true;
 check_type(float, Json) when is_float(Json) ->
     true;
+check_type(number, Json) when is_integer(Json) orelse is_float(Json) ->
+    true;
 check_type(non_neg_integer, Json) when is_integer(Json) andalso Json >= 0 ->
     true;
 check_type(pos_integer, Json) when is_integer(Json) andalso Json > 0 ->
