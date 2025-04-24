@@ -15,10 +15,12 @@ pers_types_set(Module, TypeInfo) ->
     persistent_term:put({?MODULE, pers_types, Module}, TypeInfo).
 
 %% FIXME: use TypeArity
+to_json_no_pt({Module, Type, _TypeArity}, Data) when is_atom(Type) ->
+    to_json_no_pt({Module, {type, Type}, _TypeArity}, Data);
 to_json_no_pt({Module, Type, _TypeArity}, Data) ->
     case pers_type(Module) of
         TypeInfo when is_map(TypeInfo) ->
-            to_json(TypeInfo, {type, Type}, Data);
+            to_json(TypeInfo, Type, Data);
         undefined ->
             case code:which(Module) of
                 Error
@@ -36,17 +38,20 @@ to_json_no_pt({Module, Type, _TypeArity}, Data) ->
                     NamedTypes =
                         lists:filtermap(fun erldantic_parse_transform:type_in_form/1, Forms),
                     TypeInfo = maps:from_list(NamedTypes),
+                    io:format("TypeInfo ~p~n", [TypeInfo]),
                     pers_types_set(Module, TypeInfo),
 
-                    to_json(TypeInfo, {type, Type}, Data)
+                    to_json(TypeInfo, Type, Data)
             end
     end.
 
 %% FIXME: use TypeArity
+from_json_no_pt({Module, Type, _TypeArity}, Json) when is_atom(Type) ->
+    from_json_no_pt({Module, {type, Type}, _TypeArity}, Json);
 from_json_no_pt({Module, Type, _TypeArity}, Json) ->
     case pers_type(Module) of
         TypeInfo when is_map(TypeInfo) ->
-            from_json(TypeInfo, {type, Type}, Json);
+            from_json(TypeInfo, Type, Json);
         undefined ->
             case code:which(Module) of
                 Error
@@ -66,7 +71,7 @@ from_json_no_pt({Module, Type, _TypeArity}, Json) ->
                     TypeInfo = maps:from_list(NamedTypes),
                     pers_types_set(Module, TypeInfo),
 
-                    from_json(TypeInfo, {type, Type}, Json)
+                    from_json(TypeInfo, Type, Json)
             end
     end.
 
@@ -259,8 +264,8 @@ record_to_json(TypeInfo, RecordName, Record) when is_tuple(Record) ->
     end;
 record_to_json(_TypeInfo, RecordName, Record) ->
     {error,
-     [#ed_error{type = record_type_mismatch,
-                location = [RecordName],
+     [#ed_error{type = type_mismatch,
+                location = [],
                 ctx = #{record_name => RecordName, record => Record}}]}.
 
 err_append_location(Err, FieldName) ->
@@ -418,6 +423,8 @@ check_type(binary, Json) when is_binary(Json) ->
     true;
 check_type(atom, Json) when is_atom(Json) ->
     true;
+check_type(term, _Json) ->
+    true;
 check_type(_Type, _Json) ->
     false.
 
@@ -556,8 +563,8 @@ do_record_from_json(TypeInfo, RecordName, RecordInfo, Json) when is_map(Json) ->
     end;
 do_record_from_json(_TypeInfo, RecordName, _RecordInfo, Json) ->
     {error,
-     [#ed_error{type = json_type_mismatch,
-                location = [RecordName],
+     [#ed_error{type = type_mismatch,
+                location = [],
                 ctx = #{record_name => RecordName, record => Json}}]}.
 
 can_be_undefined(Type) ->
