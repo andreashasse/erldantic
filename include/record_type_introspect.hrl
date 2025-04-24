@@ -8,6 +8,7 @@
 
 -define(is_primary_type(PrimaryType),
         PrimaryType =:= string
+        orelse PrimaryType =:= nonempty_string
         orelse PrimaryType =:= integer
         orelse PrimaryType =:= boolean
         orelse PrimaryType =:= atom

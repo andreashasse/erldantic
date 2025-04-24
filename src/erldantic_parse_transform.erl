@@ -114,6 +114,8 @@ type_in_form(_) ->
     false.
 
 -spec field_info_to_type(term()) -> [record_type_introspect:a_type()].
+field_info_to_type({ann_type, _, _Attr}) ->
+    [];
 field_info_to_type({atom, _, Value}) ->
     [{literal, Value}];
 field_info_to_type({integer, _, Value}) ->
@@ -153,6 +155,8 @@ field_info_to_type({TypeOfType, _, Type, TypeAttrs}) ->
             [{type, PrimaryType}];
         {type, PartailRangeInteger} when ?is_predefined_int_range(PartailRangeInteger) ->
             [{type, PartailRangeInteger}];
+        {type, term} ->
+            [{type, term}];
         {literal, Literal} ->
             [{literal, Literal}]
     end.

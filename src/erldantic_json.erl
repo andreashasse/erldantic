@@ -351,11 +351,26 @@ list_from_json(_TypeInfo, Type, Data) ->
 
 check_type_from_json(string, Json) when is_binary(Json) ->
     {true, binary_to_list(Json)};
+check_type_from_json(nonempty_string, Json) when is_binary(Json), byte_size(Json) > 0 ->
+    {true, binary_to_list(Json)};
 check_type_from_json(Type, Json) ->
     check_type(Type, Json).
 
 check_type_to_json(string, Json) when is_list(Json) ->
     {true, list_to_binary(Json)};
+check_type_to_json(nonempty_string, Json) when is_list(Json), Json =/= [] ->
+    case io_lib:printable_list(Json) of
+        true ->
+            {true, list_to_binary(Json)};
+        false ->
+            {error,
+             [#ed_error{type = type_mismatch,
+                        location = [],
+                        ctx =
+                            #{type => {type, string},
+                              value => Json,
+                              comment => "non printable"}}]}
+    end;
 check_type_to_json(Type, Json) ->
     check_type(Type, Json).
 
