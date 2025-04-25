@@ -134,8 +134,17 @@ field_info_to_type({TypeOfType, _, Type, TypeAttrs}) ->
             true = is_atom(Type),
             [{user_type_ref, Type}];
         {type, map} ->
-            MapFields = lists:flatmap(fun map_field_info/1, TypeAttrs),
-            [#a_map{fields = MapFields}];
+            MapFields0 = lists:flatmap(fun map_field_info/1, TypeAttrs),
+            {MapFields, MapFallbackType} =
+                lists:partition(fun ({map_field_assoc, _, _}) ->
+                                        true;
+                                    ({map_field_exact, _, _}) ->
+                                        true;
+                                    ({map_field_type_assoc, _, _}) ->
+                                        false
+                                end,
+                                MapFields0),
+            [#a_map{fields = MapFields, fallback_types = MapFallbackType}];
         {type, tuple} ->
             TupleFields = lists:flatmap(fun field_info_to_type/1, TypeAttrs),
             [#a_tuple{fields = TupleFields}];
@@ -167,14 +176,22 @@ field_info_to_type({TypeOfType, _, Type, TypeAttrs}) ->
 -spec map_field_info(term()) ->
                         [{map_field_assoc | map_field_exact,
                           atom(),
+                          record_type_introspect:a_type()} |
+                         {map_field_type_assoc,
+                          record_type_introspect:a_type(),
                           record_type_introspect:a_type()}].
 map_field_info({TypeOfType, _, Type, TypeAttrs}) ->
     case {TypeOfType, Type} of
         {type, map_field_assoc} ->
-            [{atom, _, MapFieldName}, FieldInfo] = TypeAttrs,
-            true = is_atom(MapFieldName),
-            [AType] = field_info_to_type(FieldInfo),
-            [{map_field_assoc, MapFieldName, AType}];
+            case TypeAttrs of
+                [{atom, _, MapFieldName}, FieldInfo] when is_atom(MapFieldName) ->
+                    [AType] = field_info_to_type(FieldInfo),
+                    [{map_field_assoc, MapFieldName, AType}];
+                [{type, _, _, _} = KeyFieldInfo, ValueFieldInfo] ->
+                    [KeyType] = field_info_to_type(KeyFieldInfo),
+                    [ValueType] = field_info_to_type(ValueFieldInfo),
+                    [{map_field_type_assoc, KeyType, ValueType}]
+            end;
         {type, map_field_exact} ->
             [{atom, _, MapFieldName}, FieldInfo] = TypeAttrs,
             true = is_atom(MapFieldName),

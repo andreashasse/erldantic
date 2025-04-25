@@ -12,7 +12,7 @@ This is Pydantic, but for Erlang. Hopefully for Elixir and Gleam in the future!
   - [x] non_neg_integer
   - [x] pos_integer
   - [x] neg_integer
-  - [ ] NonemptyString
+  - [x] nonempty_string
   - [x] binary
     - [x] Binary should stay binary. Don't allow list when doing to_json
 - [X] Path in error messages
@@ -21,8 +21,9 @@ This is Pydantic, but for Erlang. Hopefully for Elixir and Gleam in the future!
   - [x] Not Missing
 - [x] pass not map to map type
 - [x] pass binary when expecting string
-- [ ] skip (undefined) in weird places.
+- [x] skip (undefined) in weird places.
 - [ ] Two types with same name but different arity.
+– [ ] #{atom() => string()}
 
 ## TODO PoC Not parse transform
 - [x] Module that doens't use parse transform, but manually calls from to_json from_json function in this lib.

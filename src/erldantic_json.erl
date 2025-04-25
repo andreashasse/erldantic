@@ -34,11 +34,9 @@ to_json_no_pt({Module, Type, _TypeArity}, Data) ->
                 FilePath ->
                     {ok, {Module, [{abstract_code, {_, Forms}}]}} =
                         beam_lib:chunks(FilePath, [abstract_code]),
-                    %%io:format("~p~n", [AC]),
                     NamedTypes =
                         lists:filtermap(fun erldantic_parse_transform:type_in_form/1, Forms),
                     TypeInfo = maps:from_list(NamedTypes),
-                    io:format("TypeInfo ~p~n", [TypeInfo]),
                     pers_types_set(Module, TypeInfo),
 
                     to_json(TypeInfo, Type, Data)
@@ -75,18 +73,28 @@ from_json_no_pt({Module, Type, _TypeArity}, Json) ->
             end
     end.
 
+to_json(TypeInfo, Type, Data) ->
+    case do_to_json(TypeInfo, Type, Data) of
+        {ok, Json} ->
+            {ok, Json};
+        skip ->
+            {ok, undefined};
+        {error, Errs} ->
+            {error, Errs}
+    end.
+
 % FIXME: User can get 'skip' as return value.
--spec to_json(TypeInfo :: #{key() => record_type_introspect:a_type()},
-              Type :: record_type_introspect:a_type_or_ref(),
-              Data :: term()) ->
-                 {ok, json__encode_value()} | {error, [#ed_error{}]} | skip.
-to_json(TypeInfo, {record, RecordName}, Record) when is_atom(RecordName) ->
+-spec do_to_json(TypeInfo :: #{key() => record_type_introspect:a_type()},
+                 Type :: record_type_introspect:a_type_or_ref(),
+                 Data :: term()) ->
+                    {ok, json__encode_value()} | {error, [#ed_error{}]} | skip.
+do_to_json(TypeInfo, {record, RecordName}, Record) when is_atom(RecordName) ->
     record_to_json(TypeInfo, RecordName, Record);
-to_json(TypeInfo, {record_ref, RecordName}, Record) when is_atom(RecordName) ->
+do_to_json(TypeInfo, {record_ref, RecordName}, Record) when is_atom(RecordName) ->
     record_to_json(TypeInfo, RecordName, Record);
-to_json(TypeInfo, {user_type_ref, TypeName}, Data) when is_atom(TypeName) ->
+do_to_json(TypeInfo, {user_type_ref, TypeName}, Data) when is_atom(TypeName) ->
     data_to_json(TypeInfo, TypeName, Data);
-to_json(_TypeInfo, {type, Type} = T, Value)
+do_to_json(_TypeInfo, {type, Type} = T, Value)
     when ?is_primary_type(Type) orelse ?is_predefined_int_range(Type) ->
     case check_type_to_json(Type, Value) of
         {true, NewValue} ->
@@ -99,26 +107,26 @@ to_json(_TypeInfo, {type, Type} = T, Value)
                         location = [],
                         ctx = #{type => T, value => Value}}]}
     end;
-to_json(_TypeInfo, {range, integer, Min, Max}, Value)
+do_to_json(_TypeInfo, {range, integer, Min, Max}, Value)
     when is_integer(Value) andalso Min =< Value, Value =< Max ->
     {ok, Value};
-to_json(_TypeInfo, {literal, undefined}, undefined) ->
+do_to_json(_TypeInfo, {literal, undefined}, undefined) ->
     skip;
-to_json(_TypeInfo, {literal, Literal}, Literal) ->
+do_to_json(_TypeInfo, {literal, Literal}, Literal) ->
     {ok, Literal};
-to_json(TypeInfo, {union, Types}, Data) ->
-    first(fun to_json/3, TypeInfo, Types, Data);
-to_json(TypeInfo, {nonempty_list, Type}, Data) ->
+do_to_json(TypeInfo, {union, Types}, Data) ->
+    first(fun do_to_json/3, TypeInfo, Types, Data);
+do_to_json(TypeInfo, {nonempty_list, Type}, Data) ->
     nonempty_list_to_json(TypeInfo, Type, Data);
-to_json(TypeInfo, {list, Type}, Data) when is_list(Data) ->
+do_to_json(TypeInfo, {list, Type}, Data) when is_list(Data) ->
     list_to_json(TypeInfo, Type, Data);
-to_json(TypeInfo, {type, TypeName}, Data) when is_atom(TypeName) ->
+do_to_json(TypeInfo, {type, TypeName}, Data) when is_atom(TypeName) ->
     data_to_json(TypeInfo, TypeName, Data);
-to_json(TypeInfo, #a_map{fields = MapFieldTypes}, Data) ->
+do_to_json(TypeInfo, #a_map{fields = MapFieldTypes}, Data) ->
     map_to_json(TypeInfo, MapFieldTypes, Data);
-to_json(_TypeInfo, {remote_type, MTA}, Data) ->
+do_to_json(_TypeInfo, {remote_type, MTA}, Data) ->
     to_json_no_pt(MTA, Data);
-to_json(_TypeInfo, T, OtherValue) ->
+do_to_json(_TypeInfo, T, OtherValue) ->
     {error,
      [#ed_error{type = type_mismatch,
                 location = [],
@@ -139,9 +147,11 @@ nonempty_list_to_json(_TypeInfo, Type, Data) ->
 list_to_json(TypeInfo, Type, Data) when is_list(Data) ->
     JsonRes =
         lists:map(fun({Nr, Item}) ->
-                     case to_json(TypeInfo, Type, Item) of
+                     case do_to_json(TypeInfo, Type, Item) of
                          {ok, Json} ->
                              {ok, Json};
+                         skip ->
+                             {ok, undefined};
                          {error, Errs} ->
                              Errs2 = lists:map(fun(Err) -> err_append_location(Err, Nr) end, Errs),
                              {error, Errs2}
@@ -165,7 +175,7 @@ list_to_json(TypeInfo, Type, Data) when is_list(Data) ->
 data_to_json(TypeInfo, TypeName, Data) ->
     case TypeInfo of
         #{{type, TypeName} := Mojs} ->
-            to_json(TypeInfo, Mojs, Data);
+            do_to_json(TypeInfo, Mojs, Data);
         #{} ->
             {error, [#ed_error{type = missing_type, location = [TypeName]}]}
     end.
@@ -176,9 +186,11 @@ map_to_json(TypeInfo, MapFieldTypes, Data) when is_map(Data) ->
                             case Data of
                                 #{FieldName := FieldData} ->
                                     %% ADD test case for bad and good data in map
-                                    case to_json(TypeInfo, FieldType, FieldData) of
+                                    case do_to_json(TypeInfo, FieldType, FieldData) of
                                         {ok, FieldJson} ->
                                             {FieldsAcc ++ [{FieldName, FieldJson}], ErrorsAcc};
+                                        skip ->
+                                            {FieldsAcc, ErrorsAcc};
                                         {error, Errs} ->
                                             Errs2 =
                                                 lists:map(fun(Err) ->
@@ -194,9 +206,12 @@ map_to_json(TypeInfo, MapFieldTypes, Data) when is_map(Data) ->
                             case Data of
                                 #{FieldName := FieldData} ->
                                     %% ADD test case for bad and good data in map
-                                    case to_json(TypeInfo, FieldType, FieldData) of
+                                    case do_to_json(TypeInfo, FieldType, FieldData) of
                                         {ok, FieldJson} ->
                                             {FieldsAcc ++ [{FieldName, FieldJson}], ErrorsAcc};
+                                        skip ->
+                                            %% FIXME: Warn about weird type def??
+                                            {FieldsAcc, ErrorsAcc};
                                         {error, Errs} ->
                                             Errs2 =
                                                 lists:map(fun(Err) ->
@@ -206,10 +221,9 @@ map_to_json(TypeInfo, MapFieldTypes, Data) when is_map(Data) ->
                                             {FieldsAcc, ErrorsAcc ++ Errs2}
                                     end;
                                 #{} ->
-                                    case can_be_undefined(FieldType) of
+                                    case can_be_undefined(TypeInfo, FieldType) of
                                         true ->
-                                            %% ADD test case
-                                            {FieldsAcc ++ [{FieldName, undefined}], ErrorsAcc};
+                                            {FieldsAcc, ErrorsAcc};
                                         false ->
                                             %% ADD test case
                                             {FieldsAcc,
@@ -242,7 +256,7 @@ record_to_json(TypeInfo, RecordName, Record) when is_tuple(Record) ->
     {Fields, Errors} =
         lists:foldl(fun({{FieldName, FieldType}, RecordFieldData}, {FieldsAcc, ErrorsAcc})
                            when is_atom(FieldName) ->
-                       case to_json(TypeInfo, FieldType, RecordFieldData) of
+                       case do_to_json(TypeInfo, FieldType, RecordFieldData) of
                            {ok, FieldJson} ->
                                {FieldsAcc ++ [{FieldName, FieldJson}], ErrorsAcc};
                            skip ->
@@ -495,10 +509,15 @@ map_from_json(TypeInfo, MapFieldType, Json) when is_map(Json) ->
                                             {FieldsAcc, ErrAcc ++ Errs2}
                                     end;
                                 error ->
-                                    %% Should check if can be undefined?
-                                    {FieldsAcc,
-                                     ErrAcc
-                                     ++ [#ed_error{type = missing_data, location = [FieldName]}]}
+                                    case can_be_undefined(TypeInfo, FieldType) of
+                                        true ->
+                                            {FieldsAcc ++ [{FieldName, undefined}], ErrAcc};
+                                        false ->
+                                            {FieldsAcc,
+                                             ErrAcc
+                                             ++ [#ed_error{type = missing_data,
+                                                           location = [FieldName]}]}
+                                    end
                             end
                     end,
                     {[], []},
@@ -543,7 +562,7 @@ do_record_from_json(TypeInfo, RecordName, RecordInfo, Json) when is_map(Json) ->
                                        {FieldsAcc, ErrorsAcc ++ Errs2}
                                end;
                            error ->
-                               case can_be_undefined(FieldType) of
+                               case can_be_undefined(TypeInfo, FieldType) of
                                    true ->
                                        {FieldsAcc ++ [undefined], ErrorsAcc};
                                    false ->
@@ -567,12 +586,21 @@ do_record_from_json(_TypeInfo, RecordName, _RecordInfo, Json) ->
                 location = [],
                 ctx = #{record_name => RecordName, record => Json}}]}.
 
-can_be_undefined(Type) ->
+can_be_undefined(TypeInfo, Type) ->
     case Type of
         {union, Types} ->
             lists:member({literal, undefined}, Types);
         {literal, undefined} ->
             true;
+        {user_type_ref, TypeName} ->
+            case TypeInfo of
+                #{{type, TypeName} := Type2} ->
+                    %% infinite recursion?
+                    can_be_undefined(TypeInfo, Type2);
+                #{} ->
+                    %% error?
+                    false
+            end;
         _ ->
             false
     end.

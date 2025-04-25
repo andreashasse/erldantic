@@ -1,9 +1,8 @@
 -record(a_tuple, {fields :: [record_type_introspect:a_type()]}).
 -record(a_map,
         {fields ::
-             [{map_field_assoc | map_field_exact,
-               Name :: atom(),
-               record_type_introspect:a_type()}]}).
+             [{map_field_assoc | map_field_exact, Name :: atom(), record_type_introspect:a_type()}],
+         fallback_types :: [record_type_introspect:a_type()]}). %% FIXME: | [] does not work
 -record(a_rec, {name :: atom(), fields :: [{atom(), record_type_introspect:a_type()}]}).
 
 -define(is_primary_type(PrimaryType),
