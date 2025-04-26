@@ -113,9 +113,10 @@ do_to_json(_TypeInfo, {range, integer, Min, Max}, Value)
 do_to_json(_TypeInfo, {literal, undefined}, undefined) ->
     skip;
 do_to_json(_TypeInfo, {literal, Literal}, Literal) ->
+    io:format("Literal ~p~n", [Literal]),
     {ok, Literal};
-do_to_json(TypeInfo, {union, Types}, Data) ->
-    first(fun do_to_json/3, TypeInfo, Types, Data);
+do_to_json(TypeInfo, {union, _} = T, Data) ->
+    union(fun do_to_json/3, TypeInfo, T, Data);
 do_to_json(TypeInfo, {nonempty_list, Type}, Data) ->
     nonempty_list_to_json(TypeInfo, Type, Data);
 do_to_json(TypeInfo, {list, Type}, Data) when is_list(Data) ->
@@ -328,8 +329,8 @@ from_json(_TypeInfo, {literal, Literal} = T, Value) ->
     end;
 from_json(TypeInfo, {type, TypeName}, Json) when is_atom(TypeName) ->
     type_from_json(TypeInfo, TypeName, Json);
-from_json(TypeInfo, {union, Types}, Json) ->
-    first(fun from_json/3, TypeInfo, Types, Json);
+from_json(TypeInfo, {union, _} = T, Json) ->
+    union(fun from_json/3, TypeInfo, T, Json);
 from_json(_TypeInfo, {range, integer, Min, Max}, Value) when Min =< Value, Value =< Max ->
     {ok, Value};
 from_json(_TypeInfo, {range, integer, Min, Max}, Value) when is_integer(Value) ->
@@ -442,13 +443,13 @@ check_type(term, _Json) ->
 check_type(_Type, _Json) ->
     false.
 
-first(F, TypeInfo, Types, Json) ->
+union(F, TypeInfo, {union, Types} = T, Json) ->
     case do_first(F, TypeInfo, Types, Json) of
         {error, no_match} ->
             {error,
              [#ed_error{type = no_match,
                         location = [],
-                        ctx = #{type => Types, value => Json}}]};
+                        ctx = #{type => T, value => Json}}]};
         Result ->
             Result
     end.

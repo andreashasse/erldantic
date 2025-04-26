@@ -202,7 +202,8 @@ person_address_bad() ->
                     [#ed_error{type = no_match,
                                location = [city],
                                ctx =
-                                   #{type => [{type, string}, {literal, undefined}], value => 5}}]},
+                                   #{type => {union, [{type, string}, {literal, undefined}]},
+                                     value => 5}}]},
                    person:address_from_json(Json))].
 
 person_address_to_json() ->
@@ -375,7 +376,7 @@ role_bad() ->
                     [{ed_error,
                       [],
                       no_match,
-                      #{type => [{literal, admin}, {literal, user}, {literal, guest}],
+                      #{type => {union, [{literal, admin}, {literal, user}, {literal, guest}]},
                         value => <<"invalid_role">>}}]},
                    person:role_from_json(Json))].
 
@@ -391,7 +392,7 @@ role_to_json_bad() ->
                     [{ed_error,
                       [],
                       no_match,
-                      #{type => [{literal, admin}, {literal, user}, {literal, guest}],
+                      #{type => {union, [{literal, admin}, {literal, user}, {literal, guest}]},
                         value => invalid_role}}]},
                    person:role_to_json(Data))].
 
@@ -405,7 +406,7 @@ non_atom_enum_bad() ->
                     [{ed_error,
                       [],
                       no_match,
-                      #{type => [{literal, 1}, {literal, 3}], value => 2}}]},
+                      #{type => {union, [{literal, 1}, {literal, 3}]}, value => 2}}]},
                    person:non_atom_enum_from_json(Json))].
 
 non_atom_enum_to_json() ->
@@ -418,7 +419,7 @@ non_atom_enum_to_json_bad() ->
                     [{ed_error,
                       [],
                       no_match,
-                      #{type => [{literal, 1}, {literal, 3}], value => 2}}]},
+                      #{type => {union, [{literal, 1}, {literal, 3}]}, value => 2}}]},
                    person:non_atom_enum_to_json(Value))].
 
 missing() ->

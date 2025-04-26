@@ -110,6 +110,11 @@ type_in_form({attribute, _, type, {TypeName, {type, _, _, _} = Type, []}})
     when is_atom(TypeName) ->
     [FieldInfo] = field_info_to_type(Type),
     {true, {{type, TypeName}, FieldInfo}};
+type_in_form({attribute, _, type, {TypeName, {_Literal, _, Value}, []}})
+    when (is_atom(Value) orelse is_integer(Value)) andalso is_atom(TypeName) ->
+    {true, {{type, TypeName}, {literal, Value}}};
+type_in_form({attribute, _, type, T}) ->
+    error({not_supported, {type, T}}); % TODO: Support this
 type_in_form(_) ->
     false.
 
