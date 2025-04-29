@@ -1,8 +1,11 @@
 -record(a_tuple, {fields :: [record_type_introspect:a_type()]}).
 -record(a_map,
         {fields ::
-             [{map_field_assoc | map_field_exact, Name :: atom(), record_type_introspect:a_type()}],
-         fallback_types :: [record_type_introspect:a_type()]}). %% FIXME: | [] does not work
+             [{map_field_assoc | map_field_exact, Name :: atom(), record_type_introspect:a_type()} |
+              {map_field_type_assoc,
+               record_type_introspect:a_type(),
+               record_type_introspect:a_type()}]}).
+%% FIXME: | [] does not work
 -record(a_rec, {name :: atom(), fields :: [{atom(), record_type_introspect:a_type()}]}).
 
 -define(is_primary_type(PrimaryType),
@@ -23,9 +26,9 @@
          type ::
              type_mismatch |
              no_match |
-             record_type_mismatch |
              missing_data |
              missing_type |
-             json_type_mismatch |
-             module_types_not_found,
+             type_not_supported |
+             module_types_not_found |
+             not_matched_fields,
          ctx :: term()}).

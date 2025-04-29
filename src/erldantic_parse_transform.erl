@@ -139,17 +139,8 @@ field_info_to_type({TypeOfType, _, Type, TypeAttrs}) ->
             true = is_atom(Type),
             [{user_type_ref, Type}];
         {type, map} ->
-            MapFields0 = lists:flatmap(fun map_field_info/1, TypeAttrs),
-            {MapFields, MapFallbackType} =
-                lists:partition(fun ({map_field_assoc, _, _}) ->
-                                        true;
-                                    ({map_field_exact, _, _}) ->
-                                        true;
-                                    ({map_field_type_assoc, _, _}) ->
-                                        false
-                                end,
-                                MapFields0),
-            [#a_map{fields = MapFields, fallback_types = MapFallbackType}];
+            MapFields = lists:flatmap(fun map_field_info/1, TypeAttrs),
+            [#a_map{fields = MapFields}];
         {type, tuple} ->
             TupleFields = lists:flatmap(fun field_info_to_type/1, TypeAttrs),
             [#a_tuple{fields = TupleFields}];

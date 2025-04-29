@@ -23,7 +23,9 @@ This is Pydantic, but for Erlang. Hopefully for Elixir and Gleam in the future!
 - [x] pass binary when expecting string
 - [x] skip (undefined) in weird places.
 - [ ] Two types with same name but different arity.
-– [ ] #{atom() => string()}
+- [ ] #{atom() => string()}
+- [ ] Error message on not supported types:
+  - [ ] tuple, pid, port, fun, reference
 
 ## TODO PoC Not parse transform
 - [x] Module that doens't use parse transform, but manually calls from to_json from_json function in this lib.
