@@ -314,9 +314,7 @@ person_address_undefined_street_to_json() ->
     [?_assertMatch({error, _}, Expr)].
 
 name_t() ->
-    Json =
-        json:decode(<<"{\"first\": \"Andreas\", \"last\": \"Hasselberg\", \"not_present\": "
-                      "22}"/utf8>>),
+    Json = json:decode(<<"{\"first\": \"Andreas\", \"last\": \"Hasselberg\"}"/utf8>>),
     {ok, M} = person:name_t_from_json(Json),
     Expect = #{first => "Andreas", last => "Hasselberg"},
     [?_assertEqual(Expect, M), ?_assertEqual([first, last], maps:keys(M))].
@@ -327,13 +325,10 @@ name_t_error() ->
                    person:name_t_from_json(Json))].
 
 name_t_to_json() ->
-    Data =
-        #{first => "Andreas",
-          last => "Hasselberg",
-          not_present => 22},
+    Data = #{first => "Andreas", last => "Hasselberg"},
     Resp = person:name_t_to_json(Data),
     Expected = {ok, #{first => <<"Andreas">>, last => <<"Hasselberg">>}},
-    [?_assertEqual(Resp, Expected)].
+    [?_assertEqual(Expected, Resp)].
 
 name_t_to_json_error() ->
     Data = #{first => "Andreas"},

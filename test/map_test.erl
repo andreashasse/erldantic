@@ -69,6 +69,57 @@ mandatory_type_map_bad_test() ->
                              ctx = #{type => {map_field_type_exact, {type, atom}, {type, atom}}}}]},
                  to_json_mandatory_type_map(#{})).
 
+from_json_map1_test() ->
+    ?assertEqual({ok, #{a1 => 123}}, from_json_atom_map(#{<<"a1">> => 123})).
+
+from_json_map1_bad_test() ->
+    ?assertEqual({error,
+                  [#ed_error{location = [a1],
+                             type = type_mismatch,
+                             ctx = #{type => {type, integer}, value => <<"not_an_integer">>}}]},
+                 from_json_atom_map(#{<<"a1">> => <<"not_an_integer">>})).
+
+from_json_map2_test() ->
+    ?assertEqual({ok, #{a1 => 1, other => value2}},
+                 from_json_atom_map2(#{<<"a1">> => 1, <<"other">> => <<"value2">>})).
+
+from_json_map2_bad_test() ->
+    ?assertEqual({error,
+                  [#ed_error{location = [a1],
+                             type = type_mismatch,
+                             ctx = #{type => {literal, 1}, value => 2}}]},
+                 from_json_atom_map2(#{<<"a1">> => 2, <<"other">> => <<"value2">>})).
+
+from_json_map3_test() ->
+    ?assertEqual({ok, #{a1 => kalle}}, from_json_atom_map3(#{<<"a1">> => <<"kalle">>})).
+
+from_json_map3_bad_test() ->
+    ?assertEqual({error, [#ed_error{location = [a1], type = missing_data}]},
+                 from_json_atom_map3(#{<<"not_a1">> => <<"kalle">>})).
+
+from_json_type_shaddow_literal_map_test() ->
+    ?assertEqual({ok, #{a1 => pelle, some_atom => some_value}},
+                 from_json_type_shaddow_literal_map(#{<<"a1">> => <<"pelle">>,
+                                                      <<"some_atom">> => <<"some_value">>})).
+
+from_json_type_shaddow_literal_map_bad_test() ->
+    ?assertEqual({error,
+                  [#ed_error{location = [],
+                             type = type_mismatch,
+                             ctx = #{type => {type, map}, value => not_a_map}}]},
+                 from_json_type_shaddow_literal_map(not_a_map)).
+
+from_json_mandatory_type_map_test() ->
+    ?assertEqual({ok, #{a1 => value}},
+                 from_json_mandatory_type_map(#{<<"a1">> => <<"value">>})).
+
+from_json_mandatory_type_map_bad_test() ->
+    ?assertEqual({error,
+                  [#ed_error{location = [],
+                             type = type_mismatch,
+                             ctx = #{type => {type, map}, value => []}}]},
+                 from_json_mandatory_type_map([])).
+
 -spec to_json_mandatory_type_map(term()) ->
                                     {ok, mandatory_type_map()} | {error, [#ed_error{}]}.
 to_json_mandatory_type_map(Data) ->
@@ -90,3 +141,26 @@ to_json_atom_map3(Data) ->
                                           {ok, type_shaddow_literal_map()} | {error, [#ed_error{}]}.
 to_json_type_shaddow_literal_map(Data) ->
     erldantic_json:to_json_no_pt({?MODULE, type_shaddow_literal_map, 0}, Data).
+
+-spec from_json_atom_map(term()) -> {ok, atom_map()} | {error, [#ed_error{}]}.
+from_json_atom_map(Data) ->
+    erldantic_json:from_json_no_pt({?MODULE, atom_map, 0}, Data).
+
+-spec from_json_atom_map2(term()) -> {ok, atom_map2()} | {error, [#ed_error{}]}.
+from_json_atom_map2(Data) ->
+    erldantic_json:from_json_no_pt({?MODULE, atom_map2, 0}, Data).
+
+-spec from_json_atom_map3(term()) -> {ok, atom_map3()} | {error, [#ed_error{}]}.
+from_json_atom_map3(Data) ->
+    erldantic_json:from_json_no_pt({?MODULE, atom_map3, 0}, Data).
+
+-spec from_json_type_shaddow_literal_map(term()) ->
+                                            {ok, type_shaddow_literal_map()} |
+                                            {error, [#ed_error{}]}.
+from_json_type_shaddow_literal_map(Data) ->
+    erldantic_json:from_json_no_pt({?MODULE, type_shaddow_literal_map, 0}, Data).
+
+-spec from_json_mandatory_type_map(term()) ->
+                                      {ok, mandatory_type_map()} | {error, [#ed_error{}]}.
+from_json_mandatory_type_map(Data) ->
+    erldantic_json:from_json_no_pt({?MODULE, mandatory_type_map, 0}, Data).
