@@ -24,8 +24,13 @@ This is Pydantic, but for Erlang. Hopefully for Elixir and Gleam in the future!
 - [x] skip (undefined) in weird places.
 - [ ] Two types with same name but different arity.
 - [ ] #{atom() => string()}
+  - [ ] There are not from_json tests in map_test.erl
+  - [ ] 'undefined' as key in map
+
 - [ ] Error message on not supported types:
   - [ ] tuple, pid, port, fun, reference
+- [ ] Error message on not debug_info compiled module
+
 
 ## TODO PoC Not parse transform
 - [x] Module that doens't use parse transform, but manually calls from to_json from_json function in this lib.

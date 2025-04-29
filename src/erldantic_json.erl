@@ -189,7 +189,7 @@ data_to_json(TypeInfo, TypeName, Data) ->
 map_to_json(TypeInfo, #a_map{fields = Fields} = M, Data) when is_map(Data) ->
     io:format("MapToJson: ~p: ~p~n", [M, Data]),
     case map_fields(TypeInfo, Fields, Data) of
-        {ok, MapFields, RemaningData} ->
+        {ok, MapFields} ->
             {ok, maps:from_list(MapFields)};
         {error, Errors} ->
             {error, Errors}
@@ -206,7 +206,6 @@ map_fields(TypeInfo, MapFieldTypes, Data) ->
                          {FieldsAcc, ErrorsAcc, DataAcc}) ->
                             case maps:take(FieldName, DataAcc) of
                                 {FieldData, NewDataAcc} ->
-                                    %% ADD test case for bad and good data in map
                                     case do_to_json(TypeInfo, FieldType, FieldData) of
                                         {ok, FieldJson} ->
                                             {FieldsAcc ++ [{FieldName, FieldJson}],
@@ -227,45 +226,33 @@ map_fields(TypeInfo, MapFieldTypes, Data) ->
                             end;
                         ({map_field_type_assoc, KeyType, ValueType},
                          {FieldsAcc, ErrorsAcc, DataAcc}) ->
-                            %% lists map through DataAcc
                             {NewFields, NewErrors, NewDataAcc} =
-                                lists:foldl(fun({Key, Value}, {FieldsAcc0, ErrorsAcc0, DataAcc0}) ->
-                                               case do_to_json(TypeInfo, KeyType, Key) of
-                                                   {ok, KeyJson} ->
-                                                       case do_to_json(TypeInfo, ValueType, Value)
-                                                       of
-                                                           {ok, ValueJson} ->
-                                                               {FieldsAcc0
-                                                                ++ [{KeyJson, ValueJson}],
-                                                                ErrorsAcc0,
-                                                                maps:remove(Key, DataAcc0)};
-                                                           skip ->
-                                                               {FieldsAcc0, ErrorsAcc0, DataAcc0};
-                                                           {error, Errs} ->
-                                                               Errs2 =
-                                                                   lists:map(fun(Err) ->
-                                                                                err_append_location(Err,
-                                                                                                    Key)
-                                                                             end,
-                                                                             Errs),
-                                                               {FieldsAcc0,
-                                                                ErrorsAcc0 ++ Errs2,
-                                                                DataAcc0}
-                                                       end;
-                                                   skip ->
-                                                       {FieldsAcc0, ErrorsAcc0, DataAcc0};
-                                                   {error, _Errs} ->
-                                                       {FieldsAcc0, ErrorsAcc0, DataAcc0}
-                                               end
-                                            end,
-                                            {[], [], Data},
-                                            maps:to_list(DataAcc)),
+                                map_field_type(TypeInfo, KeyType, ValueType, DataAcc),
                             {NewFields ++ FieldsAcc, NewErrors ++ ErrorsAcc, NewDataAcc};
+                        ({map_field_type_exact, KeyType, ValueType},
+                         {FieldsAcc, ErrorsAcc, DataAcc}) ->
+                            {NewFields, NewErrors, NewDataAcc} =
+                                map_field_type(TypeInfo, KeyType, ValueType, DataAcc),
+                            case NewFields of
+                                [] ->
+                                    NoExactMatch =
+                                        #ed_error{type = not_matched_fields,
+                                                  location = [],
+                                                  ctx =
+                                                      #{type =>
+                                                            {map_field_type_exact,
+                                                             KeyType,
+                                                             ValueType}}},
+                                    {NewFields ++ FieldsAcc,
+                                     [NoExactMatch] ++ ErrorsAcc ++ ErrorsAcc,
+                                     NewDataAcc};
+                                _ ->
+                                    {NewFields ++ FieldsAcc, NewErrors ++ ErrorsAcc, NewDataAcc}
+                            end;
                         ({map_field_exact, FieldName, FieldType},
                          {FieldsAcc, ErrorsAcc, DataAcc}) ->
                             case maps:take(FieldName, DataAcc) of
                                 {FieldData, NewDataAcc} ->
-                                    %% ADD test case for bad and good data in map
                                     case do_to_json(TypeInfo, FieldType, FieldData) of
                                         {ok, FieldJson} ->
                                             {FieldsAcc ++ [{FieldName, FieldJson}],
@@ -298,12 +285,48 @@ map_fields(TypeInfo, MapFieldTypes, Data) ->
                     end,
                     {[], [], Data},
                     MapFieldTypes),
-    case Errors of
-        [] ->
-            {ok, MapFields, FinalData};
+    UnMappedErrors =
+        case maps:to_list(FinalData) of
+            [] ->
+                [];
+            _ ->
+                lists:map(fun({Key, Value}) ->
+                             #ed_error{type = not_matched_fields,
+                                       location = [],
+                                       ctx = #{key => Key, value => Value}}
+                          end,
+                          maps:to_list(FinalData))
+        end,
+    case {Errors, UnMappedErrors} of
+        {[], []} ->
+            {ok, MapFields};
         _ ->
-            {error, Errors}
+            {error, Errors ++ UnMappedErrors}
     end.
+
+map_field_type(TypeInfo, KeyType, ValueType, Data) ->
+    lists:foldl(fun({Key, Value}, {FieldsAcc, ErrorsAcc, DataAcc}) ->
+                   case do_to_json(TypeInfo, KeyType, Key) of
+                       {ok, KeyJson} ->
+                           case do_to_json(TypeInfo, ValueType, Value) of
+                               {ok, ValueJson} ->
+                                   {FieldsAcc ++ [{KeyJson, ValueJson}],
+                                    ErrorsAcc,
+                                    maps:remove(Key, DataAcc)};
+                               skip ->
+                                   {FieldsAcc, ErrorsAcc, DataAcc};
+                               {error, Errs} ->
+                                   Errs2 =
+                                       lists:map(fun(Err) -> err_append_location(Err, Key) end,
+                                                 Errs),
+                                   {FieldsAcc, ErrorsAcc ++ Errs2, DataAcc}
+                           end;
+                       {error, _Errs} ->
+                           {FieldsAcc, ErrorsAcc, DataAcc}
+                   end
+                end,
+                {[], [], Data},
+                maps:to_list(Data)).
 
 -spec record_to_json(TypeInfo :: map(), RecordName :: atom(), Record :: term()) ->
                         {ok, #{atom() => json__encode_value()}} | {error, [#ed_error{}]}.

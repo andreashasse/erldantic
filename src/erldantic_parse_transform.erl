@@ -189,10 +189,16 @@ map_field_info({TypeOfType, _, Type, TypeAttrs}) ->
                     [{map_field_type_assoc, KeyType, ValueType}]
             end;
         {type, map_field_exact} ->
-            [{atom, _, MapFieldName}, FieldInfo] = TypeAttrs,
-            true = is_atom(MapFieldName),
-            [AType] = field_info_to_type(FieldInfo),
-            [{map_field_exact, MapFieldName, AType}]
+            case TypeAttrs of
+                [{atom, _, MapFieldName}, FieldInfo] ->
+                    true = is_atom(MapFieldName),
+                    [AType] = field_info_to_type(FieldInfo),
+                    [{map_field_exact, MapFieldName, AType}];
+                [{type, _, _, _} = KeyFieldInfo, ValueFieldInfo] ->
+                    [KeyType] = field_info_to_type(KeyFieldInfo),
+                    [ValueType] = field_info_to_type(ValueFieldInfo),
+                    [{map_field_type_exact, KeyType, ValueType}]
+            end
     end.
 
 -spec record_field_info(term()) -> {atom(), record_type_introspect:a_type()}.

@@ -2,7 +2,7 @@
 -record(a_map,
         {fields ::
              [{map_field_assoc | map_field_exact, Name :: atom(), record_type_introspect:a_type()} |
-              {map_field_type_assoc,
+              {map_field_type_assoc | map_field_type_exact,
                record_type_introspect:a_type(),
                record_type_introspect:a_type()}]}).
 %% FIXME: | [] does not work
