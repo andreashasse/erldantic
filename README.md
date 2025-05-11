@@ -22,11 +22,11 @@ This is Pydantic, but for Erlang. Hopefully for Elixir and Gleam in the future!
 - [x] pass not map to map type
 - [x] pass binary when expecting string
 - [x] skip (undefined) in weird places.
-- [ ] Two types with same name but different arity.
 - [ ] #{atom() => string()}
-  - [ ] There are not from_json tests in map_test.erl
-  - [ ] 'undefined' as key in map
-
+  - [x] There are no test for from_json in map_test.erl
+  - [x] 'undefined' as key in map
+- [ ] Types with vars
+  - [ ] Two types with same name but different arity.
 - [ ] Error message on not supported types:
   - [ ] tuple, pid, port, fun, reference
 - [ ] Error message on not debug_info compiled module

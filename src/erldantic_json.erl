@@ -22,24 +22,12 @@ to_json_no_pt({Module, Type, _TypeArity}, Data) ->
         TypeInfo when is_map(TypeInfo) ->
             to_json(TypeInfo, Type, Data);
         undefined ->
-            case code:which(Module) of
-                Error
-                    when Error =:= non_existing
-                         orelse Error =:= cover_compiled
-                         orelse Error =:= preloaded ->
-                    {error,
-                     [#ed_error{type = module_types_not_found,
-                                location = [],
-                                ctx = #{module => Module, error => Error}}]};
-                FilePath ->
-                    {ok, {Module, [{abstract_code, {_, Forms}}]}} =
-                        beam_lib:chunks(FilePath, [abstract_code]),
-                    NamedTypes =
-                        lists:filtermap(fun erldantic_parse_transform:type_in_form/1, Forms),
-                    TypeInfo = maps:from_list(NamedTypes),
+            case erldantic_parse_transform:types_in_module(Module) of
+                {ok, TypeInfo} ->
                     pers_types_set(Module, TypeInfo),
-
-                    to_json(TypeInfo, Type, Data)
+                    to_json(TypeInfo, Type, Data);
+                {error, _} = Err ->
+                    Err
             end
     end.
 
@@ -51,25 +39,12 @@ from_json_no_pt({Module, Type, _TypeArity}, Json) ->
         TypeInfo when is_map(TypeInfo) ->
             from_json(TypeInfo, Type, Json);
         undefined ->
-            case code:which(Module) of
-                Error
-                    when Error =:= non_existing
-                         orelse Error =:= cover_compiled
-                         orelse Error =:= preloaded ->
-                    {error,
-                     [#ed_error{type = module_types_not_found,
-                                location = [],
-                                ctx = #{module => Module, error => Error}}]};
-                FilePath ->
-                    {ok, {Module, [{abstract_code, {_, Forms}}]}} =
-                        beam_lib:chunks(FilePath, [abstract_code]),
-                    %%io:format("~p~n", [AC]),
-                    NamedTypes =
-                        lists:filtermap(fun erldantic_parse_transform:type_in_form/1, Forms),
-                    TypeInfo = maps:from_list(NamedTypes),
+            case erldantic_parse_transform:types_in_module(Module) of
+                {ok, TypeInfo} ->
                     pers_types_set(Module, TypeInfo),
-
-                    from_json(TypeInfo, Type, Json)
+                    from_json(TypeInfo, Type, Json);
+                {error, _} = Err ->
+                    Err
             end
     end.
 
@@ -92,8 +67,17 @@ do_to_json(TypeInfo, {record, RecordName}, Record) when is_atom(RecordName) ->
     record_to_json(TypeInfo, RecordName, Record);
 do_to_json(TypeInfo, {record_ref, RecordName}, Record) when is_atom(RecordName) ->
     record_to_json(TypeInfo, RecordName, Record);
-do_to_json(TypeInfo, {user_type_ref, TypeName}, Data) when is_atom(TypeName) ->
-    data_to_json(TypeInfo, TypeName, Data);
+do_to_json(TypeInfo, {user_type_ref, TypeName, TypeArgs}, Data) when is_atom(TypeName) ->
+    io:format("do_to_json user_type_ref:~n  TypeName ~p~n  TypeArgs ~p~n",
+              [TypeName, TypeArgs]),
+    case TypeInfo of
+        #{{type, TypeName} := Type} ->
+            TypeWithoutVars = apply_args(Type, TypeArgs),
+            io:format("TypeWithoutArgs: ~p~n", [TypeWithoutVars]),
+            do_to_json(TypeInfo, TypeWithoutVars, Data);
+        #{} ->
+            {error, [#ed_error{type = missing_type, location = [TypeName]}]}
+    end;
 do_to_json(_TypeInfo, {type, Type} = T, Value)
     when ?is_primary_type(Type) orelse ?is_predefined_int_range(Type) ->
     case check_type_to_json(Type, Value) of
@@ -113,16 +97,18 @@ do_to_json(_TypeInfo, {range, integer, Min, Max}, Value)
 do_to_json(_TypeInfo, {literal, undefined}, undefined) ->
     skip;
 do_to_json(_TypeInfo, {literal, Literal}, Literal) ->
-    io:format("Literal ~p~n", [Literal]),
     {ok, Literal};
 do_to_json(TypeInfo, {union, _} = T, Data) ->
+    io:format("do_to_json union:~n  Type ~p~n  Data ~p~n", [T, Data]),
     union(fun do_to_json/3, TypeInfo, T, Data);
 do_to_json(TypeInfo, {nonempty_list, Type}, Data) ->
     nonempty_list_to_json(TypeInfo, Type, Data);
 do_to_json(TypeInfo, {list, Type}, Data) when is_list(Data) ->
     list_to_json(TypeInfo, Type, Data);
 do_to_json(TypeInfo, {type, TypeName}, Data) when is_atom(TypeName) ->
-    data_to_json(TypeInfo, TypeName, Data);
+    data_to_json(TypeInfo, TypeName, [], Data);
+do_to_json(TypeInfo, #a_type{type = Type, vars = _ArgsNames} = T, Data) ->
+    do_to_json(TypeInfo, Type, Data);
 do_to_json(TypeInfo, #a_map{} = Map, Data) ->
     map_to_json(TypeInfo, Map, Data);
 do_to_json(_TypeInfo, #a_tuple{} = T, _Data) ->
@@ -178,16 +164,15 @@ list_to_json(TypeInfo, Type, Data) when is_list(Data) ->
             {error, lists:flatmap(fun({error, Errs}) -> Errs end, Errors)}
     end.
 
-data_to_json(TypeInfo, TypeName, Data) ->
+data_to_json(TypeInfo, TypeName, _TypeArgs, Data) ->
     case TypeInfo of
-        #{{type, TypeName} := Mojs} ->
-            do_to_json(TypeInfo, Mojs, Data);
+        #{{type, TypeName} := Type} ->
+            do_to_json(TypeInfo, Type, Data);
         #{} ->
             {error, [#ed_error{type = missing_type, location = [TypeName]}]}
     end.
 
-map_to_json(TypeInfo, #a_map{fields = Fields} = M, Data) when is_map(Data) ->
-    io:format("MapToJson: ~p: ~p~n", [M, Data]),
+map_to_json(TypeInfo, #a_map{fields = Fields}, Data) when is_map(Data) ->
     case map_fields(TypeInfo, Fields, Data) of
         {ok, MapFields} ->
             {ok, maps:from_list(MapFields)};
@@ -366,8 +351,11 @@ record_to_json(_TypeInfo, RecordName, Record) ->
 err_append_location(Err, FieldName) ->
     Err#ed_error{location = [FieldName | Err#ed_error.location]}.
 
--spec from_json(TypeInfo :: map(), Type :: term(), Json :: json()) ->
+-spec from_json(TypeInfo :: map(),
+                Type :: record_type_introspect:a_type() | {record, atom()},
+                Json :: json()) ->
                    {ok, term()} | {error, [#ed_error{}]}.
+%% why {record, atom()}?
 from_json(TypeInfo, {record, RecordName}, Json) when is_atom(RecordName) ->
     record_from_json(TypeInfo, RecordName, Json);
 from_json(_TypeInfo, {remote_type, MTA}, Json) ->
@@ -376,8 +364,11 @@ from_json(TypeInfo, {record_ref, RecordName}, Json) when is_atom(RecordName) ->
     record_from_json(TypeInfo, RecordName, Json);
 from_json(TypeInfo, #a_map{fields = Fields}, Json) ->
     map_from_json(TypeInfo, Fields, Json);
-from_json(TypeInfo, {user_type_ref, TypeName}, Json) when is_atom(TypeName) ->
-    type_from_json(TypeInfo, TypeName, Json);
+from_json(TypeInfo, #a_type{type = Type, vars = []}, Json) ->
+    {user_type_ref, TypeName, TypeArgs} = Type, %% THIS IN NOT HOW IT SHOULD BE
+    type_from_json(TypeInfo, TypeName, TypeArgs, Json);
+from_json(TypeInfo, {user_type_ref, TypeName, TypeArgs}, Json) when is_atom(TypeName) ->
+    type_from_json(TypeInfo, TypeName, TypeArgs, Json);
 from_json(TypeInfo, {nonempty_list, Type}, Data) ->
     nonempty_list_from_json(TypeInfo, Type, Data);
 from_json(TypeInfo, {list, Type}, Data) ->
@@ -408,7 +399,7 @@ from_json(_TypeInfo, {literal, Literal} = T, Value) ->
                         ctx = #{type => T, value => Value}}]}
     end;
 from_json(TypeInfo, {type, TypeName}, Json) when is_atom(TypeName) ->
-    type_from_json(TypeInfo, TypeName, Json);
+    type_from_json(TypeInfo, TypeName, [], Json);
 from_json(TypeInfo, {union, _} = T, Json) ->
     union(fun from_json/3, TypeInfo, T, Json);
 from_json(_TypeInfo, {range, integer, Min, Max}, Value) when Min =< Value, Value =< Max ->
@@ -553,18 +544,52 @@ do_first(F, TypeInfo, [Type | Rest], Json) ->
             do_first(F, TypeInfo, Rest, Json)
     end.
 
--spec type_from_json(TypeInfo :: map(), TypeName :: atom(), Json :: json()) ->
+-spec type_from_json(TypeInfo :: map(),
+                     TypeName :: atom(),
+                     TypeArgs :: [record_type_introspect:a_type()],
+                     Json :: json()) ->
                         {ok, term()} | {error, [#ed_error{}]}.
-type_from_json(TypeInfo, TypeName, Json) ->
+type_from_json(TypeInfo, TypeName, TypeArgs, Json) ->
     case TypeInfo of
         #{{type, TypeName} := Type} ->
-            from_json(TypeInfo, Type, Json);
+            TypeWithoutVars = apply_args(Type, TypeArgs),
+            %% TODO: APPLY ARGS?
+            from_json(TypeInfo, TypeWithoutVars, Json);
         #{} ->
             {error, [#ed_error{type = missing_type, location = [TypeName]}]}
     end.
 
+apply_args(Type, TypeArgs) when is_list(TypeArgs) ->
+    ArgNames = arg_names(Type),
+    io:format("apply_args:~n  TypeArgs ~p~n  Types ~p~n  ArgNames ~p~n",
+              [Type, TypeArgs, ArgNames]),
+    NamedTypes =
+        maps:from_list(
+            lists:zip(ArgNames, TypeArgs)),
+    type_replace_vars(Type, NamedTypes).
+
+arg_names(#a_type{vars = Args}) ->
+    Args;
+arg_names(_) ->
+    [].
+
+-spec type_replace_vars(Type :: record_type_introspect:a_type(),
+                        NamedTypes :: #{atom() => record_type_introspect:a_type()}) ->
+                           record_type_introspect:a_type().
+type_replace_vars({var, Name}, NamedTypes) ->
+    maps:get(Name, NamedTypes, {type, term});
+type_replace_vars(#a_type{type = Type, vars = _Vars}, NamedTypes) ->
+    case Type of
+        {union, Types} ->
+            {union, lists:map(fun(T) -> type_replace_vars(T, NamedTypes) end, Types)};
+        _ ->
+            io:format("type_replace_vars:~n  Type ~p~n  NamedTypes ~p~n", [Type, NamedTypes]),
+            Type
+    end;
+type_replace_vars(KeepType, _NamedTypes) ->
+    KeepType.
+
 map_from_json(TypeInfo, MapFieldType, Json) when is_map(Json) ->
-    io:format("MapFromJson: ~p: ~p~n", [MapFieldType, Json]),
     {Fields, Errors, NotMapped} =
         lists:foldl(fun ({map_field_assoc, FieldName, FieldType}, {FieldsAcc, ErrAcc, JsonAcc}) ->
                             case maps:take(atom_to_binary(FieldName), JsonAcc) of
@@ -668,24 +693,20 @@ map_from_json(_TypeInfo, _MapFieldType, Json) ->
 
 map_field_type_from_json(TypeInfo, KeyType, ValueType, Json) ->
     lists:foldl(fun({Key, Value}, {FieldsAcc, ErrAcc, JsonAcc}) ->
-                   io:format("Key: ~p, Value: ~p~n", [Key, Value]),
                    case from_json(TypeInfo, KeyType, Key) of
                        {ok, KeyJson} ->
                            case from_json(TypeInfo, ValueType, Value) of
                                {ok, ValueJson} ->
-                                   io:format("all ok: ~p, ~p~n", [KeyJson, ValueJson]),
                                    {FieldsAcc ++ [{KeyJson, ValueJson}],
                                     ErrAcc,
                                     maps:remove(Key, JsonAcc)};
                                {error, Errs} ->
-                                   io:format("value error: ~p, ~p~n", [KeyJson, Errs]),
                                    Errs2 =
                                        lists:map(fun(Err) -> err_append_location(Err, Key) end,
                                                  Errs),
                                    {FieldsAcc, ErrAcc ++ Errs2, JsonAcc, maps:remove(Key, JsonAcc)}
                            end;
                        {error, _Errs} ->
-                           io:format("key error: ~p, ~p~n", [Key, _Errs]),
                            {FieldsAcc, ErrAcc, JsonAcc}
                    end
                 end,

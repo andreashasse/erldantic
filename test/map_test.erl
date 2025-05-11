@@ -55,13 +55,19 @@ type_shaddow_literal_map_bad_test() ->
                  to_json_type_shaddow_literal_map(#{a1 => 1, some_atom => some_value})).
 
 mandatory_type_map_test() ->
-    ?assertEqual({ok, #{a1 => kalle}}, to_json_mandatory_type_map(#{a1 => kalle})).
+    ?assertEqual({ok, #{a1 => kalle}}, to_json_mandatory_type_map(#{a1 => kalle})),
+    ?assertEqual({ok, #{a1 => undefined}}, to_json_mandatory_type_map(#{a1 => undefined})),
+    ?assertEqual({ok, #{undefined => kalle}},
+                 to_json_mandatory_type_map(#{undefined => kalle})).
 
 mandatory_type_map_bad_test() ->
     ?assertEqual({error,
                   [#ed_error{location = [],
                              type = not_matched_fields,
-                             ctx = #{type => {map_field_type_exact, {type, atom}, {type, atom}}}}]},
+                             ctx = #{type => {map_field_type_exact, {type, atom}, {type, atom}}}},
+                   #ed_error{location = [],
+                             type = not_matched_fields,
+                             ctx = #{value => 1, key => a1}}]},
                  to_json_mandatory_type_map(#{a1 => 1})),
     ?assertEqual({error,
                   [#ed_error{location = [],
@@ -111,7 +117,11 @@ from_json_type_shaddow_literal_map_bad_test() ->
 
 from_json_mandatory_type_map_test() ->
     ?assertEqual({ok, #{a1 => value}},
-                 from_json_mandatory_type_map(#{<<"a1">> => <<"value">>})).
+                 from_json_mandatory_type_map(#{<<"a1">> => <<"value">>})),
+    ?assertEqual({ok, #{a1 => undefined}},
+                 from_json_mandatory_type_map(#{<<"a1">> => <<"undefined">>})),
+    ?assertEqual({ok, #{undefined => value}},
+                 from_json_mandatory_type_map(#{<<"undefined">> => <<"value">>})).
 
 from_json_mandatory_type_map_bad_test() ->
     ?assertEqual({error,

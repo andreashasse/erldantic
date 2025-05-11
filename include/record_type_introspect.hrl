@@ -7,6 +7,7 @@
                record_type_introspect:a_type()}]}).
 %% FIXME: | [] does not work
 -record(a_rec, {name :: atom(), fields :: [{atom(), record_type_introspect:a_type()}]}).
+-record(a_type, {type :: record_type_introspect:a_type(), vars :: [atom()]}).
 
 -define(is_primary_type(PrimaryType),
         PrimaryType =:= string

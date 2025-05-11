@@ -1,6 +1,6 @@
 -module(erldantic_parse_transform).
 
--export([parse_transform/2, type_in_form/1]).
+-export([parse_transform/2, type_in_form/1, types_in_module/1]).
 
 -include("../include/record_type_introspect.hrl").
 
@@ -9,7 +9,13 @@
 parse_transform(Forms, _Options) ->
     io:format("Inspecting records at compile-time...~n"),
 
-    NamedTypes = lists:filtermap(fun type_in_form/1, Forms),
+    NamedTypes =
+        lists:filtermap(fun(F) ->
+                           A = type_in_form(F),
+                           io:format("~p~n", [A]),
+                           A
+                        end,
+                        Forms),
 
     trans_add_to_from_json(Forms, NamedTypes).
 
@@ -85,6 +91,24 @@ named_type_to_function({{TypeOfThing, TypeName}, _Info}, Infos) ->
 function_name(TypeName, PostFix) ->
     binary_to_atom(iolist_to_binary([atom_to_list(TypeName), PostFix])).
 
+types_in_module(Module) ->
+    case code:which(Module) of
+        Error
+            when Error =:= non_existing
+                 orelse Error =:= cover_compiled
+                 orelse Error =:= preloaded ->
+            {error,
+             [#ed_error{type = module_types_not_found,
+                        location = [],
+                        ctx = #{module => Module, error => Error}}]};
+        FilePath ->
+            {ok, {Module, [{abstract_code, {_, Forms}}]}} =
+                beam_lib:chunks(FilePath, [abstract_code]),
+            NamedTypes = lists:filtermap(fun erldantic_parse_transform:type_in_form/1, Forms),
+            TypeInfo = maps:from_list(NamedTypes),
+            {ok, TypeInfo}
+    end.
+
 -spec type_in_form(term()) ->
                       false |
                       {true,
@@ -106,15 +130,21 @@ type_in_form({attribute, _, type, {TypeName, {type, _, record, Attrs}, []}})
                   end,
                   FieldInfo),
     {true, {{type, TypeName}, #a_rec{name = RecordName, fields = FieldTypes}}};
-type_in_form({attribute, _, type, {TypeName, {type, _, _, _} = Type, []}})
-    when is_atom(TypeName) ->
+type_in_form({attribute, _, type, {TypeName, {type, _, _, _} = Type, A}})
+    when is_atom(TypeName) andalso is_list(A) ->
     [FieldInfo] = field_info_to_type(Type),
-    {true, {{type, TypeName}, FieldInfo}};
+    Vars = lists:map(fun({var, _, VarName}) when is_atom(VarName) -> VarName end, A),
+    {true, {{type, TypeName}, #a_type{type = FieldInfo, vars = Vars}}};
 type_in_form({attribute, _, type, {TypeName, {_Literal, _, Value}, []}})
     when (is_atom(Value) orelse is_integer(Value)) andalso is_atom(TypeName) ->
     {true, {{type, TypeName}, {literal, Value}}};
-type_in_form({attribute, _, type, T}) ->
-    error({not_supported, {type, T}}); % TODO: Support this
+type_in_form({attribute, _, type, {TypeName, {user_type, _, _, _} = ReferedType, A}})
+    when is_atom(TypeName) andalso is_list(A) ->
+    [FieldInfo] = field_info_to_type(ReferedType),
+    Vars = lists:map(fun({var, _, VarName}) when is_atom(VarName) -> VarName end, A),
+    {true, {{type, TypeName}, #a_type{type = FieldInfo, vars = Vars}}};
+type_in_form({attribute, _, type, _} = T) ->
+    error({not_supported, T}); % TODO: Support this
 type_in_form(_) ->
     false.
 
@@ -125,6 +155,8 @@ field_info_to_type({atom, _, Value}) ->
     [{literal, Value}];
 field_info_to_type({integer, _, Value}) ->
     [{literal, Value}];
+field_info_to_type({var, _, VarName}) when is_atom(VarName) ->
+    [{var, VarName}];
 field_info_to_type({remote_type, _, [{atom, _, Module}, {atom, _, Type}, Args]})
     when is_atom(Module) andalso is_atom(Type) andalso is_list(Args) ->
     [{remote_type, {Module, Type, Args}}];
@@ -137,7 +169,8 @@ field_info_to_type({TypeOfType, _, Type, TypeAttrs}) ->
             [{record_ref, SubTypeRecordName}];
         {user_type, Type} ->
             true = is_atom(Type),
-            [{user_type_ref, Type}];
+            TAttrs = lists:flatmap(fun field_info_to_type/1, TypeAttrs),
+            [{user_type_ref, Type, TAttrs}];
         {type, map} ->
             MapFields = lists:flatmap(fun map_field_info/1, TypeAttrs),
             [#a_map{fields = MapFields}];
@@ -173,7 +206,7 @@ field_info_to_type({TypeOfType, _, Type, TypeAttrs}) ->
                         [{map_field_assoc | map_field_exact,
                           atom(),
                           record_type_introspect:a_type()} |
-                         {map_field_type_assoc,
+                         {map_field_type_assoc | map_field_type_exact,
                           record_type_introspect:a_type(),
                           record_type_introspect:a_type()}].
 map_field_info({TypeOfType, _, Type, TypeAttrs}) ->
