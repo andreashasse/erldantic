@@ -30,6 +30,7 @@ This is Pydantic, but for Erlang. Hopefully for Elixir and Gleam in the future!
 - [ ] Error message on not supported types:
   - [ ] tuple, pid, port, fun, reference
 - [ ] Error message on not debug_info compiled module
+- [ ] What is #a_type and when should I use it?
 
 
 ## TODO PoC Not parse transform

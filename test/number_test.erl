@@ -44,8 +44,8 @@ validate_number_test() ->
 
 -spec to_json(number_data()) -> {ok, json:json()} | {error, [#ed_error{}]}.
 to_json(Data) ->
-    erldantic_json:to_json_no_pt({?MODULE, number_data, []}, Data).
+    erldantic_json:to_json_no_pt({?MODULE, number_data, 0}, Data).
 
 -spec from_json(json:json()) -> {ok, number_data()} | {error, [#ed_error{}]}.
 from_json(Json) ->
-    erldantic_json:from_json_no_pt({?MODULE, number_data, []}, Json).
+    erldantic_json:from_json_no_pt({?MODULE, number_data, 0}, Json).

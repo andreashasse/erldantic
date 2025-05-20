@@ -19,8 +19,9 @@
      binary |
      atom |
      number |
-     term} |
-    {record_ref, user_type_name()} |
+     term |
+     module} |
+    {record_ref, user_type_name(), [{atom(), a_type()}]} |
     {user_type_ref, user_type_name(), [a_type()]} |
     {var, atom()} |
     #a_map{} |
@@ -31,7 +32,7 @@
     {literal, term()} |
     {range, integer, integer(), integer()} |
     {list | nonempty_list, a_type()} |
-    {remote_type, {module(), atom(), [term()]}}.
+    #remote_type{}.
 -type a_type_reference() :: {record, atom()} | {record_ref, atom()} | {type, atom()}.
 %% What is the empty list in non_negative integer?
 -type a_type_or_ref() :: a_type() | a_type_reference().

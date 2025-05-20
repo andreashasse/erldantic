@@ -8,6 +8,7 @@
 %% FIXME: | [] does not work
 -record(a_rec, {name :: atom(), fields :: [{atom(), record_type_introspect:a_type()}]}).
 -record(a_type, {type :: record_type_introspect:a_type(), vars :: [atom()]}).
+-record(remote_type, {mfargs :: {module(), atom(), [record_type_introspect:a_type()]}}).
 
 -define(is_primary_type(PrimaryType),
         PrimaryType =:= string
@@ -18,7 +19,8 @@
         orelse PrimaryType =:= float
         orelse PrimaryType =:= binary
         orelse PrimaryType =:= number
-        orelse PrimaryType =:= term).
+        orelse PrimaryType =:= term
+        orelse PrimaryType =:= module).
 -define(is_predefined_int_range(_Type),
         _Type =:= non_neg_integer orelse _Type =:= neg_integer orelse _Type =:= pos_integer).
 

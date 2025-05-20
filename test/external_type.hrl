@@ -1,0 +1,1 @@
+-record(result, {value, errors = [] :: [atom()]}).

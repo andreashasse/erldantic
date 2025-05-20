@@ -48,7 +48,8 @@ validate_integer_literal_test() ->
     ?assertMatch([#ed_error{type = no_match,
                             ctx =
                                 #{type :=
-                                      {union, [{user_type_ref, one}, {literal, 2}, {literal, 5}]},
+                                      {union,
+                                       [{user_type_ref, one, []}, {literal, 2}, {literal, 5}]},
                                   value := 3}}],
                  CoursesErrors),
 
@@ -121,24 +122,24 @@ validate_integer_literal_test() ->
 
 -spec to_json_one(one()) -> {ok, json:json()} | {error, [#ed_error{}]}.
 to_json_one(Data) ->
-    erldantic_json:to_json_no_pt({?MODULE, one, []}, Data).
+    erldantic_json:to_json_no_pt({?MODULE, one, 0}, Data).
 
 -spec to_json_courses(courses()) -> {ok, json:json()} | {error, [#ed_error{}]}.
 to_json_courses(Data) ->
-    erldantic_json:to_json_no_pt({?MODULE, courses, []}, Data).
+    erldantic_json:to_json_no_pt({?MODULE, courses, 0}, Data).
 
 -spec to_json_game(game_state()) -> {ok, json:json()} | {error, [#ed_error{}]}.
 to_json_game(Data) ->
-    erldantic_json:to_json_no_pt({?MODULE, game_state, []}, Data).
+    erldantic_json:to_json_no_pt({?MODULE, game_state, 0}, Data).
 
 -spec from_json_one(json:json()) -> {ok, one()} | {error, [#ed_error{}]}.
 from_json_one(Json) ->
-    erldantic_json:from_json_no_pt({?MODULE, one, []}, Json).
+    erldantic_json:from_json_no_pt({?MODULE, one, 0}, Json).
 
 -spec from_json_courses(json:json()) -> {ok, courses()} | {error, [#ed_error{}]}.
 from_json_courses(Json) ->
-    erldantic_json:from_json_no_pt({?MODULE, courses, []}, Json).
+    erldantic_json:from_json_no_pt({?MODULE, courses, 0}, Json).
 
 -spec from_json_game(json:json()) -> {ok, game_state()} | {error, [#ed_error{}]}.
 from_json_game(Json) ->
-    erldantic_json:from_json_no_pt({?MODULE, game_state, []}, Json).
+    erldantic_json:from_json_no_pt({?MODULE, game_state, 0}, Json).

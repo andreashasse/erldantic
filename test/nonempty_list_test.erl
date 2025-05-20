@@ -19,7 +19,9 @@ validate_nonempty_list_test() ->
     {error, Errors} = to_json(InvalidUser),
     ?assertEqual([#ed_error{location = [items],
                             type = type_mismatch,
-                            ctx = #{type => {nonempty_list, {user_type_ref, item}}, value => []}}],
+                            ctx =
+                                #{type => {nonempty_list, {user_type_ref, item, []}},
+                                  value => []}}],
                  Errors),
 
     % Test JSON conversion using from_json
@@ -32,13 +34,15 @@ validate_nonempty_list_test() ->
     {error, FromErrors} = from_json(InvalidJson),
     ?assertEqual([#ed_error{location = [items],
                             type = type_mismatch,
-                            ctx = #{type => {nonempty_list, {user_type_ref, item}}, value => []}}],
+                            ctx =
+                                #{type => {nonempty_list, {user_type_ref, item, []}},
+                                  value => []}}],
                  FromErrors).
 
 -spec to_json(user_with_items()) -> {ok, json:json()} | {error, [#ed_error{}]}.
 to_json(User) ->
-    erldantic_json:to_json_no_pt({?MODULE, user_with_items, []}, User).
+    erldantic_json:to_json_no_pt({?MODULE, user_with_items, 0}, User).
 
 -spec from_json(json:json()) -> {ok, user_with_items()} | {error, [#ed_error{}]}.
 from_json(Json) ->
-    erldantic_json:from_json_no_pt({?MODULE, user_with_items, []}, Json).
+    erldantic_json:from_json_no_pt({?MODULE, user_with_items, 0}, Json).

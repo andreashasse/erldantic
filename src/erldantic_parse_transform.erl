@@ -9,13 +9,7 @@
 parse_transform(Forms, _Options) ->
     io:format("Inspecting records at compile-time...~n"),
 
-    NamedTypes =
-        lists:filtermap(fun(F) ->
-                           A = type_in_form(F),
-                           io:format("~p~n", [A]),
-                           A
-                        end,
-                        Forms),
+    NamedTypes = lists:filtermap(fun(F) -> type_in_form(F) end, Forms),
 
     trans_add_to_from_json(Forms, NamedTypes).
 
@@ -134,6 +128,7 @@ type_in_form({attribute, _, type, {TypeName, {type, _, _, _} = Type, A}})
     when is_atom(TypeName) andalso is_list(A) ->
     [FieldInfo] = field_info_to_type(Type),
     Vars = lists:map(fun({var, _, VarName}) when is_atom(VarName) -> VarName end, A),
+    %% TODO: Might not need #a_type here.
     {true, {{type, TypeName}, #a_type{type = FieldInfo, vars = Vars}}};
 type_in_form({attribute, _, type, {TypeName, {_Literal, _, Value}, []}})
     when (is_atom(Value) orelse is_integer(Value)) andalso is_atom(TypeName) ->
@@ -143,6 +138,28 @@ type_in_form({attribute, _, type, {TypeName, {user_type, _, _, _} = ReferedType,
     [FieldInfo] = field_info_to_type(ReferedType),
     Vars = lists:map(fun({var, _, VarName}) when is_atom(VarName) -> VarName end, A),
     {true, {{type, TypeName}, #a_type{type = FieldInfo, vars = Vars}}};
+type_in_form({attribute,
+              _,
+              type,
+              {TypeName,
+               {remote_type, _, [{atom, _, Module}, {atom, _, RemotTypeName}, TypeArgs]},
+               []}})
+    when is_atom(TypeName)
+         andalso is_atom(Module)
+         andalso is_atom(RemotTypeName)
+         andalso is_list(TypeArgs) ->
+    MyTypeArgs =
+        lists:map(fun ({type, _, field_type, [{atom, _, FieldName}, FieldInfo]})
+                          when is_atom(FieldName) ->
+                          %% TODO should I handle record field and other types in one function clause (one clause for all remote types)?
+                          [AType] = field_info_to_type(FieldInfo),
+                          AType;
+                      (Type) ->
+                          [AType] = field_info_to_type(Type),
+                          AType
+                  end,
+                  TypeArgs),
+    {true, {{type, TypeName}, #remote_type{mfargs = {Module, RemotTypeName, MyTypeArgs}}}};
 type_in_form({attribute, _, type, _} = T) ->
     error({not_supported, T}); % TODO: Support this
 type_in_form(_) ->
@@ -159,14 +176,28 @@ field_info_to_type({var, _, VarName}) when is_atom(VarName) ->
     [{var, VarName}];
 field_info_to_type({remote_type, _, [{atom, _, Module}, {atom, _, Type}, Args]})
     when is_atom(Module) andalso is_atom(Type) andalso is_list(Args) ->
-    [{remote_type, {Module, Type, Args}}];
+    MyArgs =
+        lists:map(fun(Arg) ->
+                     [A] = field_info_to_type(Arg),
+                     A
+                  end,
+                  Args),
+    [#remote_type{mfargs = {Module, Type, MyArgs}}];
 field_info_to_type({TypeOfType, _, Type, TypeAttrs}) ->
     true = is_list(TypeAttrs),
     case {TypeOfType, Type} of
         {type, record} ->
-            [{atom, _, SubTypeRecordName}] = TypeAttrs,
+            %% HERE
+            [{atom, _, SubTypeRecordName} | TypeArgs] = TypeAttrs,
             true = is_atom(SubTypeRecordName),
-            [{record_ref, SubTypeRecordName}];
+            FieldTypes =
+                lists:map(fun({type, _, field_type, [{atom, _, FieldName}, FieldInfo]})
+                                 when is_atom(FieldName) ->
+                             [AType] = field_info_to_type(FieldInfo),
+                             {FieldName, AType}
+                          end,
+                          TypeArgs),
+            [{record_ref, SubTypeRecordName, FieldTypes}];
         {user_type, Type} ->
             true = is_atom(Type),
             TAttrs = lists:flatmap(fun field_info_to_type/1, TypeAttrs),
@@ -235,7 +266,13 @@ map_field_info({TypeOfType, _, Type, TypeAttrs}) ->
     end.
 
 -spec record_field_info(term()) -> {atom(), record_type_introspect:a_type()}.
+record_field_info({record_field, _, {atom, _, FieldName}}) when is_atom(FieldName) ->
+    {FieldName, {type, term}};
 record_field_info({typed_record_field, {record_field, _, {atom, _, FieldName}}, Type})
+    when is_atom(FieldName) ->
+    [TypeInfo] = field_info_to_type(Type),
+    {FieldName, TypeInfo};
+record_field_info({typed_record_field, {record_field, _, {atom, _, FieldName}, _}, Type})
     when is_atom(FieldName) ->
     [TypeInfo] = field_info_to_type(Type),
     {FieldName, TypeInfo}.
