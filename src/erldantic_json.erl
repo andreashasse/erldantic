@@ -4,31 +4,64 @@
 
 -include("../include/record_type_introspect.hrl").
 
--type key() :: any(). %% fixme
--type json__encode_value() :: term(). %% Should be json:encode_value()
+-type json__encode_value() :: json:encode_value().
 -type json() :: json:decode_value().
+-type module_version() :: term().
 
+-spec pers_type(Module :: module()) ->
+                   {module_version(), erldantic:type_info()} | undefined.
 pers_type(Module) ->
     persistent_term:get({?MODULE, pers_types, Module}, undefined).
 
-pers_types_set(Module, TypeInfo) ->
-    persistent_term:put({?MODULE, pers_types, Module}, TypeInfo).
+-spec pers_types_set(Module :: module(),
+                     Vsn :: module_version(),
+                     TypeInfo :: erldantic:type_info()) ->
+                        ok.
+pers_types_set(Module, Vsn, TypeInfo) ->
+    persistent_term:put({?MODULE, pers_types, Module}, {Vsn, TypeInfo}).
 
-types_in_module(Module) ->
-    case pers_type(Module) of
-        TypeInfo when is_map(TypeInfo) ->
-            {ok, TypeInfo};
-        undefined ->
-            case erldantic_parse_transform:types_in_module(Module) of
-                {ok, TypeInfo} ->
-                    pers_types_set(Module, TypeInfo),
-                    {ok, TypeInfo};
-                {error, _} = Err ->
-                    Err
-            end
+ensure_module(Module) ->
+    erlang:module_loaded(Module) orelse code:which(Module) =/= non_existing.
+
+-spec module_vsn(Module :: module()) ->
+                    {ok, Version :: module_version()} | {error, [#ed_error{}]}.
+module_vsn(Module) ->
+    case ensure_module(Module) of
+        true ->
+            case erlang:get_module_info(Module, attributes) of
+                Attrs when is_list(Attrs) ->
+                    {vsn, Vsn} = lists:keyfind(vsn, 1, Attrs),
+                    {ok, Vsn}
+            end;
+        false ->
+            {error,
+             [#ed_error{type = module_types_not_found,
+                        location = [],
+                        ctx = #{error => non_existing, module => Module}}]}
     end.
 
-%% FIXME: use TypeArity
+-spec types_in_module(Module :: module()) ->
+                         {ok, erldantic:type_info()} | {error, [#ed_error{}]}.
+types_in_module(Module) ->
+    case module_vsn(Module) of
+        {ok, Vsn} ->
+            io:format("types_in_module:~n  Module ~p~n  Vsn ~p~n", [Module, Vsn]),
+            case pers_type(Module) of
+                {Vsn, TypeInfo} when is_map(TypeInfo) ->
+                    {ok, TypeInfo};
+                _ ->
+                    case erldantic_parse_transform:types_in_module(Module) of
+                        {ok, TypeInfo} ->
+                            pers_types_set(Module, Vsn, TypeInfo),
+                            {ok, TypeInfo};
+                        {error, _} = Err ->
+                            Err
+                    end
+            end;
+        {error, _} = Err ->
+            Err
+    end.
+
 to_json_no_pt({Module, Type, 0}, Data) when is_atom(Type) ->
     to_json_no_pt({Module, {type, Type}, 0}, Data);
 to_json_no_pt({Module, Type, TypeArity}, Data) ->
@@ -51,22 +84,21 @@ to_json(TypeInfo, Type, Data) ->
             {error, Errs}
     end.
 
-%% FIXME: use TypeArity
-from_json_no_pt({Module, Type, TypeArity}, Json) when is_atom(Type) ->
-    from_json_no_pt({Module, {type, Type}, TypeArity}, Json);
-from_json_no_pt({Module, Type, TypeArity}, Json) ->
-    io:format("from_json_no_pt:~n  Module ~p~n  Type ~p~n  TypeArity ~p~n  Json ~p~n",
-              [Module, Type, TypeArity, Json]),
+from_json_no_pt({Module, TypeName, TypeArity}, Json) when is_atom(TypeName) ->
+    from_json_no_pt({Module, {type, TypeName}, TypeArity}, Json);
+from_json_no_pt({Module, TypeName, TypeArity}, Json) ->
+    io:format("from_json_no_pt:~n  Module ~p~n  TypeName ~p~n  TypeArity ~p~n  Json ~p~n",
+              [Module, TypeName, TypeArity, Json]),
     case types_in_module(Module) of
         {ok, TypeInfo} ->
-            from_json(TypeInfo, Type, Json);
+            from_json(TypeInfo, TypeName, Json);
         {error, _} = Err ->
             Err
     end.
 
 % FIXME: User can get 'skip' as return value.
--spec do_to_json(TypeInfo :: #{key() => record_type_introspect:a_type()},
-                 Type :: record_type_introspect:a_type_or_ref(),
+-spec do_to_json(TypeInfo :: erldantic:type_info(),
+                 Type :: erldantic:a_type_or_ref(),
                  Data :: term()) ->
                     {ok, json__encode_value()} | {error, [#ed_error{}]} | skip.
 do_to_json(TypeInfo, {record, RecordName}, Record) when is_atom(RecordName) ->
@@ -160,7 +192,7 @@ nonempty_list_to_json(_TypeInfo, Type, Data) ->
                 ctx = #{type => {nonempty_list, Type}, value => Data}}]}.
 
 -spec list_to_json(TypeInfo :: map(),
-                   Type :: record_type_introspect:a_type_or_ref(),
+                   Type :: erldantic:a_type_or_ref(),
                    Data :: [term()]) ->
                       {ok, [json__encode_value()]} | {error, [#ed_error{}]}.
 list_to_json(TypeInfo, Type, Data) when is_list(Data) ->
@@ -343,7 +375,7 @@ map_field_type(TypeInfo, KeyType, ValueType, Data) ->
 -spec record_to_json(TypeInfo :: map(),
                      RecordName :: atom(),
                      Record :: term(),
-                     TypeArgs :: [record_type_introspect:a_type()]) ->
+                     TypeArgs :: [{atom(), erldantic:a_type()}]) ->
                         {ok, #{atom() => json__encode_value()}} | {error, [#ed_error{}]}.
 record_to_json(TypeInfo, RecordName, Record, TypeArgs) when is_tuple(Record) ->
     io:format("record_to_json:~n  RecordName ~p~n  TypeArgs ~p~n", [RecordName, TypeArgs]),
@@ -398,14 +430,14 @@ err_append_location(Err, FieldName) ->
     Err#ed_error{location = [FieldName | Err#ed_error.location]}.
 
 -spec from_json(TypeInfo :: map(),
-                Type :: record_type_introspect:a_type() | {record, atom()},
+                Type :: erldantic:a_type() | {record, atom()},
                 Json :: json()) ->
                    {ok, term()} | {error, [#ed_error{}]}.
 %% why {record, atom()}?
 from_json(TypeInfo, {record, RecordName}, Json) when is_atom(RecordName) ->
     record_from_json(TypeInfo, RecordName, Json, []);
 from_json(TypeInfo, #a_rec{name = RecordName, fields = RecordInfo}, Json) ->
-    do_record_from_json(TypeInfo, RecordName, RecordInfo, Json, []);
+    do_record_from_json(TypeInfo, RecordName, RecordInfo, Json);
 from_json(_TypeInfo, #remote_type{mfargs = {Module, TypeName, TypeArgs}}, Json) ->
     case types_in_module(Module) of
         {ok, TypeInfo} ->
@@ -605,9 +637,9 @@ do_first(F, TypeInfo, [Type | Rest], Json) ->
             do_first(F, TypeInfo, Rest, Json)
     end.
 
--spec type_from_json(TypeInfo :: map(),
+-spec type_from_json(TypeInfo :: erldantic:type_info(),
                      TypeName :: atom(),
-                     TypeArgs :: [record_type_introspect:a_type()],
+                     TypeArgs :: [erldantic:a_type()],
                      Json :: json()) ->
                         {ok, term()} | {error, [#ed_error{}]}.
 type_from_json(TypeInfo, TypeName, TypeArgs, Json) ->
@@ -615,7 +647,6 @@ type_from_json(TypeInfo, TypeName, TypeArgs, Json) ->
     case TypeInfo of
         #{{type, TypeName} := Type} ->
             TypeWithoutVars = apply_args(TypeInfo, Type, TypeArgs),
-            %% TODO: APPLY ARGS?
             from_json(TypeInfo, TypeWithoutVars, Json);
         #{} ->
             {error, [#ed_error{type = missing_type, location = [TypeName]}]}
@@ -637,14 +668,15 @@ arg_names(#a_type{vars = Args}) ->
 arg_names(_) ->
     [].
 
--spec type_replace_vars(TypeInfo :: #{key() => record_type_introspect:a_type()},
-                        Type :: record_type_introspect:a_type(),
-                        NamedTypes :: #{atom() => record_type_introspect:a_type()}) ->
-                           record_type_introspect:a_type().
+-spec type_replace_vars(TypeInfo :: erldantic:type_info(),
+                        Type :: erldantic:a_type(),
+                        NamedTypes :: #{atom() => erldantic:a_type()}) ->
+                           erldantic:a_type().
 type_replace_vars(_TypeInfo, {var, Name}, NamedTypes) ->
     maps:get(Name, NamedTypes, {type, term});
 type_replace_vars(TypeInfo, #a_type{type = Type, vars = _Vars}, NamedTypes) ->
     case Type of
+        %% FIXME: lists and ranges?
         {union, Types} ->
             {union, lists:map(fun(T) -> type_replace_vars(TypeInfo, T, NamedTypes) end, Types)};
         #a_map{fields = Fields} ->
@@ -829,21 +861,23 @@ map_field_type_from_json(TypeInfo, KeyType, ValueType, Json) ->
 -spec record_from_json(TypeInfo :: map(),
                        RecordName :: atom(),
                        Json :: json(),
-                       TypeArgs :: [record_type_introspect:a_type()]) ->
+                       TypeArgs :: [erldantic:a_type()]) ->
                           {ok, term()} | {error, list()}.
 record_from_json(TypeInfo, RecordName, Json, TypeArgs) ->
-    #a_rec{name = RecordName, fields = RecordInfo} = maps:get({record, RecordName}, TypeInfo),
-    do_record_from_json(TypeInfo, RecordName, RecordInfo, Json, TypeArgs).
+    ARec = maps:get({record, RecordName}, TypeInfo),
+    NewARec = apply_args(TypeInfo, ARec, TypeArgs),
+    #a_rec{name = RecordName, fields = RecordInfo} = NewARec,
+    do_record_from_json(TypeInfo, RecordName, RecordInfo, Json).
 
 -spec do_record_from_json(TypeInfo :: map(),
                           RecordName :: atom(),
                           RecordInfo :: list(),
-                          Json :: json(),
-                          TypeArgs :: [record_type_introspect:a_type()]) ->
+                          Json :: json()) ->
                              {ok, term()} | {error, list()}.
-do_record_from_json(TypeInfo, RecordName, RecordInfo, Json, TypeArgs) when is_map(Json) ->
-    io:format("do_record_from_json:~n  RecordName ~p~n  TypeArgs ~p~n  RecordInfo ~p~n  Json ~p~n",
-              [RecordName, TypeArgs, RecordInfo, Json]),
+do_record_from_json(TypeInfo, RecordName, RecordInfo, Json) when is_map(Json) ->
+    %% FIXME: Apply type args?
+    io:format("do_record_from_json:~n  RecordName ~p~n  RecordInfo ~p~n  Json ~p~n",
+              [RecordName, RecordInfo, Json]),
     {Fields, Errors} =
         lists:foldl(fun({FieldName, FieldType}, {FieldsAcc, ErrorsAcc}) when is_atom(FieldName) ->
                        case maps:find(atom_to_binary(FieldName), Json) of
@@ -877,21 +911,15 @@ do_record_from_json(TypeInfo, RecordName, RecordInfo, Json, TypeArgs) when is_ma
         _ ->
             {error, Errors}
     end;
-do_record_from_json(_TypeInfo, RecordName, _RecordInfo, Json, TypeArgs) ->
+do_record_from_json(_TypeInfo, RecordName, _RecordInfo, Json) ->
     {error,
      [#ed_error{type = type_mismatch,
                 location = [],
-                ctx =
-                    #{record_name => RecordName,
-                      record => Json,
-                      type_args => TypeArgs}}]}.
+                ctx = #{record_name => RecordName, record => Json}}]}.
 
--spec can_be_undefined(TypeInfo :: #{key() => record_type_introspect:a_type()},
-                       Type :: record_type_introspect:a_type()) ->
+-spec can_be_undefined(TypeInfo :: erldantic:type_info(), Type :: erldantic:a_type()) ->
                           boolean().
 can_be_undefined(TypeInfo, Type) ->
-    io:format("Can be undefined: ~p~n", [Type]),
-
     case Type of
         #a_type{type = Type2} ->
             can_be_undefined(TypeInfo, Type2);

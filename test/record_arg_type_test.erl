@@ -6,17 +6,17 @@
 
 -record(result, {value, errors = [] :: [atom()]}).
 
--type int_result() :: result_t(integer()).
--type result_t(ResultType) :: #result{value :: ResultType, errors :: [atom()]}.
+-type int_result() :: result_t(atom()).
+-type result_t(ResultType) :: #result{value :: integer(), errors :: [ResultType]}.
 
 type_in_form_test() ->
     {ok, Types} = erldantic_parse_transform:types_in_module(?MODULE),
-    ?assertEqual(#a_type{type = {user_type_ref, result_t, [{type, integer}]}, vars = []},
+    ?assertEqual(#a_type{type = {user_type_ref, result_t, [{type, atom}]}, vars = []},
                  maps:get({type, int_result}, Types)),
     ?assertEqual(#a_type{type =
                              {record_ref,
                               result,
-                              [{value, {var, 'ResultType'}}, {errors, {list, {type, atom}}}]},
+                              [{value, {type, integer}}, {errors, {list, {var, 'ResultType'}}}]},
                          vars = ['ResultType']},
                  maps:get({type, result_t}, Types)).
 

@@ -104,10 +104,7 @@ types_in_module(Module) ->
     end.
 
 -spec type_in_form(term()) ->
-                      false |
-                      {true,
-                       {record_type_introspect:a_type_reference(),
-                        record_type_introspect:a_type()}}.
+                      false | {true, {erldantic:a_type_reference(), erldantic:a_type()}}.
 type_in_form({attribute, _, record, {RecordName, Fields}})
     when is_list(Fields) andalso is_atom(RecordName) ->
     FieldInfos = lists:map(fun record_field_info/1, Fields),
@@ -165,12 +162,12 @@ type_in_form({attribute, _, type, _} = T) ->
 type_in_form(_) ->
     false.
 
--spec field_info_to_type(term()) -> [record_type_introspect:a_type()].
+-spec field_info_to_type(term()) -> [erldantic:a_type()].
 field_info_to_type({ann_type, _, _Attr}) ->
     [];
-field_info_to_type({atom, _, Value}) ->
+field_info_to_type({atom, _, Value}) when is_atom(Value) ->
     [{literal, Value}];
-field_info_to_type({integer, _, Value}) ->
+field_info_to_type({integer, _, Value}) when is_integer(Value) ->
     [{literal, Value}];
 field_info_to_type({var, _, VarName}) when is_atom(VarName) ->
     [{var, VarName}];
@@ -234,12 +231,10 @@ field_info_to_type({TypeOfType, _, Type, TypeAttrs}) ->
     end.
 
 -spec map_field_info(term()) ->
-                        [{map_field_assoc | map_field_exact,
-                          atom(),
-                          record_type_introspect:a_type()} |
+                        [{map_field_assoc | map_field_exact, atom(), erldantic:a_type()} |
                          {map_field_type_assoc | map_field_type_exact,
-                          record_type_introspect:a_type(),
-                          record_type_introspect:a_type()}].
+                          erldantic:a_type(),
+                          erldantic:a_type()}].
 map_field_info({TypeOfType, _, Type, TypeAttrs}) ->
     case {TypeOfType, Type} of
         {type, map_field_assoc} ->
@@ -265,7 +260,7 @@ map_field_info({TypeOfType, _, Type, TypeAttrs}) ->
             end
     end.
 
--spec record_field_info(term()) -> {atom(), record_type_introspect:a_type()}.
+-spec record_field_info(term()) -> {atom(), erldantic:a_type()}.
 record_field_info({record_field, _, {atom, _, FieldName}}) when is_atom(FieldName) ->
     {FieldName, {type, term}};
 record_field_info({typed_record_field, {record_field, _, {atom, _, FieldName}}, Type})
