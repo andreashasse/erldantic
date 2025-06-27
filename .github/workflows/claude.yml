@@ -35,6 +35,9 @@ jobs:
           otp-version: '27'
           rebar3-version: '3.25'
 
+      - name: Install dependencies
+        run: rebar3 get-deps
+
       - name: Run Claude Code
         id: claude
         uses: anthropics/claude-code-action@beta

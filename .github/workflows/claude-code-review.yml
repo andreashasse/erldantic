@@ -31,6 +31,15 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Setup Erlang/OTP
+        uses: erlef/setup-beam@v1
+        with:
+          otp-version: '27'
+          rebar3-version: '3.25'
+
+      - name: Install dependencies
+        run: rebar3 get-deps
+
       - name: Run Claude Code Review
         id: claude-review
         uses: anthropics/claude-code-action@beta
@@ -39,6 +48,9 @@ jobs:
 
           # Optional: Specify model (defaults to Claude Sonnet 4, uncomment for Claude Opus 4)
           # model: "claude-opus-4-20250514"
+
+          # Allow Claude to run rebar3 commands during review
+          allowed_tools: "Bash(make build-test),Bash(rebar3 *)"
 
           # Direct prompt for automated review (no @claude mention needed)
           direct_prompt: |
