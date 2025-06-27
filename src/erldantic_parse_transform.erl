@@ -109,7 +109,7 @@ type_in_form({attribute, _, record, {RecordName, Fields}})
     when is_list(Fields) andalso is_atom(RecordName) ->
     FieldInfos = lists:map(fun record_field_info/1, Fields),
     {true, {{record, RecordName}, #a_rec{name = RecordName, fields = FieldInfos}}};
-type_in_form({attribute, _, type, {TypeName, {type, _, record, Attrs}, []}})
+type_in_form({attribute, _, type, {TypeName, {type, _, record, Attrs}, [] = Args}})
     when is_atom(TypeName) ->
     [{atom, _, RecordName} | FieldInfo] = Attrs,
     true = is_atom(RecordName),
@@ -120,27 +120,27 @@ type_in_form({attribute, _, type, {TypeName, {type, _, record, Attrs}, []}})
                      {FieldName, A}
                   end,
                   FieldInfo),
-    {true, {{type, TypeName}, #a_rec{name = RecordName, fields = FieldTypes}}};
-type_in_form({attribute, _, type, {TypeName, {type, _, _, _} = Type, A}})
-    when is_atom(TypeName) andalso is_list(A) ->
+    {true, {{type, TypeName, length(Args)}, #a_rec{name = RecordName, fields = FieldTypes}}};
+type_in_form({attribute, _, type, {TypeName, {type, _, _, _} = Type, Args}})
+    when is_atom(TypeName) andalso is_list(Args) ->
     [FieldInfo] = field_info_to_type(Type),
-    Vars = lists:map(fun({var, _, VarName}) when is_atom(VarName) -> VarName end, A),
+    Vars = lists:map(fun({var, _, VarName}) when is_atom(VarName) -> VarName end, Args),
     %% TODO: Might not need #a_type here.
-    {true, {{type, TypeName}, #a_type{type = FieldInfo, vars = Vars}}};
-type_in_form({attribute, _, type, {TypeName, {_Literal, _, Value}, []}})
+    {true, {{type, TypeName, length(Args)}, #a_type{type = FieldInfo, vars = Vars}}};
+type_in_form({attribute, _, type, {TypeName, {_Literal, _, Value}, [] = Args}})
     when (is_atom(Value) orelse is_integer(Value)) andalso is_atom(TypeName) ->
-    {true, {{type, TypeName}, {literal, Value}}};
-type_in_form({attribute, _, type, {TypeName, {user_type, _, _, _} = ReferedType, A}})
-    when is_atom(TypeName) andalso is_list(A) ->
+    {true, {{type, TypeName, length(Args)}, {literal, Value}}};
+type_in_form({attribute, _, type, {TypeName, {user_type, _, _, _} = ReferedType, Args}})
+    when is_atom(TypeName) andalso is_list(Args) ->
     [FieldInfo] = field_info_to_type(ReferedType),
-    Vars = lists:map(fun({var, _, VarName}) when is_atom(VarName) -> VarName end, A),
-    {true, {{type, TypeName}, #a_type{type = FieldInfo, vars = Vars}}};
+    Vars = lists:map(fun({var, _, VarName}) when is_atom(VarName) -> VarName end, Args),
+    {true, {{type, TypeName, length(Args)}, #a_type{type = FieldInfo, vars = Vars}}};
 type_in_form({attribute,
               _,
               type,
               {TypeName,
                {remote_type, _, [{atom, _, Module}, {atom, _, RemotTypeName}, TypeArgs]},
-               []}})
+               [] = Args}})
     when is_atom(TypeName)
          andalso is_atom(Module)
          andalso is_atom(RemotTypeName)
@@ -156,7 +156,9 @@ type_in_form({attribute,
                           AType
                   end,
                   TypeArgs),
-    {true, {{type, TypeName}, #remote_type{mfargs = {Module, RemotTypeName, MyTypeArgs}}}};
+    {true,
+     {{type, TypeName, length(Args)},
+      #remote_type{mfargs = {Module, RemotTypeName, MyTypeArgs}}}};
 type_in_form({attribute, _, type, _} = T) ->
     error({not_supported, T}); % TODO: Support this
 type_in_form(_) ->

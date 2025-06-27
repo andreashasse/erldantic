@@ -22,12 +22,19 @@ This is Pydantic, but for Erlang. Hopefully for Elixir and Gleam in the future!
 - [x] pass not map to map type
 - [x] pass binary when expecting string
 - [x] skip (undefined) in weird places.
-- [ ] #{atom() => string()}
+- [x] #{atom() => string()}
   - [x] There are no test for from_json in map_test.erl
   - [x] 'undefined' as key in map
 - [ ] Types with vars
   - [ ] Two types with same name but different arity.
-- [ ] Error message on not supported types:
+  - [ ] Tests for all non primitive types
+    - [ ] Record
+    - [ ] Map
+    - [ ] Union
+    - [ ] list
+    - [ ] remote type
+    - [ ] Literal?
+- [ ] Error message on not supported json types:
   - [ ] tuple, pid, port, fun, reference
 - [ ] Error message on not debug_info compiled module
 - [ ] What is #a_type and when should I use it?
@@ -37,6 +44,7 @@ This is Pydantic, but for Erlang. Hopefully for Elixir and Gleam in the future!
 - [x] Module that doens't use parse transform, but manually calls from to_json from_json function in this lib.
 
 ## TODO Release
+- [ ]
 - [ ] Document special behaviour for `undefined`.
 - [ ] All other types expect `pid()`, `port()`, `Fun` and `reference()`.
     - [ ] Number? or will it always show up as integer()|float()?

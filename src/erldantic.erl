@@ -32,8 +32,10 @@
     {range, integer, integer(), integer()} |
     {list | nonempty_list, a_type()} |
     #remote_type{}.
--type a_type_reference() :: {record, atom()} | {record_ref, atom()} | {type, atom()}.
-%% What is the empty list in non_negative integer?
+-type a_type_reference() ::
+    {record, atom()} |
+    {record_ref, atom()} |
+    {type, Name :: atom(), Arity :: non_neg_integer()}.
 -type a_type_or_ref() :: a_type() | a_type_reference().
 
 -export_type([a_type/0, a_type_reference/0, a_type_or_ref/0, var_type/0, type_info/0]).
