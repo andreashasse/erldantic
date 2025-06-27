@@ -59,31 +59,39 @@ named_types_to_functions(NamedTypes) ->
 
 named_types_to_exports(NamedTypes) ->
     Exports =
-        lists:flatmap(fun({{_, TypeName}, _}) ->
-                         [{function_name(TypeName, "_from_json"), 1},
-                          {function_name(TypeName, "_to_json"), 1}]
+        lists:flatmap(fun(NamedType) ->
+                         FuncName = make_safe_function_name(NamedType),
+                         [{list_to_atom(FuncName ++ "_from_json"), 1},
+                          {list_to_atom(FuncName ++ "_to_json"), 1}]
                       end,
                       NamedTypes),
     [{attribute, {5, 2}, export, Exports}].
 
-named_type_to_function({{TypeOfThing, TypeName}, _Info}, Infos) ->
-    [codegen:gen_function(function_name(TypeName, "_from_json"),
+named_type_to_function(NamedType, Infos) ->
+    {TypeRef, _Info} = NamedType,
+    FuncName = make_safe_function_name(NamedType),
+    [codegen:gen_function(list_to_atom(FuncName ++ "_from_json"),
                           fun(Json) ->
                              record_type_introspect:from_json({'$var', Infos},
-                                                              {{'$var', TypeOfThing},
-                                                               {'$var', TypeName}},
+                                                              {'$var', TypeRef},
                                                               Json)
                           end),
-     codegen:gen_function(function_name(TypeName, "_to_json"),
+     codegen:gen_function(list_to_atom(FuncName ++ "_to_json"),
                           fun(Data) ->
                              record_type_introspect:to_json({'$var', Infos},
-                                                            {{'$var', TypeOfThing},
-                                                             {'$var', TypeName}},
+                                                            {'$var', TypeRef},
                                                             Data)
                           end)].
 
-function_name(TypeName, PostFix) ->
-    binary_to_atom(iolist_to_binary([atom_to_list(TypeName), PostFix])).
+%% Create safe function names that avoid collisions between records and types
+make_safe_function_name({{record, TypeName}, _}) when is_atom(TypeName) ->
+    "rec_" ++ atom_to_list(TypeName);
+make_safe_function_name({{type, TypeName, 0}, _}) when is_atom(TypeName) ->
+    "type_" ++ atom_to_list(TypeName) ++ "_0";
+make_safe_function_name({{type, TypeName, Arity}, _})
+    when is_atom(TypeName), is_integer(Arity), Arity > 0 ->
+    "type_" ++ atom_to_list(TypeName) ++ "_" ++ integer_to_list(Arity).
+
 
 types_in_module(Module) ->
     case code:which(Module) of
