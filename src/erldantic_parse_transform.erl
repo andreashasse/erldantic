@@ -92,7 +92,6 @@ make_safe_function_name({{type, TypeName, Arity}, _})
     when is_atom(TypeName), is_integer(Arity), Arity > 0 ->
     "type_" ++ atom_to_list(TypeName) ++ "_" ++ integer_to_list(Arity).
 
-
 types_in_module(Module) ->
     case code:which(Module) of
         Error
@@ -106,8 +105,15 @@ types_in_module(Module) ->
         FilePath ->
             {ok, {Module, [{abstract_code, {_, Forms}}]}} =
                 beam_lib:chunks(FilePath, [abstract_code]),
+            io:format("types_in_module debug: Module=~p~n", [Module]),
+            TypeForms = [F || F <- Forms, element(1, F) =:= attribute, element(3, F) =:= type],
+            io:format("TypeForms found: ~p~n", [length(TypeForms)]),
+            lists:foreach(fun(F) -> io:format("  TypeForm: ~p~n", [F]) end, TypeForms),
             NamedTypes = lists:filtermap(fun erldantic_parse_transform:type_in_form/1, Forms),
+            io:format("NamedTypes parsed: ~p~n", [length(NamedTypes)]),
+            lists:foreach(fun(NT) -> io:format("  NamedType: ~p~n", [NT]) end, NamedTypes),
             TypeInfo = maps:from_list(NamedTypes),
+            io:format("TypeInfo keys: ~p~n", [maps:keys(TypeInfo)]),
             {ok, TypeInfo}
     end.
 
@@ -128,21 +134,25 @@ type_in_form({attribute, _, type, {TypeName, {type, _, record, Attrs}, [] = Args
                      {FieldName, A}
                   end,
                   FieldInfo),
-    {true, {{type, TypeName, length(Args)}, #a_rec{name = RecordName, fields = FieldTypes}}};
+    TypeArity = length(Args),
+    {true, {{type, TypeName, TypeArity}, #a_rec{name = RecordName, fields = FieldTypes}}};
 type_in_form({attribute, _, type, {TypeName, {type, _, _, _} = Type, Args}})
     when is_atom(TypeName) andalso is_list(Args) ->
     [FieldInfo] = field_info_to_type(Type),
     Vars = lists:map(fun({var, _, VarName}) when is_atom(VarName) -> VarName end, Args),
     %% TODO: Might not need #a_type here.
-    {true, {{type, TypeName, length(Args)}, #a_type{type = FieldInfo, vars = Vars}}};
+    TypeArity = length(Args),
+    {true, {{type, TypeName, TypeArity}, #a_type{type = FieldInfo, vars = Vars}}};
 type_in_form({attribute, _, type, {TypeName, {_Literal, _, Value}, [] = Args}})
     when (is_atom(Value) orelse is_integer(Value)) andalso is_atom(TypeName) ->
-    {true, {{type, TypeName, length(Args)}, {literal, Value}}};
+    TypeArity = length(Args),
+    {true, {{type, TypeName, TypeArity}, {literal, Value}}};
 type_in_form({attribute, _, type, {TypeName, {user_type, _, _, _} = ReferedType, Args}})
     when is_atom(TypeName) andalso is_list(Args) ->
     [FieldInfo] = field_info_to_type(ReferedType),
     Vars = lists:map(fun({var, _, VarName}) when is_atom(VarName) -> VarName end, Args),
-    {true, {{type, TypeName, length(Args)}, #a_type{type = FieldInfo, vars = Vars}}};
+    TypeArity = length(Args),
+    {true, {{type, TypeName, TypeArity}, #a_type{type = FieldInfo, vars = Vars}}};
 type_in_form({attribute,
               _,
               type,
@@ -164,8 +174,9 @@ type_in_form({attribute,
                           AType
                   end,
                   TypeArgs),
+    TypeArity = length(Args),
     {true,
-     {{type, TypeName, length(Args)},
+     {{type, TypeName, TypeArity},
       #remote_type{mfargs = {Module, RemotTypeName, MyTypeArgs}}}};
 type_in_form({attribute, _, type, _} = T) ->
     error({not_supported, T}); % TODO: Support this

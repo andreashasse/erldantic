@@ -63,7 +63,8 @@ types_in_module(Module) ->
     end.
 
 to_json_no_pt({Module, Type, 0}, Data) when is_atom(Type) ->
-    to_json_no_pt({Module, {type, Type}, 0}, Data);
+    %% FIXME: Why do we pass 0 twice here? TypeArity and the literal 0
+    to_json_no_pt({Module, {type, Type, 0}, 0}, Data);
 to_json_no_pt({Module, Type, TypeArity}, Data) ->
     io:format("to_json_no_pt:~n  Module ~p~n  Type ~p~n  TypeArity ~p~n",
               [Module, Type, TypeArity]),
@@ -85,7 +86,7 @@ to_json(TypeInfo, Type, Data) ->
     end.
 
 from_json_no_pt({Module, TypeName, TypeArity}, Json) when is_atom(TypeName) ->
-    from_json_no_pt({Module, {type, TypeName}, TypeArity}, Json);
+    from_json_no_pt({Module, {type, TypeName, TypeArity}, TypeArity}, Json);
 from_json_no_pt({Module, TypeName, TypeArity}, Json) ->
     io:format("from_json_no_pt:~n  Module ~p~n  TypeName ~p~n  TypeArity ~p~n  Json ~p~n",
               [Module, TypeName, TypeArity, Json]),
@@ -113,8 +114,9 @@ do_to_json(TypeInfo, {record_ref, RecordName, TypeArgs}, Record)
 do_to_json(TypeInfo, {user_type_ref, TypeName, TypeArgs}, Data) when is_atom(TypeName) ->
     io:format("do_to_json user_type_ref:~n  TypeName ~p~n  TypeArgs ~p~n",
               [TypeName, TypeArgs]),
+    TypeArity = length(TypeArgs),
     case TypeInfo of
-        #{{type, TypeName} := Type} ->
+        #{{type, TypeName, TypeArity} := Type} ->
             TypeWithoutVars = apply_args(TypeInfo, Type, TypeArgs),
             io:format("TypeWithoutArgs: ~p~n", [TypeWithoutVars]),
             do_to_json(TypeInfo, TypeWithoutVars, Data);
@@ -150,7 +152,10 @@ do_to_json(TypeInfo, {nonempty_list, Type}, Data) ->
     nonempty_list_to_json(TypeInfo, Type, Data);
 do_to_json(TypeInfo, {list, Type}, Data) when is_list(Data) ->
     list_to_json(TypeInfo, Type, Data);
+do_to_json(TypeInfo, {type, TypeName, TypeArgs}, Data) when is_atom(TypeName), is_list(TypeArgs) ->
+    data_to_json(TypeInfo, TypeName, TypeArgs, Data);
 do_to_json(TypeInfo, {type, TypeName}, Data) when is_atom(TypeName) ->
+    %% FIXME: For simple types without arity, default to 0
     data_to_json(TypeInfo, TypeName, [], Data);
 do_to_json(TypeInfo, #a_type{type = Type, vars = _ArgsNames}, Data) ->
     do_to_json(TypeInfo, Type, Data);
@@ -164,8 +169,9 @@ do_to_json(_TypeInfo, #a_tuple{} = T, _Data) ->
 do_to_json(_TypeInfo, #remote_type{mfargs = {Module, TypeName, Args}}, Data) ->
     case types_in_module(Module) of
         {ok, TypeInfo} ->
+            TypeArity = length(Args),
             case TypeInfo of
-                #{{type, TypeName} := Type} ->
+                #{{type, TypeName, TypeArity} := Type} ->
                     TypeWithoutVars = apply_args(TypeInfo, Type, Args),
                     io:format("RemoteTypeWithoutArgs: ~p~n", [TypeWithoutVars]),
                     do_to_json(TypeInfo, TypeWithoutVars, Data);
@@ -223,9 +229,10 @@ list_to_json(TypeInfo, Type, Data) when is_list(Data) ->
             {error, lists:flatmap(fun({error, Errs}) -> Errs end, Errors)}
     end.
 
-data_to_json(TypeInfo, TypeName, _TypeArgs, Data) ->
+data_to_json(TypeInfo, TypeName, TypeArgs, Data) ->
+    TypeArity = length(TypeArgs),
     case TypeInfo of
-        #{{type, TypeName} := Type} ->
+        #{{type, TypeName, TypeArity} := Type} ->
             do_to_json(TypeInfo, Type, Data);
         #{} ->
             {error, [#ed_error{type = missing_type, location = [TypeName]}]}
@@ -434,6 +441,8 @@ err_append_location(Err, FieldName) ->
                 Json :: json()) ->
                    {ok, term()} | {error, [#ed_error{}]}.
 %% why {record, atom()}?
+from_json(TypeInfo, {type, TypeName, TypeArgs}, Json) when is_atom(TypeName), is_list(TypeArgs) ->
+    type_from_json(TypeInfo, TypeName, TypeArgs, Json);
 from_json(TypeInfo, {record, RecordName}, Json) when is_atom(RecordName) ->
     record_from_json(TypeInfo, RecordName, Json, []);
 from_json(TypeInfo, #a_rec{name = RecordName, fields = RecordInfo}, Json) ->
@@ -441,8 +450,9 @@ from_json(TypeInfo, #a_rec{name = RecordName, fields = RecordInfo}, Json) ->
 from_json(_TypeInfo, #remote_type{mfargs = {Module, TypeName, TypeArgs}}, Json) ->
     case types_in_module(Module) of
         {ok, TypeInfo} ->
+            TypeArity = length(TypeArgs),
             case TypeInfo of
-                #{{type, TypeName} := Type} ->
+                #{{type, TypeName, TypeArity} := Type} ->
                     TypeWithoutVars = apply_args(TypeInfo, Type, TypeArgs),
                     io:format("RemoteTypeWithoutVars: ~p~n", [TypeWithoutVars]),
                     from_json(TypeInfo, TypeWithoutVars, Json);
@@ -492,6 +502,7 @@ from_json(_TypeInfo, {literal, Literal} = T, Value) ->
                         ctx = #{type => T, value => Value}}]}
     end;
 from_json(TypeInfo, {type, TypeName}, Json) when is_atom(TypeName) ->
+    %% FIXME: For simple types without arity, default to 0  
     type_from_json(TypeInfo, TypeName, [], Json);
 from_json(TypeInfo, {union, _} = T, Json) ->
     union(fun from_json/3, TypeInfo, T, Json);
@@ -644,8 +655,9 @@ do_first(F, TypeInfo, [Type | Rest], Json) ->
                         {ok, term()} | {error, [#ed_error{}]}.
 type_from_json(TypeInfo, TypeName, TypeArgs, Json) ->
     io:format("type_from_json:~n  TypeName ~p~n  TypeArgs ~p~n", [TypeName, TypeArgs]),
+    TypeArity = length(TypeArgs),
     case TypeInfo of
-        #{{type, TypeName} := Type} ->
+        #{{type, TypeName, TypeArity} := Type} ->
             TypeWithoutVars = apply_args(TypeInfo, Type, TypeArgs),
             from_json(TypeInfo, TypeWithoutVars, Json);
         #{} ->
@@ -927,9 +939,10 @@ can_be_undefined(TypeInfo, Type) ->
             lists:member({literal, undefined}, Types);
         {literal, undefined} ->
             true;
-        {user_type_ref, TypeName, _} ->
+        {user_type_ref, TypeName, TypeArgs} ->
+            TypeArity = length(TypeArgs),
             case TypeInfo of
-                #{{type, TypeName} := Type2} ->
+                #{{type, TypeName, TypeArity} := Type2} ->
                     %% infinite recursion?
                     can_be_undefined(TypeInfo, Type2);
                 #{} ->
