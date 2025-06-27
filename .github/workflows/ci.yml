@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        otp: ['26', '27']
+        rebar3: ['3.25']
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Erlang/OTP
+      uses: erlef/setup-beam@v1
+      with:
+        otp-version: ${{ matrix.otp }}
+        rebar3-version: ${{ matrix.rebar3 }}
+    
+    - name: Cache rebar3 dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/rebar3
+          _build
+        key: ${{ runner.os }}-rebar3-${{ matrix.otp }}-${{ hashFiles('rebar.config') }}
+        restore-keys: |
+          ${{ runner.os }}-rebar3-${{ matrix.otp }}-
+    
+    - name: Compile
+      run: make compile
+    
+    - name: Format check
+      run: make format
+    
+    - name: Run tests
+      run: make test
+    
+    - name: Generate coverage report
+      run: make cover
+    
+    - name: Upload coverage report
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report-otp-${{ matrix.otp }}
+        path: _build/test/cover/
+        retention-days: 30
