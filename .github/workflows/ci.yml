@@ -49,11 +49,14 @@ jobs:
     - name: Compile
       run: make compile
 
-    - name: Format check
-      run: make format
+    - name: Type check
+      run: make type_check
 
     - name: Run tests
       run: make test
+
+    - name: Format check
+      run: make format
 
     - name: Generate coverage report
       run: make cover
