@@ -92,6 +92,7 @@ make_safe_function_name({{type, TypeName, Arity}, _})
     when is_atom(TypeName), is_integer(Arity), Arity > 0 ->
     "type_" ++ atom_to_list(TypeName) ++ "_" ++ integer_to_list(Arity).
 
+-spec types_in_module(atom()) -> {ok, erldantic:type_info()} | {error, [#ed_error{}]}.
 types_in_module(Module) ->
     case code:which(Module) of
         Error
@@ -105,15 +106,8 @@ types_in_module(Module) ->
         FilePath ->
             {ok, {Module, [{abstract_code, {_, Forms}}]}} =
                 beam_lib:chunks(FilePath, [abstract_code]),
-            io:format("types_in_module debug: Module=~p~n", [Module]),
-            TypeForms = [F || F <- Forms, element(1, F) =:= attribute, element(3, F) =:= type],
-            io:format("TypeForms found: ~p~n", [length(TypeForms)]),
-            lists:foreach(fun(F) -> io:format("  TypeForm: ~p~n", [F]) end, TypeForms),
             NamedTypes = lists:filtermap(fun erldantic_parse_transform:type_in_form/1, Forms),
-            io:format("NamedTypes parsed: ~p~n", [length(NamedTypes)]),
-            lists:foreach(fun(NT) -> io:format("  NamedType: ~p~n", [NT]) end, NamedTypes),
             TypeInfo = maps:from_list(NamedTypes),
-            io:format("TypeInfo keys: ~p~n", [maps:keys(TypeInfo)]),
             {ok, TypeInfo}
     end.
 

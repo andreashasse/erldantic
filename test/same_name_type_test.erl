@@ -14,7 +14,7 @@ type_in_form_test() ->
                                         [{map_field_assoc, result, {var, 'ResultType'}},
                                          {map_field_assoc, errors, {list, {type, atom}}}]},
                          vars = ['ResultType']},
-                 maps:get({type, result}, Types)).
+                 maps:get({type, result, 1}, Types)).
 
 result_0_to_json_test() ->
     ?assertEqual({ok, #{result => 1, errors => []}},

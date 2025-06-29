@@ -142,12 +142,9 @@ do_to_json(TypeInfo, {nonempty_list, Type}, Data) ->
     nonempty_list_to_json(TypeInfo, Type, Data);
 do_to_json(TypeInfo, {list, Type}, Data) when is_list(Data) ->
     list_to_json(TypeInfo, Type, Data);
-do_to_json(TypeInfo, {type, TypeName, TypeArgs}, Data)
-    when is_atom(TypeName), is_list(TypeArgs) ->
-    data_to_json(TypeInfo, TypeName, TypeArgs, Data);
-do_to_json(TypeInfo, {type, TypeName}, Data) when is_atom(TypeName) ->
+do_to_json(TypeInfo, {type, TypeName, TypeArity}, Data) when is_atom(TypeName) ->
     %% FIXME: For simple types without arity, default to 0
-    data_to_json(TypeInfo, TypeName, [], Data);
+    data_to_json(TypeInfo, TypeName, TypeArity, Data);
 do_to_json(TypeInfo, #a_type{type = Type, vars = _ArgsNames}, Data) ->
     do_to_json(TypeInfo, Type, Data);
 do_to_json(TypeInfo, #a_map{} = Map, Data) ->
@@ -182,6 +179,7 @@ do_to_json(_TypeInfo, T, OtherValue) ->
 
 -spec literal_to_json(Value :: term()) ->
                          {ok, json__encode_value()} | {error, [#ed_error{}]}.
+%% FIXME: Handle maps, records, list (strings?).
 literal_to_json(Term)
     when is_integer(Term) orelse is_float(Term) orelse is_binary(Term) orelse is_atom(Term) ->
     {ok, Term};
@@ -197,8 +195,6 @@ prim_type_to_json({type, Type} = T, Value) ->
     case check_type_to_json(Type, Value) of
         {true, NewValue} ->
             {ok, NewValue};
-        true ->
-            {ok, Value};
         false ->
             {error,
              [#ed_error{type = type_mismatch,
@@ -246,8 +242,7 @@ list_to_json(TypeInfo, Type, Data) when is_list(Data) ->
             {error, lists:flatmap(fun({error, Errs}) -> Errs end, Errors)}
     end.
 
-data_to_json(TypeInfo, TypeName, TypeArgs, Data) ->
-    TypeArity = length(TypeArgs),
+data_to_json(TypeInfo, TypeName, TypeArity, Data) ->
     case TypeInfo of
         #{{type, TypeName, TypeArity} := Type} ->
             do_to_json(TypeInfo, Type, Data);
@@ -453,14 +448,9 @@ do_record_to_json(TypeInfo, Mojs) ->
 err_append_location(Err, FieldName) ->
     Err#ed_error{location = [FieldName | Err#ed_error.location]}.
 
--spec from_json(TypeInfo :: map(),
-                Type :: erldantic:a_type() | {record, atom()},
-                Json :: json()) ->
+-spec from_json(TypeInfo :: map(), Type :: erldantic:a_type_or_ref(), Json :: json()) ->
                    {ok, term()} | {error, [#ed_error{}]}.
 %% why {record, atom()}?
-from_json(TypeInfo, {type, TypeName, TypeArgs}, Json)
-    when is_atom(TypeName), is_list(TypeArgs) ->
-    type_from_json(TypeInfo, TypeName, TypeArgs, Json);
 from_json(TypeInfo, {record, RecordName}, Json) when is_atom(RecordName) ->
     record_from_json(TypeInfo, RecordName, Json, []);
 from_json(TypeInfo, #a_rec{name = RecordName, fields = RecordInfo}, Json) ->
@@ -489,7 +479,7 @@ from_json(TypeInfo, #a_map{fields = Fields}, Json) ->
 from_json(TypeInfo, #a_type{type = Type, vars = []}, Json) ->
     from_json(TypeInfo, Type, Json);
 from_json(TypeInfo, {user_type_ref, TypeName, TypeArgs}, Json) when is_atom(TypeName) ->
-    type_from_json(TypeInfo, TypeName, TypeArgs, Json);
+    type_from_json(TypeInfo, TypeName, length(TypeArgs), TypeArgs, Json);
 from_json(TypeInfo, {nonempty_list, Type}, Data) ->
     nonempty_list_from_json(TypeInfo, Type, Data);
 from_json(TypeInfo, {list, Type}, Data) ->
@@ -521,7 +511,9 @@ from_json(_TypeInfo, {literal, Literal} = T, Value) ->
     end;
 from_json(TypeInfo, {type, TypeName}, Json) when is_atom(TypeName) ->
     %% FIXME: For simple types without arity, default to 0
-    type_from_json(TypeInfo, TypeName, [], Json);
+    type_from_json(TypeInfo, TypeName, 0, [], Json);
+from_json(TypeInfo, {type, TypeName, TypeArity}, Json) when is_atom(TypeName) ->
+    type_from_json(TypeInfo, TypeName, TypeArity, [], Json);
 from_json(TypeInfo, {union, _} = T, Json) ->
     union(fun from_json/3, TypeInfo, T, Json);
 from_json(_TypeInfo, {range, integer, Min, Max}, Value) when Min =< Value, Value =< Max ->
@@ -617,29 +609,40 @@ check_type_to_json(Type, Json) ->
     check_type(Type, Json).
 
 check_type(integer, Json) when is_integer(Json) ->
-    true;
+    {true, Json};
 check_type(string, Json) when is_list(Json) ->
     %% All characters should be printable ASCII or it's probably not intended as a string
     %% FIXME: Document this.
-    io_lib:printable_list(Json);
+    case io_lib:printable_list(Json) of
+        true ->
+            {true, Json};
+        false ->
+            {error,
+             [#ed_error{type = type_mismatch,
+                        location = [],
+                        ctx =
+                            #{type => {type, string},
+                              value => Json,
+                              comment => "non printable"}}]}
+    end;
 check_type(boolean, Json) when is_boolean(Json) ->
-    true;
+    {true, Json};
 check_type(float, Json) when is_float(Json) ->
-    true;
+    {true, Json};
 check_type(number, Json) when is_integer(Json) orelse is_float(Json) ->
-    true;
+    {true, Json};
 check_type(non_neg_integer, Json) when is_integer(Json) andalso Json >= 0 ->
-    true;
+    {true, Json};
 check_type(pos_integer, Json) when is_integer(Json) andalso Json > 0 ->
-    true;
+    {true, Json};
 check_type(neg_integer, Json) when is_integer(Json) andalso Json < 0 ->
-    true;
+    {true, Json};
 check_type(binary, Json) when is_binary(Json) ->
-    true;
+    {true, Json};
 check_type(atom, Json) when is_atom(Json) ->
-    true;
-check_type(term, _Json) ->
-    true;
+    {true, Json};
+check_type(term, Json) ->
+    {true, Json};
 check_type(_Type, _Json) ->
     false.
 
@@ -668,12 +671,12 @@ do_first(F, TypeInfo, [Type | Rest], Json) ->
 
 -spec type_from_json(TypeInfo :: erldantic:type_info(),
                      TypeName :: atom(),
+                     TypeArity :: non_neg_integer(),
                      TypeArgs :: [erldantic:a_type()],
                      Json :: json()) ->
                         {ok, term()} | {error, [#ed_error{}]}.
-type_from_json(TypeInfo, TypeName, TypeArgs, Json) ->
+type_from_json(TypeInfo, TypeName, TypeArity, TypeArgs, Json) ->
     io:format("type_from_json:~n  TypeName ~p~n  TypeArgs ~p~n", [TypeName, TypeArgs]),
-    TypeArity = length(TypeArgs),
     case TypeInfo of
         #{{type, TypeName, TypeArity} := Type} ->
             TypeWithoutVars = apply_args(TypeInfo, Type, TypeArgs),
@@ -843,21 +846,22 @@ map_from_json(TypeInfo, MapFieldType, Json) when is_map(Json) ->
                     end,
                     {[], [], Json},
                     MapFieldType),
-    if Errors =:= [] ->
-           case maps:size(NotMapped) of
-               0 ->
-                   {ok, maps:from_list(Fields)};
-               _ ->
-                   {error,
-                    lists:map(fun({Key, Value}) ->
-                                 #ed_error{type = not_matched_fields,
-                                           location = [],
-                                           ctx = #{key => Key, value => Value}}
-                              end,
-                              maps:to_list(NotMapped))}
-           end;
-       true ->
-           {error, Errors}
+    case Errors of
+        [] ->
+            case maps:size(NotMapped) of
+                0 ->
+                    {ok, maps:from_list(Fields)};
+                _ ->
+                    {error,
+                     lists:map(fun({Key, Value}) ->
+                                  #ed_error{type = not_matched_fields,
+                                            location = [],
+                                            ctx = #{key => Key, value => Value}}
+                               end,
+                               maps:to_list(NotMapped))}
+            end;
+        _ ->
+            {error, Errors}
     end;
 map_from_json(_TypeInfo, _MapFieldType, Json) ->
     %% Return error when Json is not a map
@@ -891,7 +895,7 @@ map_field_type_from_json(TypeInfo, KeyType, ValueType, Json) ->
 -spec record_from_json(TypeInfo :: map(),
                        RecordName :: atom(),
                        Json :: json(),
-                       TypeArgs :: [erldantic:a_type()]) ->
+                       TypeArgs :: [erldantic:record_field()]) ->
                           {ok, term()} | {error, list()}.
 record_from_json(TypeInfo, RecordName, Json, TypeArgs) ->
     ARec = maps:get({record, RecordName}, TypeInfo),
