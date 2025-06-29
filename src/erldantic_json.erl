@@ -127,24 +127,14 @@ do_to_json(TypeInfo, {user_type_ref, TypeName, TypeArgs}, Data) when is_atom(Typ
     end;
 do_to_json(_TypeInfo, {type, Type} = T, Value)
     when ?is_primary_type(Type) orelse ?is_predefined_int_range(Type) ->
-    case check_type_to_json(Type, Value) of
-        {true, NewValue} ->
-            {ok, NewValue};
-        true ->
-            {ok, Value};
-        false ->
-            {error,
-             [#ed_error{type = type_mismatch,
-                        location = [],
-                        ctx = #{type => T, value => Value}}]}
-    end;
+    prim_type_to_json(T, Value);
 do_to_json(_TypeInfo, {range, integer, Min, Max}, Value)
     when is_integer(Value) andalso Min =< Value, Value =< Max ->
     {ok, Value};
 do_to_json(_TypeInfo, {literal, undefined}, undefined) ->
     skip;
-do_to_json(_TypeInfo, {literal, Literal}, Literal) ->
-    {ok, Literal};
+do_to_json(_TypeInfo, {literal, Value}, Value) ->
+    literal_to_json(Value);
 do_to_json(TypeInfo, {union, _} = T, Data) ->
     io:format("do_to_json union:~n  Type ~p~n  Data ~p~n", [T, Data]),
     union(fun do_to_json/3, TypeInfo, T, Data);
@@ -152,7 +142,8 @@ do_to_json(TypeInfo, {nonempty_list, Type}, Data) ->
     nonempty_list_to_json(TypeInfo, Type, Data);
 do_to_json(TypeInfo, {list, Type}, Data) when is_list(Data) ->
     list_to_json(TypeInfo, Type, Data);
-do_to_json(TypeInfo, {type, TypeName, TypeArgs}, Data) when is_atom(TypeName), is_list(TypeArgs) ->
+do_to_json(TypeInfo, {type, TypeName, TypeArgs}, Data)
+    when is_atom(TypeName), is_list(TypeArgs) ->
     data_to_json(TypeInfo, TypeName, TypeArgs, Data);
 do_to_json(TypeInfo, {type, TypeName}, Data) when is_atom(TypeName) ->
     %% FIXME: For simple types without arity, default to 0
@@ -188,6 +179,32 @@ do_to_json(_TypeInfo, T, OtherValue) ->
      [#ed_error{type = type_mismatch,
                 location = [],
                 ctx = #{type => T, value => OtherValue}}]}.
+
+-spec literal_to_json(Value :: term()) ->
+                         {ok, json__encode_value()} | {error, [#ed_error{}]}.
+literal_to_json(Term)
+    when is_integer(Term) orelse is_float(Term) orelse is_binary(Term) orelse is_atom(Term) ->
+    {ok, Term};
+literal_to_json(Term) ->
+    {error,
+     [#ed_error{type = type_mismatch,
+                location = [],
+                ctx = #{type => {literal, Term}, value => Term}}]}.
+
+-spec prim_type_to_json(Type :: erldantic:a_type_or_ref(), Value :: term()) ->
+                           {ok, json__encode_value()} | {error, [#ed_error{}]}.
+prim_type_to_json({type, Type} = T, Value) ->
+    case check_type_to_json(Type, Value) of
+        {true, NewValue} ->
+            {ok, NewValue};
+        true ->
+            {ok, Value};
+        false ->
+            {error,
+             [#ed_error{type = type_mismatch,
+                        location = [],
+                        ctx = #{type => T, value => Value}}]}
+    end.
 
 nonempty_list_to_json(TypeInfo, Type, Data) when is_list(Data) andalso Data =/= [] ->
     list_to_json(TypeInfo, Type, Data);
@@ -441,7 +458,8 @@ err_append_location(Err, FieldName) ->
                 Json :: json()) ->
                    {ok, term()} | {error, [#ed_error{}]}.
 %% why {record, atom()}?
-from_json(TypeInfo, {type, TypeName, TypeArgs}, Json) when is_atom(TypeName), is_list(TypeArgs) ->
+from_json(TypeInfo, {type, TypeName, TypeArgs}, Json)
+    when is_atom(TypeName), is_list(TypeArgs) ->
     type_from_json(TypeInfo, TypeName, TypeArgs, Json);
 from_json(TypeInfo, {record, RecordName}, Json) when is_atom(RecordName) ->
     record_from_json(TypeInfo, RecordName, Json, []);
@@ -502,7 +520,7 @@ from_json(_TypeInfo, {literal, Literal} = T, Value) ->
                         ctx = #{type => T, value => Value}}]}
     end;
 from_json(TypeInfo, {type, TypeName}, Json) when is_atom(TypeName) ->
-    %% FIXME: For simple types without arity, default to 0  
+    %% FIXME: For simple types without arity, default to 0
     type_from_json(TypeInfo, TypeName, [], Json);
 from_json(TypeInfo, {union, _} = T, Json) ->
     union(fun from_json/3, TypeInfo, T, Json);
