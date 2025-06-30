@@ -1,4 +1,4 @@
-.PHONY: all compile format test cover clean
+.PHONY: all compile format test cover clean hank
 
 all: compile format test cover
 
@@ -14,7 +14,10 @@ test:
 cover:
 	rebar3 cover
 
-build-test: compile xref format test cover
+hank:
+	rebar3 hank
+
+build-test: compile xref format hank test cover
 
 clean:
 	rebar3 clean
