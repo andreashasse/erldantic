@@ -2,6 +2,11 @@
 
 -export([from_json/3, to_json/3, from_json_no_pt/2, to_json_no_pt/2]).
 
+-ignore_xref([{erldantic_json, from_json, 3},
+              {erldantic_json, from_json_no_pt, 2},
+              {erldantic_json, to_json, 3},
+              {erldantic_json, to_json_no_pt, 2}]).
+
 -include("../include/record_type_introspect.hrl").
 
 -type json__encode_value() :: json:encode_value().
@@ -50,7 +55,7 @@ types_in_module(Module) ->
                 {Vsn, TypeInfo} when is_map(TypeInfo) ->
                     {ok, TypeInfo};
                 _ ->
-                    case erldantic_parse_transform:types_in_module(Module) of
+                    case erldantic_abstract_code:types_in_module(Module) of
                         {ok, TypeInfo} ->
                             pers_types_set(Module, Vsn, TypeInfo),
                             {ok, TypeInfo};
@@ -63,7 +68,8 @@ types_in_module(Module) ->
     end.
 
 to_json_no_pt({Module, Type, 0}, Data) when is_atom(Type) ->
-    to_json_no_pt({Module, {type, Type}, 0}, Data);
+    %% FIXME: Why do we pass 0 twice here? TypeArity and the literal 0
+    to_json_no_pt({Module, {type, Type, 0}, 0}, Data);
 to_json_no_pt({Module, Type, TypeArity}, Data) ->
     io:format("to_json_no_pt:~n  Module ~p~n  Type ~p~n  TypeArity ~p~n",
               [Module, Type, TypeArity]),
@@ -85,7 +91,7 @@ to_json(TypeInfo, Type, Data) ->
     end.
 
 from_json_no_pt({Module, TypeName, TypeArity}, Json) when is_atom(TypeName) ->
-    from_json_no_pt({Module, {type, TypeName}, TypeArity}, Json);
+    from_json_no_pt({Module, {type, TypeName, TypeArity}, TypeArity}, Json);
 from_json_no_pt({Module, TypeName, TypeArity}, Json) ->
     io:format("from_json_no_pt:~n  Module ~p~n  TypeName ~p~n  TypeArity ~p~n  Json ~p~n",
               [Module, TypeName, TypeArity, Json]),
@@ -113,8 +119,9 @@ do_to_json(TypeInfo, {record_ref, RecordName, TypeArgs}, Record)
 do_to_json(TypeInfo, {user_type_ref, TypeName, TypeArgs}, Data) when is_atom(TypeName) ->
     io:format("do_to_json user_type_ref:~n  TypeName ~p~n  TypeArgs ~p~n",
               [TypeName, TypeArgs]),
+    TypeArity = length(TypeArgs),
     case TypeInfo of
-        #{{type, TypeName} := Type} ->
+        #{{type, TypeName, TypeArity} := Type} ->
             TypeWithoutVars = apply_args(TypeInfo, Type, TypeArgs),
             io:format("TypeWithoutArgs: ~p~n", [TypeWithoutVars]),
             do_to_json(TypeInfo, TypeWithoutVars, Data);
@@ -125,24 +132,14 @@ do_to_json(TypeInfo, {user_type_ref, TypeName, TypeArgs}, Data) when is_atom(Typ
     end;
 do_to_json(_TypeInfo, {type, Type} = T, Value)
     when ?is_primary_type(Type) orelse ?is_predefined_int_range(Type) ->
-    case check_type_to_json(Type, Value) of
-        {true, NewValue} ->
-            {ok, NewValue};
-        true ->
-            {ok, Value};
-        false ->
-            {error,
-             [#ed_error{type = type_mismatch,
-                        location = [],
-                        ctx = #{type => T, value => Value}}]}
-    end;
+    prim_type_to_json(T, Value);
 do_to_json(_TypeInfo, {range, integer, Min, Max}, Value)
     when is_integer(Value) andalso Min =< Value, Value =< Max ->
     {ok, Value};
 do_to_json(_TypeInfo, {literal, undefined}, undefined) ->
     skip;
-do_to_json(_TypeInfo, {literal, Literal}, Literal) ->
-    {ok, Literal};
+do_to_json(_TypeInfo, {literal, Value}, Value) ->
+    literal_to_json(Value);
 do_to_json(TypeInfo, {union, _} = T, Data) ->
     io:format("do_to_json union:~n  Type ~p~n  Data ~p~n", [T, Data]),
     union(fun do_to_json/3, TypeInfo, T, Data);
@@ -150,8 +147,9 @@ do_to_json(TypeInfo, {nonempty_list, Type}, Data) ->
     nonempty_list_to_json(TypeInfo, Type, Data);
 do_to_json(TypeInfo, {list, Type}, Data) when is_list(Data) ->
     list_to_json(TypeInfo, Type, Data);
-do_to_json(TypeInfo, {type, TypeName}, Data) when is_atom(TypeName) ->
-    data_to_json(TypeInfo, TypeName, [], Data);
+do_to_json(TypeInfo, {type, TypeName, TypeArity}, Data) when is_atom(TypeName) ->
+    %% FIXME: For simple types without arity, default to 0
+    data_to_json(TypeInfo, TypeName, TypeArity, Data);
 do_to_json(TypeInfo, #a_type{type = Type, vars = _ArgsNames}, Data) ->
     do_to_json(TypeInfo, Type, Data);
 do_to_json(TypeInfo, #a_map{} = Map, Data) ->
@@ -164,8 +162,9 @@ do_to_json(_TypeInfo, #a_tuple{} = T, _Data) ->
 do_to_json(_TypeInfo, #remote_type{mfargs = {Module, TypeName, Args}}, Data) ->
     case types_in_module(Module) of
         {ok, TypeInfo} ->
+            TypeArity = length(Args),
             case TypeInfo of
-                #{{type, TypeName} := Type} ->
+                #{{type, TypeName, TypeArity} := Type} ->
                     TypeWithoutVars = apply_args(TypeInfo, Type, Args),
                     io:format("RemoteTypeWithoutArgs: ~p~n", [TypeWithoutVars]),
                     do_to_json(TypeInfo, TypeWithoutVars, Data);
@@ -182,6 +181,31 @@ do_to_json(_TypeInfo, T, OtherValue) ->
      [#ed_error{type = type_mismatch,
                 location = [],
                 ctx = #{type => T, value => OtherValue}}]}.
+
+-spec literal_to_json(Value :: term()) ->
+                         {ok, json__encode_value()} | {error, [#ed_error{}]}.
+%% FIXME: Handle maps, records, list (strings?).
+literal_to_json(Term)
+    when is_integer(Term) orelse is_float(Term) orelse is_binary(Term) orelse is_atom(Term) ->
+    {ok, Term};
+literal_to_json(Term) ->
+    {error,
+     [#ed_error{type = type_mismatch,
+                location = [],
+                ctx = #{type => {literal, Term}, value => Term}}]}.
+
+-spec prim_type_to_json(Type :: erldantic:a_type_or_ref(), Value :: term()) ->
+                           {ok, json__encode_value()} | {error, [#ed_error{}]}.
+prim_type_to_json({type, Type} = T, Value) ->
+    case check_type_to_json(Type, Value) of
+        {true, NewValue} ->
+            {ok, NewValue};
+        false ->
+            {error,
+             [#ed_error{type = type_mismatch,
+                        location = [],
+                        ctx = #{type => T, value => Value}}]}
+    end.
 
 nonempty_list_to_json(TypeInfo, Type, Data) when is_list(Data) andalso Data =/= [] ->
     list_to_json(TypeInfo, Type, Data);
@@ -223,9 +247,9 @@ list_to_json(TypeInfo, Type, Data) when is_list(Data) ->
             {error, lists:flatmap(fun({error, Errs}) -> Errs end, Errors)}
     end.
 
-data_to_json(TypeInfo, TypeName, _TypeArgs, Data) ->
+data_to_json(TypeInfo, TypeName, TypeArity, Data) ->
     case TypeInfo of
-        #{{type, TypeName} := Type} ->
+        #{{type, TypeName, TypeArity} := Type} ->
             do_to_json(TypeInfo, Type, Data);
         #{} ->
             {error, [#ed_error{type = missing_type, location = [TypeName]}]}
@@ -429,9 +453,7 @@ do_record_to_json(TypeInfo, Mojs) ->
 err_append_location(Err, FieldName) ->
     Err#ed_error{location = [FieldName | Err#ed_error.location]}.
 
--spec from_json(TypeInfo :: map(),
-                Type :: erldantic:a_type() | {record, atom()},
-                Json :: json()) ->
+-spec from_json(TypeInfo :: map(), Type :: erldantic:a_type_or_ref(), Json :: json()) ->
                    {ok, term()} | {error, [#ed_error{}]}.
 %% why {record, atom()}?
 from_json(TypeInfo, {record, RecordName}, Json) when is_atom(RecordName) ->
@@ -441,8 +463,9 @@ from_json(TypeInfo, #a_rec{name = RecordName, fields = RecordInfo}, Json) ->
 from_json(_TypeInfo, #remote_type{mfargs = {Module, TypeName, TypeArgs}}, Json) ->
     case types_in_module(Module) of
         {ok, TypeInfo} ->
+            TypeArity = length(TypeArgs),
             case TypeInfo of
-                #{{type, TypeName} := Type} ->
+                #{{type, TypeName, TypeArity} := Type} ->
                     TypeWithoutVars = apply_args(TypeInfo, Type, TypeArgs),
                     io:format("RemoteTypeWithoutVars: ~p~n", [TypeWithoutVars]),
                     from_json(TypeInfo, TypeWithoutVars, Json);
@@ -461,7 +484,7 @@ from_json(TypeInfo, #a_map{fields = Fields}, Json) ->
 from_json(TypeInfo, #a_type{type = Type, vars = []}, Json) ->
     from_json(TypeInfo, Type, Json);
 from_json(TypeInfo, {user_type_ref, TypeName, TypeArgs}, Json) when is_atom(TypeName) ->
-    type_from_json(TypeInfo, TypeName, TypeArgs, Json);
+    type_from_json(TypeInfo, TypeName, length(TypeArgs), TypeArgs, Json);
 from_json(TypeInfo, {nonempty_list, Type}, Data) ->
     nonempty_list_from_json(TypeInfo, Type, Data);
 from_json(TypeInfo, {list, Type}, Data) ->
@@ -492,7 +515,10 @@ from_json(_TypeInfo, {literal, Literal} = T, Value) ->
                         ctx = #{type => T, value => Value}}]}
     end;
 from_json(TypeInfo, {type, TypeName}, Json) when is_atom(TypeName) ->
-    type_from_json(TypeInfo, TypeName, [], Json);
+    %% FIXME: For simple types without arity, default to 0
+    type_from_json(TypeInfo, TypeName, 0, [], Json);
+from_json(TypeInfo, {type, TypeName, TypeArity}, Json) when is_atom(TypeName) ->
+    type_from_json(TypeInfo, TypeName, TypeArity, [], Json);
 from_json(TypeInfo, {union, _} = T, Json) ->
     union(fun from_json/3, TypeInfo, T, Json);
 from_json(_TypeInfo, {range, integer, Min, Max}, Value) when Min =< Value, Value =< Max ->
@@ -588,29 +614,40 @@ check_type_to_json(Type, Json) ->
     check_type(Type, Json).
 
 check_type(integer, Json) when is_integer(Json) ->
-    true;
+    {true, Json};
 check_type(string, Json) when is_list(Json) ->
     %% All characters should be printable ASCII or it's probably not intended as a string
     %% FIXME: Document this.
-    io_lib:printable_list(Json);
+    case io_lib:printable_list(Json) of
+        true ->
+            {true, Json};
+        false ->
+            {error,
+             [#ed_error{type = type_mismatch,
+                        location = [],
+                        ctx =
+                            #{type => {type, string},
+                              value => Json,
+                              comment => "non printable"}}]}
+    end;
 check_type(boolean, Json) when is_boolean(Json) ->
-    true;
+    {true, Json};
 check_type(float, Json) when is_float(Json) ->
-    true;
+    {true, Json};
 check_type(number, Json) when is_integer(Json) orelse is_float(Json) ->
-    true;
+    {true, Json};
 check_type(non_neg_integer, Json) when is_integer(Json) andalso Json >= 0 ->
-    true;
+    {true, Json};
 check_type(pos_integer, Json) when is_integer(Json) andalso Json > 0 ->
-    true;
+    {true, Json};
 check_type(neg_integer, Json) when is_integer(Json) andalso Json < 0 ->
-    true;
+    {true, Json};
 check_type(binary, Json) when is_binary(Json) ->
-    true;
+    {true, Json};
 check_type(atom, Json) when is_atom(Json) ->
-    true;
-check_type(term, _Json) ->
-    true;
+    {true, Json};
+check_type(term, Json) ->
+    {true, Json};
 check_type(_Type, _Json) ->
     false.
 
@@ -639,13 +676,14 @@ do_first(F, TypeInfo, [Type | Rest], Json) ->
 
 -spec type_from_json(TypeInfo :: erldantic:type_info(),
                      TypeName :: atom(),
+                     TypeArity :: non_neg_integer(),
                      TypeArgs :: [erldantic:a_type()],
                      Json :: json()) ->
                         {ok, term()} | {error, [#ed_error{}]}.
-type_from_json(TypeInfo, TypeName, TypeArgs, Json) ->
+type_from_json(TypeInfo, TypeName, TypeArity, TypeArgs, Json) ->
     io:format("type_from_json:~n  TypeName ~p~n  TypeArgs ~p~n", [TypeName, TypeArgs]),
     case TypeInfo of
-        #{{type, TypeName} := Type} ->
+        #{{type, TypeName, TypeArity} := Type} ->
             TypeWithoutVars = apply_args(TypeInfo, Type, TypeArgs),
             from_json(TypeInfo, TypeWithoutVars, Json);
         #{} ->
@@ -813,21 +851,22 @@ map_from_json(TypeInfo, MapFieldType, Json) when is_map(Json) ->
                     end,
                     {[], [], Json},
                     MapFieldType),
-    if Errors =:= [] ->
-           case maps:size(NotMapped) of
-               0 ->
-                   {ok, maps:from_list(Fields)};
-               _ ->
-                   {error,
-                    lists:map(fun({Key, Value}) ->
-                                 #ed_error{type = not_matched_fields,
-                                           location = [],
-                                           ctx = #{key => Key, value => Value}}
-                              end,
-                              maps:to_list(NotMapped))}
-           end;
-       true ->
-           {error, Errors}
+    case Errors of
+        [] ->
+            case maps:size(NotMapped) of
+                0 ->
+                    {ok, maps:from_list(Fields)};
+                _ ->
+                    {error,
+                     lists:map(fun({Key, Value}) ->
+                                  #ed_error{type = not_matched_fields,
+                                            location = [],
+                                            ctx = #{key => Key, value => Value}}
+                               end,
+                               maps:to_list(NotMapped))}
+            end;
+        _ ->
+            {error, Errors}
     end;
 map_from_json(_TypeInfo, _MapFieldType, Json) ->
     %% Return error when Json is not a map
@@ -861,7 +900,7 @@ map_field_type_from_json(TypeInfo, KeyType, ValueType, Json) ->
 -spec record_from_json(TypeInfo :: map(),
                        RecordName :: atom(),
                        Json :: json(),
-                       TypeArgs :: [erldantic:a_type()]) ->
+                       TypeArgs :: [erldantic:record_field()]) ->
                           {ok, term()} | {error, list()}.
 record_from_json(TypeInfo, RecordName, Json, TypeArgs) ->
     ARec = maps:get({record, RecordName}, TypeInfo),
@@ -927,9 +966,10 @@ can_be_undefined(TypeInfo, Type) ->
             lists:member({literal, undefined}, Types);
         {literal, undefined} ->
             true;
-        {user_type_ref, TypeName, _} ->
+        {user_type_ref, TypeName, TypeArgs} ->
+            TypeArity = length(TypeArgs),
             case TypeInfo of
-                #{{type, TypeName} := Type2} ->
+                #{{type, TypeName, TypeArity} := Type2} ->
                     %% infinite recursion?
                     can_be_undefined(TypeInfo, Type2);
                 #{} ->

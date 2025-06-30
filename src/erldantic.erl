@@ -5,6 +5,7 @@
 -type type_info() :: #{a_type_reference() => a_type()}.
 -type var_type() :: {VarName :: atom(), a_type()}.
 -type user_type_name() :: atom().
+-type record_field() :: {FieldName :: atom(), a_type()}.
 -type a_type() ::
     {type,
      string |
@@ -20,7 +21,7 @@
      number |
      term |
      module} |
-    {record_ref, user_type_name(), [{atom(), a_type()}]} |
+    {record_ref, user_type_name(), [record_field()]} |
     {user_type_ref, user_type_name(), [a_type()]} |
     {var, atom()} |
     #a_map{} |
@@ -36,6 +37,8 @@
     {record, atom()} |
     {record_ref, atom()} |
     {type, Name :: atom(), Arity :: non_neg_integer()}.
+%% RENAME: Type is used for everything.
 -type a_type_or_ref() :: a_type() | a_type_reference().
 
--export_type([a_type/0, a_type_reference/0, a_type_or_ref/0, var_type/0, type_info/0]).
+-export_type([a_type/0, a_type_reference/0, a_type_or_ref/0, var_type/0, type_info/0,
+              record_field/0]).

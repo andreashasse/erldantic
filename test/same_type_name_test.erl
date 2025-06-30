@@ -11,7 +11,7 @@
 %-type result(OkType, ErrorType) :: OkType | ErrorType.
 
 type_in_form_test() ->
-    {ok, Types} = erldantic_parse_transform:types_in_module(?MODULE),
+    {ok, Types} = erldantic_abstract_code:types_in_module(?MODULE),
     ?assertEqual(#a_type{type =
                              {user_type_ref,
                               result,
@@ -20,10 +20,10 @@ type_in_form_test() ->
                                             {type, atom},
                                             {type, integer}}]}]},
                          vars = []},
-                 maps:get({type, map_result}, Types)),
+                 maps:get({type, map_result, 0}, Types)),
     ?assertEqual(#a_type{type = {union, [{var, 'OkType'}, {literal, error}]},
                          vars = ['OkType']},
-                 maps:get({type, result}, Types)).
+                 maps:get({type, result, 1}, Types)).
 
 map1_to_json_test() ->
     ?assertEqual({ok, #{a1 => 1}}, to_json_result_1(#{a1 => 1})),

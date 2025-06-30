@@ -10,15 +10,15 @@
 -type result_t(ResultType) :: #result{value :: integer(), errors :: [ResultType]}.
 
 type_in_form_test() ->
-    {ok, Types} = erldantic_parse_transform:types_in_module(?MODULE),
+    {ok, Types} = erldantic_abstract_code:types_in_module(?MODULE),
     ?assertEqual(#a_type{type = {user_type_ref, result_t, [{type, atom}]}, vars = []},
-                 maps:get({type, int_result}, Types)),
+                 maps:get({type, int_result, 0}, Types)),
     ?assertEqual(#a_type{type =
                              {record_ref,
                               result,
                               [{value, {type, integer}}, {errors, {list, {var, 'ResultType'}}}]},
                          vars = ['ResultType']},
-                 maps:get({type, result_t}, Types)).
+                 maps:get({type, result_t, 1}, Types)).
 
 map1_to_json_test() ->
     ?assertEqual({ok, #{value => 1, errors => []}},

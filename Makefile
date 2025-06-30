@@ -14,7 +14,10 @@ test:
 cover:
 	rebar3 cover
 
-build-test: compile format test cover
+build-test: compile xref format test cover
 
 clean:
 	rebar3 clean
+
+xref:
+	rebar3 xref
