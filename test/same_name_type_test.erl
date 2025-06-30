@@ -8,7 +8,7 @@
 -type result(ResultType) :: #{result => ResultType, errors => [atom()]}.
 
 type_in_form_test() ->
-    {ok, Types} = erldantic_parse_transform:types_in_module(?MODULE),
+    {ok, Types} = erldantic_abstract_code:types_in_module(?MODULE),
     ?assertEqual(#a_type{type =
                              #a_map{fields =
                                         [{map_field_assoc, result, {var, 'ResultType'}},

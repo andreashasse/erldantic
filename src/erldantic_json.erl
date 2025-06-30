@@ -2,6 +2,11 @@
 
 -export([from_json/3, to_json/3, from_json_no_pt/2, to_json_no_pt/2]).
 
+-ignore_xref([{erldantic_json, from_json, 3},
+              {erldantic_json, from_json_no_pt, 2},
+              {erldantic_json, to_json, 3},
+              {erldantic_json, to_json_no_pt, 2}]).
+
 -include("../include/record_type_introspect.hrl").
 
 -type json__encode_value() :: json:encode_value().
@@ -50,7 +55,7 @@ types_in_module(Module) ->
                 {Vsn, TypeInfo} when is_map(TypeInfo) ->
                     {ok, TypeInfo};
                 _ ->
-                    case erldantic_parse_transform:types_in_module(Module) of
+                    case erldantic_abstract_code:types_in_module(Module) of
                         {ok, TypeInfo} ->
                             pers_types_set(Module, Vsn, TypeInfo),
                             {ok, TypeInfo};

@@ -8,7 +8,7 @@
 -type int_result() :: external_type:result_t(integer()).
 
 type_in_form_test() ->
-    {ok, Types} = erldantic_parse_transform:types_in_module(?MODULE),
+    {ok, Types} = erldantic_abstract_code:types_in_module(?MODULE),
     ?assertEqual(#remote_type{mfargs = {external_type, result_t, [{type, integer}]}},
                  maps:get({type, int_result, 0}, Types)).
 

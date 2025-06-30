@@ -11,7 +11,7 @@
 %-type result(OkType, ErrorType) :: OkType | ErrorType.
 
 type_in_form_test() ->
-    {ok, Types} = erldantic_parse_transform:types_in_module(?MODULE),
+    {ok, Types} = erldantic_abstract_code:types_in_module(?MODULE),
     ?assertEqual(#a_type{type =
                              {user_type_ref,
                               result,

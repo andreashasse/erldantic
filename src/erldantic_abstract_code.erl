@@ -1,96 +1,8 @@
--module(erldantic_parse_transform).
-
--export([parse_transform/2, type_in_form/1, types_in_module/1]).
+-module(erldantic_abstract_code).
 
 -include("../include/record_type_introspect.hrl").
 
--compile({parse_transform, parse_trans_codegen}).
-
-parse_transform(Forms, _Options) ->
-    io:format("Inspecting records at compile-time...~n"),
-
-    NamedTypes = lists:filtermap(fun(F) -> type_in_form(F) end, Forms),
-
-    trans_add_to_from_json(Forms, NamedTypes).
-
-trans_add_to_from_json(Forms, NamedTypes) ->
-    {BeforeFunctions, Functions} =
-        lists:splitwith(fun ({function, _Pos, _F, _A, _Body}) ->
-                                false;
-                            ({attribute, _, spec, _}) ->
-                                false;
-                            (_) ->
-                                true
-                        end,
-                        Forms),
-    {BeforeExports, ExportsUntilFunctions} =
-        lists:splitwith(fun ({attribute, _, export, _}) ->
-                                false;
-                            (_) ->
-                                true
-                        end,
-                        BeforeFunctions),
-    %io:format("Before Exports: ~p~n", [BeforeExports]),
-    %io:format("Exports Until Functions: ~p~n", [ExportsUntilFunctions]),
-    %io:format("Functions: ~p~n", [Functions]),
-    BeforeExports
-    ++ named_types_to_exports(NamedTypes)
-    ++ ExportsUntilFunctions
-    ++ named_types_to_functions(NamedTypes)
-    ++ Functions.
-
-named_types_to_functions(NamedTypes) ->
-    % {NewNamedTypes, _} =
-    %     lists:mapfoldl(fun({{TypeOfThing, TypeName}, Info}, Acc) ->
-    %                       Name =
-    %                           case sets:is_element(TypeName, Acc) of
-    %                               true ->
-    %                                   binary_to_atom(iolist_to_binary([TypeOfThing, "_", TypeName]),
-    %                                                  utf8);
-    %                               _ -> TypeName
-    %                           end,
-    %                       {{Name, Info}, sets:add_element(Name, Acc)}
-    %                    end,
-    %                    sets:new([{version, 2}]),
-    %                    NamedTypes),
-    % [].
-    M = maps:from_list(NamedTypes),
-    lists:flatmap(fun(A) -> named_type_to_function(A, M) end, NamedTypes).
-
-named_types_to_exports(NamedTypes) ->
-    Exports =
-        lists:flatmap(fun(NamedType) ->
-                         FuncName = make_safe_function_name(NamedType),
-                         [{list_to_atom(FuncName ++ "_from_json"), 1},
-                          {list_to_atom(FuncName ++ "_to_json"), 1}]
-                      end,
-                      NamedTypes),
-    [{attribute, {5, 2}, export, Exports}].
-
-named_type_to_function(NamedType, Infos) ->
-    {TypeRef, _Info} = NamedType,
-    FuncName = make_safe_function_name(NamedType),
-    [codegen:gen_function(list_to_atom(FuncName ++ "_from_json"),
-                          fun(Json) ->
-                             record_type_introspect:from_json({'$var', Infos},
-                                                              {'$var', TypeRef},
-                                                              Json)
-                          end),
-     codegen:gen_function(list_to_atom(FuncName ++ "_to_json"),
-                          fun(Data) ->
-                             record_type_introspect:to_json({'$var', Infos},
-                                                            {'$var', TypeRef},
-                                                            Data)
-                          end)].
-
-%% Create safe function names that avoid collisions between records and types
-make_safe_function_name({{record, TypeName}, _}) when is_atom(TypeName) ->
-    "rec_" ++ atom_to_list(TypeName);
-make_safe_function_name({{type, TypeName, 0}, _}) when is_atom(TypeName) ->
-    "type_" ++ atom_to_list(TypeName) ++ "_0";
-make_safe_function_name({{type, TypeName, Arity}, _})
-    when is_atom(TypeName), is_integer(Arity), Arity > 0 ->
-    "type_" ++ atom_to_list(TypeName) ++ "_" ++ integer_to_list(Arity).
+-export([types_in_module/1]).
 
 -spec types_in_module(atom()) -> {ok, erldantic:type_info()} | {error, [#ed_error{}]}.
 types_in_module(Module) ->
@@ -106,7 +18,7 @@ types_in_module(Module) ->
         FilePath ->
             {ok, {Module, [{abstract_code, {_, Forms}}]}} =
                 beam_lib:chunks(FilePath, [abstract_code]),
-            NamedTypes = lists:filtermap(fun erldantic_parse_transform:type_in_form/1, Forms),
+            NamedTypes = lists:filtermap(fun type_in_form/1, Forms),
             TypeInfo = maps:from_list(NamedTypes),
             {ok, TypeInfo}
     end.
