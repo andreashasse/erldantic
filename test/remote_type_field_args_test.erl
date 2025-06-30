@@ -92,6 +92,15 @@ organization_invalid_users_test() ->
     Result = to_json_organization(InvalidData),
     ?assertMatch({error, [_ | _]}, Result).
 
+organization_from_json_test() ->
+    ValidJson =
+        #{<<"users">> => [#{<<"id">> => <<"user1">>, <<"balance">> => 100}],
+          <<"results">> => #{<<"value">> => <<"success">>, <<"errors">> => []}},
+    Expected =
+        #{users => [#{id => "user1", balance => 100}],
+          results => #result{value = "success", errors = []}},
+    ?assertEqual({ok, Expected}, from_json_organization(ValidJson)).
+
 %% Tests for complex_data type
 
 complex_data_valid_test() ->
@@ -118,6 +127,13 @@ complex_data_invalid_nested_test() ->
     Result = to_json_complex_data(InvalidData),
     ?assertMatch({error, [_ | _]}, Result).
 
+complex_data_from_json_test() ->
+    ValidJson =
+        #{<<"primary">> =>
+              #{<<"account">> => #{<<"id">> => <<"primary">>, <<"balance">> => 1000}}},
+    Expected = #{primary => #{account => #{id => "primary", balance => 1000}}},
+    ?assertEqual({ok, Expected}, from_json_complex_data(ValidJson)).
+
 %% Tests for mixed_requirements type
 
 mixed_requirements_all_fields_test() ->
@@ -143,6 +159,15 @@ mixed_requirements_missing_required_test() ->
     % Missing required_account
     Result = to_json_mixed_requirements(InvalidData),
     ?assertMatch({error, [_ | _]}, Result).
+
+mixed_requirements_from_json_test() ->
+    ValidJson =
+        #{<<"required_account">> => #{<<"id">> => <<"req1">>, <<"balance">> => 1000},
+          <<"required_list">> => [#{<<"id">> => <<"list1">>, <<"balance">> => 100}]},
+    Expected =
+        #{required_account => #{id => "req1", balance => 1000},
+          required_list => [#{id => "list1", balance => 100}]},
+    ?assertEqual({ok, Expected}, from_json_mixed_requirements(ValidJson)).
 
 %% JSON conversion functions
 
