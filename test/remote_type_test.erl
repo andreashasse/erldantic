@@ -30,7 +30,12 @@ validate_missing_test() ->
 
     % This should return an error due to missing remote type
     Result = to_json_missing(ValidData),
-    ?assertMatch({error, _}, Result).
+    ?assertMatch({error, _}, Result),
+
+    % Test from_json as well
+    Json = #{<<"a">> => <<"some_value">>},
+    FromJsonResult = from_json_missing(Json),
+    ?assertMatch({error, _}, FromJsonResult).
 
 -spec to_json_remote(remote()) -> {ok, json:json()} | {error, [#ed_error{}]}.
 to_json_remote(Data) ->
