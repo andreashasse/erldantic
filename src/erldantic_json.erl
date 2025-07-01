@@ -1,81 +1,46 @@
 -module(erldantic_json).
 
--export([from_json/3, to_json/3, from_json_no_pt/2, to_json_no_pt/2]).
+-export([type_to_json/4, type_from_json/4, record_to_json/3, record_from_json/3]).
 
--ignore_xref([{erldantic_json, from_json, 3},
-              {erldantic_json, from_json_no_pt, 2},
-              {erldantic_json, to_json, 3},
-              {erldantic_json, to_json_no_pt, 2}]).
+-ignore_xref([{erldantic_json, type_to_json, 4},
+              {erldantic_json, type_from_json, 4},
+              {erldantic_json, record_to_json, 3},
+              {erldantic_json, record_from_json, 3}]).
 
 -include("../include/record_type_introspect.hrl").
 
 -type json__encode_value() :: json:encode_value().
 -type json() :: json:decode_value().
--type module_version() :: term().
 
--spec pers_type(Module :: module()) ->
-                   {module_version(), erldantic:type_info()} | undefined.
-pers_type(Module) ->
-    persistent_term:get({?MODULE, pers_types, Module}, undefined).
+%% API
+type_to_json(Module, TypeName, TypeArity, Value)
+    when is_atom(Module) andalso is_atom(TypeName) andalso is_integer(TypeArity) ->
+    TypeRef = {type, TypeName, TypeArity},
+    to_json_no_pt(Module, TypeRef, Value).
 
--spec pers_types_set(Module :: module(),
-                     Vsn :: module_version(),
-                     TypeInfo :: erldantic:type_info()) ->
-                        ok.
-pers_types_set(Module, Vsn, TypeInfo) ->
-    persistent_term:put({?MODULE, pers_types, Module}, {Vsn, TypeInfo}).
+type_from_json(Module, TypeName, TypeArity, Json)
+    when is_atom(Module) andalso is_atom(TypeName) andalso is_integer(TypeArity) ->
+    TypeRef = {type, TypeName, TypeArity},
+    from_json_no_pt(Module, TypeRef, Json).
 
-ensure_module(Module) ->
-    erlang:module_loaded(Module) orelse code:which(Module) =/= non_existing.
+record_to_json(Module, RecordName, Value)
+    when is_atom(Module) andalso is_atom(RecordName) ->
+    to_json_no_pt(Module, {record, RecordName}, Value).
 
--spec module_vsn(Module :: module()) ->
-                    {ok, Version :: module_version()} | {error, [#ed_error{}]}.
-module_vsn(Module) ->
-    case ensure_module(Module) of
-        true ->
-            case erlang:get_module_info(Module, attributes) of
-                Attrs when is_list(Attrs) ->
-                    {vsn, Vsn} = lists:keyfind(vsn, 1, Attrs),
-                    {ok, Vsn}
-            end;
-        false ->
-            {error,
-             [#ed_error{type = module_types_not_found,
-                        location = [],
-                        ctx = #{error => non_existing, module => Module}}]}
-    end.
+record_from_json(Module, RecordName, Json)
+    when is_atom(Module) andalso is_atom(RecordName) ->
+    from_json_no_pt(Module, {record, RecordName}, Json).
 
--spec types_in_module(Module :: module()) ->
-                         {ok, erldantic:type_info()} | {error, [#ed_error{}]}.
-types_in_module(Module) ->
-    case module_vsn(Module) of
-        {ok, Vsn} ->
-            io:format("types_in_module:~n  Module ~p~n  Vsn ~p~n", [Module, Vsn]),
-            case pers_type(Module) of
-                {Vsn, TypeInfo} when is_map(TypeInfo) ->
-                    {ok, TypeInfo};
-                _ ->
-                    case erldantic_abstract_code:types_in_module(Module) of
-                        {ok, TypeInfo} ->
-                            pers_types_set(Module, Vsn, TypeInfo),
-                            {ok, TypeInfo};
-                        {error, _} = Err ->
-                            Err
-                    end
-            end;
-        {error, _} = Err ->
-            Err
-    end.
+%% INTERNAL
 
-to_json_no_pt({Module, Type, 0}, Data) when is_atom(Type) ->
-    %% FIXME: Why do we pass 0 twice here? TypeArity and the literal 0
-    to_json_no_pt({Module, {type, Type, 0}, 0}, Data);
-to_json_no_pt({Module, Type, TypeArity}, Data) ->
-    io:format("to_json_no_pt:~n  Module ~p~n  Type ~p~n  TypeArity ~p~n",
-              [Module, Type, TypeArity]),
-    case types_in_module(Module) of
+-spec to_json_no_pt(Module :: module(),
+                    TypeRef :: erldantic:a_type_or_ref(),
+                    Data :: dynamic()) ->
+                       {ok, json__encode_value()} | {error, [#ed_error{}]}.
+to_json_no_pt(Module, TypeRef, Data) ->
+    case erldantic_module_types:get(Module) of
         {ok, TypeInfo} ->
-            to_json(TypeInfo, Type, Data);
+            to_json(TypeInfo, TypeRef, Data);
         {error, _} = Err ->
             Err
     end.
@@ -90,14 +55,16 @@ to_json(TypeInfo, Type, Data) ->
             {error, Errs}
     end.
 
-from_json_no_pt({Module, TypeName, TypeArity}, Json) when is_atom(TypeName) ->
-    from_json_no_pt({Module, {type, TypeName, TypeArity}, TypeArity}, Json);
-from_json_no_pt({Module, TypeName, TypeArity}, Json) ->
-    io:format("from_json_no_pt:~n  Module ~p~n  TypeName ~p~n  TypeArity ~p~n  Json ~p~n",
-              [Module, TypeName, TypeArity, Json]),
-    case types_in_module(Module) of
+-spec from_json_no_pt(Module :: module(),
+                      TypeOrRecord :: erldantic:a_type_or_ref(),
+                      Json :: json()) ->
+                         {ok, dynamic()} | {error, [#ed_error{}]}.
+from_json_no_pt(Module, TypeRef, Json) ->
+    io:format("from_json_no_pt:~n  Module ~p~n  TypeRef ~p~n  Json ~p~n",
+              [Module, TypeRef, Json]),
+    case erldantic_module_types:get(Module) of
         {ok, TypeInfo} ->
-            from_json(TypeInfo, TypeName, Json);
+            from_json(TypeInfo, TypeRef, Json);
         {error, _} = Err ->
             Err
     end.
@@ -160,7 +127,7 @@ do_to_json(_TypeInfo, #a_tuple{} = T, _Data) ->
                 location = [],
                 ctx = #{type => T}}]};
 do_to_json(_TypeInfo, #remote_type{mfargs = {Module, TypeName, Args}}, Data) ->
-    case types_in_module(Module) of
+    case erldantic_module_types:get(Module) of
         {ok, TypeInfo} ->
             TypeArity = length(Args),
             case TypeInfo of
@@ -461,7 +428,7 @@ from_json(TypeInfo, {record, RecordName}, Json) when is_atom(RecordName) ->
 from_json(TypeInfo, #a_rec{name = RecordName, fields = RecordInfo}, Json) ->
     do_record_from_json(TypeInfo, RecordName, RecordInfo, Json);
 from_json(_TypeInfo, #remote_type{mfargs = {Module, TypeName, TypeArgs}}, Json) ->
-    case types_in_module(Module) of
+    case erldantic_module_types:get(Module) of
         {ok, TypeInfo} ->
             TypeArity = length(TypeArgs),
             case TypeInfo of

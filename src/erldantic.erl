@@ -37,8 +37,9 @@
     {record, atom()} |
     {record_ref, atom()} |
     {type, Name :: atom(), Arity :: non_neg_integer()}.
+-type error() :: #ed_error{}.
 %% RENAME: Type is used for everything.
 -type a_type_or_ref() :: a_type() | a_type_reference().
 
 -export_type([a_type/0, a_type_reference/0, a_type_or_ref/0, var_type/0, type_info/0,
-              record_field/0]).
+              record_field/0, error/0]).
