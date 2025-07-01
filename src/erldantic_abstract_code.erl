@@ -4,7 +4,8 @@
 
 -export([types_in_module/1]).
 
--spec types_in_module(atom()) -> {ok, erldantic:type_info()} | {error, [#ed_error{}]}.
+-spec types_in_module(atom()) ->
+                         {ok, erldantic:type_info()} | {error, [erldantic:error()]}.
 types_in_module(Module) ->
     case code:which(Module) of
         Error

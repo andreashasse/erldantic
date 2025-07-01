@@ -59,18 +59,21 @@ from_json_address_alias_test() ->
     ?assertEqual({ok, #address{street = "Main St", city = "Boston"}},
                  from_json_address_alias(Json)).
 
--spec to_json_person_alias(term()) -> {ok, person_alias()} | {error, [#ed_error{}]}.
+-spec to_json_person_alias(term()) -> {ok, person_alias()} | {error, [erldantic:error()]}.
 to_json_person_alias(Data) ->
     erldantic_json:type_to_json(?MODULE, person_alias, 0, Data).
 
--spec from_json_person_alias(term()) -> {ok, person_alias()} | {error, [#ed_error{}]}.
+-spec from_json_person_alias(term()) ->
+                                {ok, person_alias()} | {error, [erldantic:error()]}.
 from_json_person_alias(Data) ->
     erldantic_json:type_from_json(?MODULE, person_alias, 0, Data).
 
--spec to_json_address_alias(term()) -> {ok, address_alias()} | {error, [#ed_error{}]}.
+-spec to_json_address_alias(term()) ->
+                               {ok, address_alias()} | {error, [erldantic:error()]}.
 to_json_address_alias(Data) ->
     erldantic_json:type_to_json(?MODULE, address_alias, 0, Data).
 
--spec from_json_address_alias(term()) -> {ok, address_alias()} | {error, [#ed_error{}]}.
+-spec from_json_address_alias(term()) ->
+                                 {ok, address_alias()} | {error, [erldantic:error()]}.
 from_json_address_alias(Data) ->
     erldantic_json:type_from_json(?MODULE, address_alias, 0, Data).

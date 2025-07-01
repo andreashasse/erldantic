@@ -54,10 +54,12 @@ validate_weird_union_test() ->
     {error, FromErrors} = from_json_weird_union(InvalidJson),
     ?assertMatch([#ed_error{type = no_match}], FromErrors).
 
--spec to_json_weird_union(weird_union()) -> {ok, json:json()} | {error, [#ed_error{}]}.
+-spec to_json_weird_union(weird_union()) ->
+                             {ok, json:encode_value()} | {error, [erldantic:error()]}.
 to_json_weird_union(Data) ->
     erldantic_json:type_to_json(?MODULE, weird_union, 0, Data).
 
--spec from_json_weird_union(json:json()) -> {ok, weird_union()} | {error, [#ed_error{}]}.
+-spec from_json_weird_union(json:encode_value()) ->
+                               {ok, weird_union()} | {error, [erldantic:error()]}.
 from_json_weird_union(Json) ->
     erldantic_json:type_from_json(?MODULE, weird_union, 0, Json).

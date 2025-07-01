@@ -50,10 +50,12 @@ validate_accesses_test() ->
                                   value := <<"invalid">>}}],
                  FromErrors).
 
--spec to_json_accesses(accesses()) -> {ok, json:json()} | {error, [#ed_error{}]}.
+-spec to_json_accesses(accesses()) ->
+                          {ok, json:encode_value()} | {error, [erldantic:error()]}.
 to_json_accesses(Data) ->
     erldantic_json:type_to_json(?MODULE, accesses, 0, Data).
 
--spec from_json_accesses(json:json()) -> {ok, accesses()} | {error, [#ed_error{}]}.
+-spec from_json_accesses(json:encode_value()) ->
+                            {ok, accesses()} | {error, [erldantic:error()]}.
 from_json_accesses(Json) ->
     erldantic_json:type_from_json(?MODULE, accesses, 0, Json).

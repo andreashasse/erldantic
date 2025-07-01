@@ -2,8 +2,6 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--include("../include/record_type_introspect.hrl").
-
 -record(data_with_term, {id :: string(), value :: term()}).
 
 %% Test function to validate term field handling
@@ -54,10 +52,12 @@ validate_term_field_test() ->
     ?assertEqual("record5", RecordFromTuple#data_with_term.id),
     ?assertEqual([a, b, c], RecordFromTuple#data_with_term.value).
 
--spec to_json(#data_with_term{}) -> {ok, json:json()} | {error, [#ed_error{}]}.
+-spec to_json(#data_with_term{}) ->
+                 {ok, json:encode_value()} | {error, [erldantic:error()]}.
 to_json(Data) ->
     erldantic_json:record_to_json(?MODULE, data_with_term, Data).
 
--spec from_json(json:json()) -> {ok, #data_with_term{}} | {error, [#ed_error{}]}.
+-spec from_json(json:encode_value()) ->
+                   {ok, #data_with_term{}} | {error, [erldantic:error()]}.
 from_json(Json) ->
     erldantic_json:record_from_json(?MODULE, data_with_term, Json).
