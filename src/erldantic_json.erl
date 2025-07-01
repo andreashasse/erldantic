@@ -49,7 +49,7 @@ record_from_json(Module, RecordName, Json)
 -spec to_json_no_pt(Module :: module(),
                     TypeRef :: erldantic:a_type_or_ref(),
                     Data :: dynamic()) ->
-                       {ok, json:encode_value()} | {error, [#ed_error{}]}.
+                       {ok, json:encode_value()} | {error, [erldantic:error()]}.
 to_json_no_pt(Module, TypeRef, Data) ->
     case erldantic_module_types:get(Module) of
         {ok, TypeInfo} ->
@@ -71,10 +71,8 @@ to_json(TypeInfo, Type, Data) ->
 -spec from_json_no_pt(Module :: module(),
                       TypeOrRecord :: erldantic:a_type_or_ref(),
                       Json :: json:decode_value()) ->
-                         {ok, dynamic()} | {error, [#ed_error{}]}.
+                         {ok, dynamic()} | {error, [erldantic:error()]}.
 from_json_no_pt(Module, TypeRef, Json) ->
-    io:format("from_json_no_pt:~n  Module ~p~n  TypeRef ~p~n  Json ~p~n",
-              [Module, TypeRef, Json]),
     case erldantic_module_types:get(Module) of
         {ok, TypeInfo} ->
             from_json(TypeInfo, TypeRef, Json);
@@ -86,7 +84,7 @@ from_json_no_pt(Module, TypeRef, Json) ->
 -spec do_to_json(TypeInfo :: erldantic:type_info(),
                  Type :: erldantic:a_type_or_ref(),
                  Data :: term()) ->
-                    {ok, json:encode_value()} | {error, [#ed_error{}]} | skip.
+                    {ok, json:encode_value()} | {error, [erldantic:error()]} | skip.
 do_to_json(TypeInfo, {record, RecordName}, Record) when is_atom(RecordName) ->
     record_to_json(TypeInfo, RecordName, Record, []);
 do_to_json(TypeInfo, #a_rec{fields = Fields}, Record) when is_tuple(Record) ->
@@ -97,17 +95,12 @@ do_to_json(TypeInfo, {record_ref, RecordName, TypeArgs}, Record)
     when is_atom(RecordName) ->
     record_to_json(TypeInfo, RecordName, Record, TypeArgs);
 do_to_json(TypeInfo, {user_type_ref, TypeName, TypeArgs}, Data) when is_atom(TypeName) ->
-    io:format("do_to_json user_type_ref:~n  TypeName ~p~n  TypeArgs ~p~n",
-              [TypeName, TypeArgs]),
     TypeArity = length(TypeArgs),
     case TypeInfo of
         #{{type, TypeName, TypeArity} := Type} ->
             TypeWithoutVars = apply_args(TypeInfo, Type, TypeArgs),
-            io:format("TypeWithoutArgs: ~p~n", [TypeWithoutVars]),
             do_to_json(TypeInfo, TypeWithoutVars, Data);
         #{} ->
-            io:format("do_to_json user_type_ref:~n  TypeName ~p~n  TypeNames ~p~n",
-                      [TypeName, maps:keys(TypeInfo)]),
             {error, [#ed_error{type = missing_type, location = []}]}
     end;
 do_to_json(_TypeInfo, {type, Type} = T, Value)
@@ -121,7 +114,6 @@ do_to_json(_TypeInfo, {literal, undefined}, undefined) ->
 do_to_json(_TypeInfo, {literal, Value}, Value) ->
     literal_to_json(Value);
 do_to_json(TypeInfo, {union, _} = T, Data) ->
-    io:format("do_to_json union:~n  Type ~p~n  Data ~p~n", [T, Data]),
     union(fun do_to_json/3, TypeInfo, T, Data);
 do_to_json(TypeInfo, {nonempty_list, Type}, Data) ->
     nonempty_list_to_json(TypeInfo, Type, Data);
@@ -146,11 +138,8 @@ do_to_json(_TypeInfo, #remote_type{mfargs = {Module, TypeName, Args}}, Data) ->
             case TypeInfo of
                 #{{type, TypeName, TypeArity} := Type} ->
                     TypeWithoutVars = apply_args(TypeInfo, Type, Args),
-                    io:format("RemoteTypeWithoutArgs: ~p~n", [TypeWithoutVars]),
                     do_to_json(TypeInfo, TypeWithoutVars, Data);
                 #{} ->
-                    io:format("do_to_json remote_type:~n  TypeName ~p~n  TypeNames ~p~n",
-                              [TypeName, maps:keys(TypeInfo)]),
                     {error, [#ed_error{type = missing_type, location = []}]}
             end;
         {error, _} = Err ->
@@ -163,7 +152,7 @@ do_to_json(_TypeInfo, T, OtherValue) ->
                 ctx = #{type => T, value => OtherValue}}]}.
 
 -spec literal_to_json(Value :: term()) ->
-                         {ok, json:encode_value()} | {error, [#ed_error{}]}.
+                         {ok, json:encode_value()} | {error, [erldantic:error()]}.
 %% FIXME: Handle maps, records, list (strings?).
 literal_to_json(Term)
     when is_integer(Term) orelse is_float(Term) orelse is_binary(Term) orelse is_atom(Term) ->
@@ -175,7 +164,7 @@ literal_to_json(Term) ->
                 ctx = #{type => {literal, Term}, value => Term}}]}.
 
 -spec prim_type_to_json(Type :: erldantic:a_type_or_ref(), Value :: term()) ->
-                           {ok, json:encode_value()} | {error, [#ed_error{}]}.
+                           {ok, json:encode_value()} | {error, [erldantic:error()]}.
 prim_type_to_json({type, Type} = T, Value) ->
     case check_type_to_json(Type, Value) of
         {true, NewValue} ->
@@ -198,7 +187,7 @@ nonempty_list_to_json(_TypeInfo, Type, Data) ->
 -spec list_to_json(TypeInfo :: map(),
                    Type :: erldantic:a_type_or_ref(),
                    Data :: [term()]) ->
-                      {ok, [json:encode_value()]} | {error, [#ed_error{}]}.
+                      {ok, [json:encode_value()]} | {error, [erldantic:error()]}.
 list_to_json(TypeInfo, Type, Data) when is_list(Data) ->
     JsonRes =
         lists:map(fun({Nr, Item}) ->
@@ -380,14 +369,12 @@ map_field_type(TypeInfo, KeyType, ValueType, Data) ->
                      RecordName :: atom(),
                      Record :: term(),
                      TypeArgs :: [{atom(), erldantic:a_type()}]) ->
-                        {ok, #{atom() => json:encode_value()}} | {error, [#ed_error{}]}.
+                        {ok, #{atom() => json:encode_value()}} | {error, [erldantic:error()]}.
 record_to_json(TypeInfo, RecordName, Record, TypeArgs) when is_tuple(Record) ->
-    io:format("record_to_json:~n  RecordName ~p~n  TypeArgs ~p~n", [RecordName, TypeArgs]),
     [RecordName | FieldsData] = tuple_to_list(Record),
     #a_rec{name = RecordName, fields = RecordInfo} = maps:get({record, RecordName}, TypeInfo),
     RecordInfoWithVars = apply_record_arg_types(RecordInfo, TypeArgs),
     Mojs = lists:zip(RecordInfoWithVars, FieldsData),
-    io:format("  Mojs ~p~n", [Mojs]),
     do_record_to_json(TypeInfo, Mojs);
 record_to_json(_TypeInfo, RecordName, Record, TypeArgs) ->
     {error,
@@ -436,7 +423,7 @@ err_append_location(Err, FieldName) ->
 -spec from_json(TypeInfo :: map(),
                 Type :: erldantic:a_type_or_ref(),
                 Json :: json:decode_value()) ->
-                   {ok, term()} | {error, [#ed_error{}]}.
+                   {ok, term()} | {error, [erldantic:error()]}.
 %% why {record, atom()}?
 from_json(TypeInfo, {record, RecordName}, Json) when is_atom(RecordName) ->
     record_from_json(TypeInfo, RecordName, Json, []);
@@ -449,11 +436,8 @@ from_json(_TypeInfo, #remote_type{mfargs = {Module, TypeName, TypeArgs}}, Json) 
             case TypeInfo of
                 #{{type, TypeName, TypeArity} := Type} ->
                     TypeWithoutVars = apply_args(TypeInfo, Type, TypeArgs),
-                    io:format("RemoteTypeWithoutVars: ~p~n", [TypeWithoutVars]),
                     from_json(TypeInfo, TypeWithoutVars, Json);
                 #{} ->
-                    io:format("from_json remote_type:~n  TypeName ~p~n  TypeNames ~p~n",
-                              [TypeName, maps:keys(TypeInfo)]),
                     {error, [#ed_error{type = missing_type, location = []}]}
             end;
         {error, _} = Err ->
@@ -661,9 +645,8 @@ do_first(F, TypeInfo, [Type | Rest], Json) ->
                      TypeArity :: non_neg_integer(),
                      TypeArgs :: [erldantic:a_type()],
                      Json :: json:decode_value()) ->
-                        {ok, term()} | {error, [#ed_error{}]}.
+                        {ok, term()} | {error, [erldantic:error()]}.
 type_from_json(TypeInfo, TypeName, TypeArity, TypeArgs, Json) ->
-    io:format("type_from_json:~n  TypeName ~p~n  TypeArgs ~p~n", [TypeName, TypeArgs]),
     case TypeInfo of
         #{{type, TypeName, TypeArity} := Type} ->
             TypeWithoutVars = apply_args(TypeInfo, Type, TypeArgs),
@@ -674,14 +657,10 @@ type_from_json(TypeInfo, TypeName, TypeArity, TypeArgs, Json) ->
 
 apply_args(TypeInfo, Type, TypeArgs) when is_list(TypeArgs) ->
     ArgNames = arg_names(Type),
-    io:format("apply_args:~n  Types ~p~n  TypeArgs ~p~n  ArgNames ~p~n",
-              [Type, TypeArgs, ArgNames]),
     NamedTypes =
         maps:from_list(
             lists:zip(ArgNames, TypeArgs)),
-    Res = type_replace_vars(TypeInfo, Type, NamedTypes),
-    io:format("  Res ~p~n", [Res]),
-    Res.
+    type_replace_vars(TypeInfo, Type, NamedTypes).
 
 arg_names(#a_type{vars = Args}) ->
     Args;
@@ -724,7 +703,6 @@ type_replace_vars(TypeInfo, #a_type{type = Type, vars = _Vars}, NamedTypes) ->
         {record_ref, RecordName, TypeArgs} ->
             case TypeInfo of
                 #{{record, RecordName} := #a_rec{fields = Fields} = Rec} ->
-                    io:format("  Rec: ~p~n  TypeArgs: ~p~n", [Rec, TypeArgs]),
                     NewFields =
                         lists:foldl(fun({Name, NType}, FieldsAcc) ->
                                        lists:keyreplace(Name, 1, FieldsAcc, {Name, NType})
@@ -732,15 +710,12 @@ type_replace_vars(TypeInfo, #a_type{type = Type, vars = _Vars}, NamedTypes) ->
                                     Fields,
                                     TypeArgs),
                     NewRec = Rec#a_rec{fields = NewFields},
-                    io:format("  NewRec: ~p~n  NamedTypes: ~p~n", [NewRec, NamedTypes]),
                     Mojs = type_replace_vars(TypeInfo, NewRec, NamedTypes),
-                    io:format("  Mojs: ~p~n", [Mojs]),
                     Mojs;
                 #{} ->
                     erlang:error({missing_type, {record, RecordName}})
             end;
         _ ->
-            io:format("type_replace_vars:~n  Type ~p~n  NamedTypes ~p~n", [Type, NamedTypes]),
             Type
     end;
 type_replace_vars(_TypeInfo, #a_rec{fields = Fields} = Rec, NamedTypes) ->
@@ -753,12 +728,10 @@ type_replace_vars(_TypeInfo, Type, _NamedTypes) ->
     Type.
 
 map_from_json(TypeInfo, MapFieldType, Json) when is_map(Json) ->
-    io:format("map_from_json:~n  MapFieldType ~p~n  Json ~p~n", [MapFieldType, Json]),
     {Fields, Errors, NotMapped} =
         lists:foldl(fun ({map_field_assoc, FieldName, FieldType}, {FieldsAcc, ErrAcc, JsonAcc}) ->
                             case maps:take(atom_to_binary(FieldName), JsonAcc) of
                                 {FieldData, NewJsonAcc} ->
-                                    io:format("  FieldData ~p~n", [FieldData]),
                                     case from_json(TypeInfo, FieldType, FieldData) of
                                         {ok, FieldJson} ->
                                             {FieldsAcc ++ [{FieldName, FieldJson}],
@@ -897,8 +870,6 @@ record_from_json(TypeInfo, RecordName, Json, TypeArgs) ->
                              {ok, term()} | {error, list()}.
 do_record_from_json(TypeInfo, RecordName, RecordInfo, Json) when is_map(Json) ->
     %% FIXME: Apply type args?
-    io:format("do_record_from_json:~n  RecordName ~p~n  RecordInfo ~p~n  Json ~p~n",
-              [RecordName, RecordInfo, Json]),
     {Fields, Errors} =
         lists:foldl(fun({FieldName, FieldType}, {FieldsAcc, ErrorsAcc}) when is_atom(FieldName) ->
                        case maps:find(atom_to_binary(FieldName), Json) of
