@@ -39,10 +39,12 @@ validate_nonempty_list_test() ->
                                   value => []}}],
                  FromErrors).
 
--spec to_json(user_with_items()) -> {ok, json:json()} | {error, [#ed_error{}]}.
+-spec to_json(user_with_items()) ->
+                 {ok, json:encode_value()} | {error, [erldantic:error()]}.
 to_json(User) ->
     erldantic_json:type_to_json(?MODULE, user_with_items, 0, User).
 
--spec from_json(json:json()) -> {ok, user_with_items()} | {error, [#ed_error{}]}.
+-spec from_json(json:encode_value()) ->
+                   {ok, user_with_items()} | {error, [erldantic:error()]}.
 from_json(Json) ->
     erldantic_json:type_from_json(?MODULE, user_with_items, 0, Json).

@@ -9,24 +9,37 @@
 
 -include("../include/record_type_introspect.hrl").
 
--type json__encode_value() :: json:encode_value().
--type json() :: json:decode_value().
-
 %% API
+-spec type_to_json(Module :: module(),
+                   TypeName :: atom(),
+                   TypeArity :: integer(),
+                   Value :: dynamic()) ->
+                      {ok, json:encode_value()} | {error, [erldantic:error()]}.
 type_to_json(Module, TypeName, TypeArity, Value)
     when is_atom(Module) andalso is_atom(TypeName) andalso is_integer(TypeArity) ->
     TypeRef = {type, TypeName, TypeArity},
     to_json_no_pt(Module, TypeRef, Value).
 
+-spec type_from_json(Module :: module(),
+                     TypeName :: atom(),
+                     TypeArity :: integer(),
+                     Json :: json:decode_value()) ->
+                        {ok, dynamic()} | {error, [erldantic:error()]}.
 type_from_json(Module, TypeName, TypeArity, Json)
     when is_atom(Module) andalso is_atom(TypeName) andalso is_integer(TypeArity) ->
     TypeRef = {type, TypeName, TypeArity},
     from_json_no_pt(Module, TypeRef, Json).
 
+-spec record_to_json(Module :: module(), RecordName :: atom(), Value :: dynamic()) ->
+                        {ok, json:encode_value()} | {error, [erldantic:error()]}.
 record_to_json(Module, RecordName, Value)
     when is_atom(Module) andalso is_atom(RecordName) ->
     to_json_no_pt(Module, {record, RecordName}, Value).
 
+-spec record_from_json(Module :: module(),
+                       RecordName :: atom(),
+                       Json :: json:decode_value()) ->
+                          {ok, dynamic()} | {error, [erldantic:error()]}.
 record_from_json(Module, RecordName, Json)
     when is_atom(Module) andalso is_atom(RecordName) ->
     from_json_no_pt(Module, {record, RecordName}, Json).
@@ -36,7 +49,7 @@ record_from_json(Module, RecordName, Json)
 -spec to_json_no_pt(Module :: module(),
                     TypeRef :: erldantic:a_type_or_ref(),
                     Data :: dynamic()) ->
-                       {ok, json__encode_value()} | {error, [#ed_error{}]}.
+                       {ok, json:encode_value()} | {error, [#ed_error{}]}.
 to_json_no_pt(Module, TypeRef, Data) ->
     case erldantic_module_types:get(Module) of
         {ok, TypeInfo} ->
@@ -57,7 +70,7 @@ to_json(TypeInfo, Type, Data) ->
 
 -spec from_json_no_pt(Module :: module(),
                       TypeOrRecord :: erldantic:a_type_or_ref(),
-                      Json :: json()) ->
+                      Json :: json:decode_value()) ->
                          {ok, dynamic()} | {error, [#ed_error{}]}.
 from_json_no_pt(Module, TypeRef, Json) ->
     io:format("from_json_no_pt:~n  Module ~p~n  TypeRef ~p~n  Json ~p~n",
@@ -73,7 +86,7 @@ from_json_no_pt(Module, TypeRef, Json) ->
 -spec do_to_json(TypeInfo :: erldantic:type_info(),
                  Type :: erldantic:a_type_or_ref(),
                  Data :: term()) ->
-                    {ok, json__encode_value()} | {error, [#ed_error{}]} | skip.
+                    {ok, json:encode_value()} | {error, [#ed_error{}]} | skip.
 do_to_json(TypeInfo, {record, RecordName}, Record) when is_atom(RecordName) ->
     record_to_json(TypeInfo, RecordName, Record, []);
 do_to_json(TypeInfo, #a_rec{fields = Fields}, Record) when is_tuple(Record) ->
@@ -150,7 +163,7 @@ do_to_json(_TypeInfo, T, OtherValue) ->
                 ctx = #{type => T, value => OtherValue}}]}.
 
 -spec literal_to_json(Value :: term()) ->
-                         {ok, json__encode_value()} | {error, [#ed_error{}]}.
+                         {ok, json:encode_value()} | {error, [#ed_error{}]}.
 %% FIXME: Handle maps, records, list (strings?).
 literal_to_json(Term)
     when is_integer(Term) orelse is_float(Term) orelse is_binary(Term) orelse is_atom(Term) ->
@@ -162,7 +175,7 @@ literal_to_json(Term) ->
                 ctx = #{type => {literal, Term}, value => Term}}]}.
 
 -spec prim_type_to_json(Type :: erldantic:a_type_or_ref(), Value :: term()) ->
-                           {ok, json__encode_value()} | {error, [#ed_error{}]}.
+                           {ok, json:encode_value()} | {error, [#ed_error{}]}.
 prim_type_to_json({type, Type} = T, Value) ->
     case check_type_to_json(Type, Value) of
         {true, NewValue} ->
@@ -185,7 +198,7 @@ nonempty_list_to_json(_TypeInfo, Type, Data) ->
 -spec list_to_json(TypeInfo :: map(),
                    Type :: erldantic:a_type_or_ref(),
                    Data :: [term()]) ->
-                      {ok, [json__encode_value()]} | {error, [#ed_error{}]}.
+                      {ok, [json:encode_value()]} | {error, [#ed_error{}]}.
 list_to_json(TypeInfo, Type, Data) when is_list(Data) ->
     JsonRes =
         lists:map(fun({Nr, Item}) ->
@@ -367,7 +380,7 @@ map_field_type(TypeInfo, KeyType, ValueType, Data) ->
                      RecordName :: atom(),
                      Record :: term(),
                      TypeArgs :: [{atom(), erldantic:a_type()}]) ->
-                        {ok, #{atom() => json__encode_value()}} | {error, [#ed_error{}]}.
+                        {ok, #{atom() => json:encode_value()}} | {error, [#ed_error{}]}.
 record_to_json(TypeInfo, RecordName, Record, TypeArgs) when is_tuple(Record) ->
     io:format("record_to_json:~n  RecordName ~p~n  TypeArgs ~p~n", [RecordName, TypeArgs]),
     [RecordName | FieldsData] = tuple_to_list(Record),
@@ -420,7 +433,9 @@ do_record_to_json(TypeInfo, Mojs) ->
 err_append_location(Err, FieldName) ->
     Err#ed_error{location = [FieldName | Err#ed_error.location]}.
 
--spec from_json(TypeInfo :: map(), Type :: erldantic:a_type_or_ref(), Json :: json()) ->
+-spec from_json(TypeInfo :: map(),
+                Type :: erldantic:a_type_or_ref(),
+                Json :: json:decode_value()) ->
                    {ok, term()} | {error, [#ed_error{}]}.
 %% why {record, atom()}?
 from_json(TypeInfo, {record, RecordName}, Json) when is_atom(RecordName) ->
@@ -645,7 +660,7 @@ do_first(F, TypeInfo, [Type | Rest], Json) ->
                      TypeName :: atom(),
                      TypeArity :: non_neg_integer(),
                      TypeArgs :: [erldantic:a_type()],
-                     Json :: json()) ->
+                     Json :: json:decode_value()) ->
                         {ok, term()} | {error, [#ed_error{}]}.
 type_from_json(TypeInfo, TypeName, TypeArity, TypeArgs, Json) ->
     io:format("type_from_json:~n  TypeName ~p~n  TypeArgs ~p~n", [TypeName, TypeArgs]),
@@ -866,7 +881,7 @@ map_field_type_from_json(TypeInfo, KeyType, ValueType, Json) ->
 
 -spec record_from_json(TypeInfo :: map(),
                        RecordName :: atom(),
-                       Json :: json(),
+                       Json :: json:decode_value(),
                        TypeArgs :: [erldantic:record_field()]) ->
                           {ok, term()} | {error, list()}.
 record_from_json(TypeInfo, RecordName, Json, TypeArgs) ->
@@ -878,7 +893,7 @@ record_from_json(TypeInfo, RecordName, Json, TypeArgs) ->
 -spec do_record_from_json(TypeInfo :: map(),
                           RecordName :: atom(),
                           RecordInfo :: list(),
-                          Json :: json()) ->
+                          Json :: json:decode_value()) ->
                              {ok, term()} | {error, list()}.
 do_record_from_json(TypeInfo, RecordName, RecordInfo, Json) when is_map(Json) ->
     %% FIXME: Apply type args?

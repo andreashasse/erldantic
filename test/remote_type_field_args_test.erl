@@ -3,7 +3,6 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -include("external_type.hrl").
--include("../include/record_type_introspect.hrl").
 
 %% Test remote types with various field argument patterns
 
@@ -171,38 +170,42 @@ mixed_requirements_from_json_test() ->
 
 %% JSON conversion functions
 
--spec to_json_user_with_account(term()) -> {ok, json:json()} | {error, [#ed_error{}]}.
+-spec to_json_user_with_account(term()) ->
+                                   {ok, json:encode_value()} | {error, [erldantic:error()]}.
 to_json_user_with_account(Data) ->
     erldantic_json:type_to_json(?MODULE, user_with_account, 0, Data).
 
--spec from_json_user_with_account(json:json()) ->
-                                     {ok, user_with_account()} | {error, [#ed_error{}]}.
+-spec from_json_user_with_account(json:encode_value()) ->
+                                     {ok, user_with_account()} | {error, [erldantic:error()]}.
 from_json_user_with_account(Json) ->
     erldantic_json:type_from_json(?MODULE, user_with_account, 0, Json).
 
--spec to_json_organization(term()) -> {ok, json:json()} | {error, [#ed_error{}]}.
+-spec to_json_organization(term()) ->
+                              {ok, json:encode_value()} | {error, [erldantic:error()]}.
 to_json_organization(Data) ->
     erldantic_json:type_to_json(?MODULE, organization, 0, Data).
 
--spec from_json_organization(json:json()) ->
-                                {ok, organization()} | {error, [#ed_error{}]}.
+-spec from_json_organization(json:encode_value()) ->
+                                {ok, organization()} | {error, [erldantic:error()]}.
 from_json_organization(Json) ->
     erldantic_json:type_from_json(?MODULE, organization, 0, Json).
 
--spec to_json_complex_data(term()) -> {ok, json:json()} | {error, [#ed_error{}]}.
+-spec to_json_complex_data(term()) ->
+                              {ok, json:encode_value()} | {error, [erldantic:error()]}.
 to_json_complex_data(Data) ->
     erldantic_json:type_to_json(?MODULE, complex_data, 0, Data).
 
--spec from_json_complex_data(json:json()) ->
-                                {ok, complex_data()} | {error, [#ed_error{}]}.
+-spec from_json_complex_data(json:encode_value()) ->
+                                {ok, complex_data()} | {error, [erldantic:error()]}.
 from_json_complex_data(Json) ->
     erldantic_json:type_from_json(?MODULE, complex_data, 0, Json).
 
--spec to_json_mixed_requirements(term()) -> {ok, json:json()} | {error, [#ed_error{}]}.
+-spec to_json_mixed_requirements(term()) ->
+                                    {ok, json:encode_value()} | {error, [erldantic:error()]}.
 to_json_mixed_requirements(Data) ->
     erldantic_json:type_to_json(?MODULE, mixed_requirements, 0, Data).
 
--spec from_json_mixed_requirements(json:json()) ->
-                                      {ok, mixed_requirements()} | {error, [#ed_error{}]}.
+-spec from_json_mixed_requirements(json:encode_value()) ->
+                                      {ok, mixed_requirements()} | {error, [erldantic:error()]}.
 from_json_mixed_requirements(Json) ->
     erldantic_json:type_from_json(?MODULE, mixed_requirements, 0, Json).
