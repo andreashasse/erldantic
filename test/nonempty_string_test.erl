@@ -32,8 +32,8 @@ validate_nonempty_string_test() ->
 
 -spec to_json(nonempty_user()) -> {ok, json:json()} | {error, [#ed_error{}]}.
 to_json(User) ->
-    erldantic_json:to_json_no_pt({?MODULE, nonempty_user, 0}, User).
+    erldantic_json:type_to_json(?MODULE, nonempty_user, 0, User).
 
 -spec from_json(json:json()) -> {ok, nonempty_user()} | {error, [#ed_error{}]}.
 from_json(Json) ->
-    erldantic_json:from_json_no_pt({?MODULE, nonempty_user, 0}, Json).
+    erldantic_json:type_from_json(?MODULE, nonempty_user, 0, Json).

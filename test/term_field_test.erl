@@ -56,8 +56,8 @@ validate_term_field_test() ->
 
 -spec to_json(#data_with_term{}) -> {ok, json:json()} | {error, [#ed_error{}]}.
 to_json(Data) ->
-    erldantic_json:to_json_no_pt({?MODULE, {record, data_with_term}, []}, Data).
+    erldantic_json:record_to_json(?MODULE, data_with_term, Data).
 
 -spec from_json(json:json()) -> {ok, #data_with_term{}} | {error, [#ed_error{}]}.
 from_json(Json) ->
-    erldantic_json:from_json_no_pt({?MODULE, {record, data_with_term}, []}, Json).
+    erldantic_json:record_from_json(?MODULE, data_with_term, Json).

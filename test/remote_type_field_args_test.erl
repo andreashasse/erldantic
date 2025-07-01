@@ -173,36 +173,36 @@ mixed_requirements_from_json_test() ->
 
 -spec to_json_user_with_account(term()) -> {ok, json:json()} | {error, [#ed_error{}]}.
 to_json_user_with_account(Data) ->
-    erldantic_json:to_json_no_pt({?MODULE, user_with_account, 0}, Data).
+    erldantic_json:type_to_json(?MODULE, user_with_account, 0, Data).
 
 -spec from_json_user_with_account(json:json()) ->
                                      {ok, user_with_account()} | {error, [#ed_error{}]}.
 from_json_user_with_account(Json) ->
-    erldantic_json:from_json_no_pt({?MODULE, user_with_account, 0}, Json).
+    erldantic_json:type_from_json(?MODULE, user_with_account, 0, Json).
 
 -spec to_json_organization(term()) -> {ok, json:json()} | {error, [#ed_error{}]}.
 to_json_organization(Data) ->
-    erldantic_json:to_json_no_pt({?MODULE, organization, 0}, Data).
+    erldantic_json:type_to_json(?MODULE, organization, 0, Data).
 
 -spec from_json_organization(json:json()) ->
                                 {ok, organization()} | {error, [#ed_error{}]}.
 from_json_organization(Json) ->
-    erldantic_json:from_json_no_pt({?MODULE, organization, 0}, Json).
+    erldantic_json:type_from_json(?MODULE, organization, 0, Json).
 
 -spec to_json_complex_data(term()) -> {ok, json:json()} | {error, [#ed_error{}]}.
 to_json_complex_data(Data) ->
-    erldantic_json:to_json_no_pt({?MODULE, complex_data, 0}, Data).
+    erldantic_json:type_to_json(?MODULE, complex_data, 0, Data).
 
 -spec from_json_complex_data(json:json()) ->
                                 {ok, complex_data()} | {error, [#ed_error{}]}.
 from_json_complex_data(Json) ->
-    erldantic_json:from_json_no_pt({?MODULE, complex_data, 0}, Json).
+    erldantic_json:type_from_json(?MODULE, complex_data, 0, Json).
 
 -spec to_json_mixed_requirements(term()) -> {ok, json:json()} | {error, [#ed_error{}]}.
 to_json_mixed_requirements(Data) ->
-    erldantic_json:to_json_no_pt({?MODULE, mixed_requirements, 0}, Data).
+    erldantic_json:type_to_json(?MODULE, mixed_requirements, 0, Data).
 
 -spec from_json_mixed_requirements(json:json()) ->
                                       {ok, mixed_requirements()} | {error, [#ed_error{}]}.
 from_json_mixed_requirements(Json) ->
-    erldantic_json:from_json_no_pt({?MODULE, mixed_requirements, 0}, Json).
+    erldantic_json:type_from_json(?MODULE, mixed_requirements, 0, Json).
