@@ -2,7 +2,7 @@
 
 This is Pydantic, but for Erlang. Hopefully for Elixir and Gleam in the future!
 
-Prldantic provides type-safe JSON serialization and deserialization for Records and all Erlang types that can be converted to json, converting between Erlang's type system and data expected by the json.erl module.
+Erldantic provides type-safe JSON serialization and deserialization for Records and all Erlang types that can be converted to json, converting between Erlang's type system and data expected by the json.erl module.
 It provides detailed errors when data and types doesn't match.
 
 ## Usage
