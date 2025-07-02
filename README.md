@@ -7,7 +7,7 @@ It provides detailed errors when data and types doesn't match.
 
 ## Usage
 
-Given these types:
+Given some types:
 
 ```erlang
 
@@ -28,7 +28,7 @@ Given these types:
 
 ```
 
-and some helper functions:
+Some helper functions:
 
 ```erlang
 -spec json_to_contacts(binary()) -> {ok, contacts()} | {error, [erldantic:error()]}.
@@ -45,7 +45,7 @@ contacts_to_json(Contacts) ->
 ```
 
 
-One can do this:
+One can generate do this:
 
 ``` erlang
 
@@ -57,7 +57,7 @@ Contacts =
                     verified = #{source => gut_feeling, "confidence" => "high"},
                     sms_capable = true},
      #email_contact{address = "alice@company.org", domain = "company.org"}],
-Json = contacts_to_json(Contacts).
+Json = contacts_to_json(Contacts),
 io:format("~p~n", [Json]).
 
 > <<"[{\"domain\":\"example.com\",\"address\":\"john.doe@example.com\",\"verified\":{\"source\":\"one_time_code\",\"code\":\"123456\"}},{\"number\":\"+1-555-123-4567\",\"verified\":{\"source\":\"gut_feeling\",\"confidence\":\"high\"},\"sms_capable\":true},{\"domain\":\"company.org\",\"address\":\"alice@company.org\"}]">>
@@ -66,3 +66,11 @@ io:format("~p~n", [Json]).
 {ok, Contacts} = json_to_contacts(Json).
 
 ```
+
+And get detailed error messages when the data and types doesn't match:
+
+```erlang
+
+BadSourceJson = <<"[{\"number\":\"+1-555-123-4567\",\"verified\":{\"source\":\"a_bad_source\",\"confidence\":\"high\"},\"sms_capable\":true}]">>.
+
+{error, [#ed_error{...}]} =  json_to_contacts(BadSourceJson).

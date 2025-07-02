@@ -476,9 +476,6 @@ from_json(_TypeInfo, {literal, Literal} = T, Value) ->
                         location = [],
                         ctx = #{type => T, value => Value}}]}
     end;
-from_json(TypeInfo, {type, TypeName}, Json) when is_atom(TypeName) ->
-    %% FIXME: For simple types without arity, default to 0
-    type_from_json(TypeInfo, TypeName, Json);
 from_json(TypeInfo, {type, TypeName, TypeArity}, Json) when is_atom(TypeName) ->
     type_from_json(TypeInfo, TypeName, TypeArity, [], Json);
 from_json(TypeInfo, {union, _} = T, Json) ->
