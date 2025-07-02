@@ -2,7 +2,7 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--include("../include/record_type_introspect.hrl").
+-include("../include/erldantic.hrl").
 
 -type atom_map() :: #{a1 := integer(), atom() => atom()}.
 -type atom_map2() :: #{a1 => 1, atom() => atom()}.

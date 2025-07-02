@@ -3,7 +3,8 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -include("external_type.hrl").
--include("../include/record_type_introspect.hrl").
+-include("../include/erldantic.hrl").
+-include("../include/erldantic_internal.hrl").
 
 -type int_result() :: external_type:result_t(integer()).
 

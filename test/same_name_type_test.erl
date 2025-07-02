@@ -2,7 +2,8 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--include("../include/record_type_introspect.hrl").
+-include("../include/erldantic.hrl").
+-include("../include/erldantic_internal.hrl").
 
 -type result() :: result(integer()).
 -type result(ResultType) :: #{result => ResultType, errors => [atom()]}.

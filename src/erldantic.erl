@@ -1,6 +1,8 @@
 -module(erldantic).
 
--include("../include/record_type_introspect.hrl").
+-include("../include/erldantic.hrl").
+-include("../include/erldantic_internal.hrl").
+
 
 -type type_info() :: #{a_type_reference() => a_type()}.
 -type var_type() :: {VarName :: atom(), a_type()}.

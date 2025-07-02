@@ -7,7 +7,8 @@
               {erldantic_json, record_to_json, 3},
               {erldantic_json, record_from_json, 3}]).
 
--include("../include/record_type_introspect.hrl").
+-include("../include/erldantic.hrl").
+-include("../include/erldantic_internal.hrl").
 
 %% API
 -spec type_to_json(Module :: module(), TypeName :: atom(), Value :: dynamic()) ->
