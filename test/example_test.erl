@@ -2,6 +2,12 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
+-ifdef(OTP_RELEASE).
+
+-if(?OTP_RELEASE >= 27).
+
+%% Using json.erl in this module.
+
 -record(email_contact, {address, verified, domain}).
 -record(phone_contact, {number, verified, sms_capable}).
 
@@ -40,3 +46,6 @@ json_to_contacts(Json) ->
 contacts_to_json(Contacts) ->
     {ok, Encodeable} = erldantic_json:type_to_json(?MODULE, contacts, 0, Contacts),
     iolist_to_binary(json:encode(Encodeable)).
+
+-endif.
+-endif.
