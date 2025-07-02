@@ -17,7 +17,7 @@
                    sms_capable :: boolean()}.
 -type contacts() :: [email_contact() | phone_contact()].
 
-example_test() ->
+example_json_roundtrip_test() ->
     Contacts =
         [#email_contact{address = "john.doe@example.com",
                         verified = #{source => one_time_code, "code" => "123456"},
@@ -31,7 +31,7 @@ example_test() ->
     %% io:format("JSON Output: ~p~n", [Json]),
     ?assertEqual({ok, Contacts}, json_to_contacts(Json)).
 
--spec json_to_contacts(binary()) -> contacts().
+-spec json_to_contacts(binary()) -> {ok, contacts()}.
 json_to_contacts(Json) ->
     Decoded = json:decode(Json),
     erldantic_json:type_from_json(?MODULE, contacts, 0, Decoded).
