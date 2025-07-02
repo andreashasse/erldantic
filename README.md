@@ -31,16 +31,17 @@ Given these types:
 and some helper functions:
 
 ```erlang
-
--spec json_to_contacts(binary()) -> contacts().
+-spec json_to_contacts(binary()) -> {ok, contacts()} | {error, [erldantic:error()]}.
 json_to_contacts(Json) ->
     Decoded = json:decode(Json),
     erldantic_json:type_from_json(?MODULE, contacts, 0, Decoded).
 
--spec contacts_to_json(contacts()) -> binary().
+-spec contacts_to_json(contacts()) -> binary() | {error, [erldantic:error()]}.
 contacts_to_json(Contacts) ->
-    {ok, Encodeable} = erldantic_json:type_to_json(?MODULE, contacts, 0, Contacts),
-    iolist_to_binary(json:encode(Encodeable)).
+    maybe
+        {ok, Encodeable} ?= erldantic_json:type_to_json(?MODULE, contacts, 0, Contacts),
+        iolist_to_binary(json:encode(Encodeable))
+    end.
 ```
 
 
