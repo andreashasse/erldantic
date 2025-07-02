@@ -28,7 +28,7 @@ example_test() ->
          #email_contact{address = "alice@company.org", domain = "company.org"}],
 
     Json = contacts_to_json(Contacts),
-    a = io:format("JSON Output: ~p~n", [Json]),
+    %% io:format("JSON Output: ~p~n", [Json]),
     ?assertEqual({ok, Contacts}, json_to_contacts(Json)).
 
 -spec json_to_contacts(binary()) -> contacts().
