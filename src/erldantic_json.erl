@@ -1,32 +1,28 @@
 -module(erldantic_json).
 
--export([type_to_json/4, type_from_json/4, record_to_json/3, record_from_json/3]).
+-export([type_to_json/3, type_from_json/3, record_to_json/3, record_from_json/3]).
 
--ignore_xref([{erldantic_json, type_to_json, 4},
-              {erldantic_json, type_from_json, 4},
+-ignore_xref([{erldantic_json, type_to_json, 3},
+              {erldantic_json, type_from_json, 3},
               {erldantic_json, record_to_json, 3},
               {erldantic_json, record_from_json, 3}]).
 
 -include("../include/record_type_introspect.hrl").
 
 %% API
--spec type_to_json(Module :: module(),
-                   TypeName :: atom(),
-                   TypeArity :: integer(),
-                   Value :: dynamic()) ->
+-spec type_to_json(Module :: module(), TypeName :: atom(), Value :: dynamic()) ->
                       {ok, json:encode_value()} | {error, [erldantic:error()]}.
-type_to_json(Module, TypeName, TypeArity, Value)
-    when is_atom(Module) andalso is_atom(TypeName) andalso is_integer(TypeArity) ->
+type_to_json(Module, TypeName, Value) when is_atom(Module) andalso is_atom(TypeName) ->
+    TypeArity = 0,
     TypeRef = {type, TypeName, TypeArity},
     to_json_no_pt(Module, TypeRef, Value).
 
 -spec type_from_json(Module :: module(),
                      TypeName :: atom(),
-                     TypeArity :: integer(),
                      Json :: json:decode_value()) ->
                         {ok, dynamic()} | {error, [erldantic:error()]}.
-type_from_json(Module, TypeName, TypeArity, Json)
-    when is_atom(Module) andalso is_atom(TypeName) andalso is_integer(TypeArity) ->
+type_from_json(Module, TypeName, Json) when is_atom(Module) andalso is_atom(TypeName) ->
+    TypeArity = 0,
     TypeRef = {type, TypeName, TypeArity},
     from_json_no_pt(Module, TypeRef, Json).
 
@@ -482,7 +478,7 @@ from_json(_TypeInfo, {literal, Literal} = T, Value) ->
     end;
 from_json(TypeInfo, {type, TypeName}, Json) when is_atom(TypeName) ->
     %% FIXME: For simple types without arity, default to 0
-    type_from_json(TypeInfo, TypeName, 0, [], Json);
+    type_from_json(TypeInfo, TypeName, Json);
 from_json(TypeInfo, {type, TypeName, TypeArity}, Json) when is_atom(TypeName) ->
     type_from_json(TypeInfo, TypeName, TypeArity, [], Json);
 from_json(TypeInfo, {union, _} = T, Json) ->

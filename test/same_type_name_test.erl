@@ -83,8 +83,8 @@ map1_from_json_bad_test() ->
 
 -spec from_json_result_1(term()) -> map_result().
 from_json_result_1(Data) ->
-    erldantic_json:type_from_json(?MODULE, map_result, 0, Data).
+    erldantic_json:type_from_json(?MODULE, map_result, Data).
 
 -spec to_json_result_1(map_result()) -> json:encode_value().
 to_json_result_1(Data) ->
-    erldantic_json:type_to_json(?MODULE, map_result, 0, Data).
+    erldantic_json:type_to_json(?MODULE, map_result, Data).

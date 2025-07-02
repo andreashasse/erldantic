@@ -133,45 +133,45 @@ from_json_mandatory_type_map_bad_test() ->
 -spec to_json_mandatory_type_map(term()) ->
                                     {ok, mandatory_type_map()} | {error, [erldantic:error()]}.
 to_json_mandatory_type_map(Data) ->
-    erldantic_json:type_to_json(?MODULE, mandatory_type_map, 0, Data).
+    erldantic_json:type_to_json(?MODULE, mandatory_type_map, Data).
 
 -spec to_json_atom_map(term()) -> {ok, atom_map()} | {error, [erldantic:error()]}.
 to_json_atom_map(Data) ->
-    erldantic_json:type_to_json(?MODULE, atom_map, 0, Data).
+    erldantic_json:type_to_json(?MODULE, atom_map, Data).
 
 -spec to_json_atom_map2(term()) -> {ok, atom_map2()} | {error, [erldantic:error()]}.
 to_json_atom_map2(Data) ->
-    erldantic_json:type_to_json(?MODULE, atom_map2, 0, Data).
+    erldantic_json:type_to_json(?MODULE, atom_map2, Data).
 
 -spec to_json_atom_map3(term()) -> {ok, atom_map3()} | {error, [erldantic:error()]}.
 to_json_atom_map3(Data) ->
-    erldantic_json:type_to_json(?MODULE, atom_map3, 0, Data).
+    erldantic_json:type_to_json(?MODULE, atom_map3, Data).
 
 -spec to_json_type_shaddow_literal_map(term()) ->
                                           {ok, type_shaddow_literal_map()} |
                                           {error, [erldantic:error()]}.
 to_json_type_shaddow_literal_map(Data) ->
-    erldantic_json:type_to_json(?MODULE, type_shaddow_literal_map, 0, Data).
+    erldantic_json:type_to_json(?MODULE, type_shaddow_literal_map, Data).
 
 -spec from_json_atom_map(term()) -> {ok, atom_map()} | {error, [erldantic:error()]}.
 from_json_atom_map(Data) ->
-    erldantic_json:type_from_json(?MODULE, atom_map, 0, Data).
+    erldantic_json:type_from_json(?MODULE, atom_map, Data).
 
 -spec from_json_atom_map2(term()) -> {ok, atom_map2()} | {error, [erldantic:error()]}.
 from_json_atom_map2(Data) ->
-    erldantic_json:type_from_json(?MODULE, atom_map2, 0, Data).
+    erldantic_json:type_from_json(?MODULE, atom_map2, Data).
 
 -spec from_json_atom_map3(term()) -> {ok, atom_map3()} | {error, [erldantic:error()]}.
 from_json_atom_map3(Data) ->
-    erldantic_json:type_from_json(?MODULE, atom_map3, 0, Data).
+    erldantic_json:type_from_json(?MODULE, atom_map3, Data).
 
 -spec from_json_type_shaddow_literal_map(term()) ->
                                             {ok, type_shaddow_literal_map()} |
                                             {error, [erldantic:error()]}.
 from_json_type_shaddow_literal_map(Data) ->
-    erldantic_json:type_from_json(?MODULE, type_shaddow_literal_map, 0, Data).
+    erldantic_json:type_from_json(?MODULE, type_shaddow_literal_map, Data).
 
 -spec from_json_mandatory_type_map(term()) ->
                                       {ok, mandatory_type_map()} | {error, [erldantic:error()]}.
 from_json_mandatory_type_map(Data) ->
-    erldantic_json:type_from_json(?MODULE, mandatory_type_map, 0, Data).
+    erldantic_json:type_from_json(?MODULE, mandatory_type_map, Data).
