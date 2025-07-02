@@ -2,77 +2,67 @@
 
 This is Pydantic, but for Erlang. Hopefully for Elixir and Gleam in the future!
 
-## TODO PoC
-- [x] All straight foward types
-  - [X] List
-  - [x] Float
-  - [x] Atom
-  - [x] Boolean
-  - [x] Integer range
-  - [x] non_neg_integer
-  - [x] pos_integer
-  - [x] neg_integer
-  - [x] nonempty_string
-  - [x] binary
-    - [x] Binary should stay binary. Don't allow list when doing to_json
-- [X] Path in error messages
-- [x] Remote type
-  - [x] Missing
-  - [x] Not Missing
-- [x] pass not map to map type
-- [x] pass binary when expecting string
-- [x] skip (undefined) in weird places.
-- [x] #{atom() => string()}
-  - [x] There are no test for from_json in map_test.erl
-  - [x] 'undefined' as key in map
-- [ ] Types with vars
-  - [ ] Two types with same name but different arity.
-  - [ ] Tests for all non primitive types
-    - [ ] Record
-    - [ ] Map
-    - [ ] Union
-    - [ ] list
-    - [ ] remote type
-    - [ ] Literal?
-- [ ] Error message on not supported json types:
-  - [ ] tuple, pid, port, fun, reference
-- [ ] Error message on not debug_info compiled module
-- [ ] What is #a_type and when should I use it?
+Prldantic provides type-safe JSON serialization and deserialization for Records and all Erlang types that can be converted to json, converting between Erlang's type system and data expected by the json.erl module.
+It provides detailed errors when data and types doesn't match.
+
+## Usage
+
+Given these types:
+
+```erlang
+
+-record(email_contact, {address, verified, domain}).
+-record(phone_contact, {number, verified, sms_capable}).
+
+-type verified() ::
+    #{source := one_time_code | gut_feeling, string() => string()} | undefined.
+-type email_contact() ::
+    #email_contact{address :: string(),
+                   verified :: verified(),
+                   domain :: string()}.
+-type phone_contact() ::
+    #phone_contact{number :: string(),
+                   verified :: verified(),
+                   sms_capable :: boolean()}.
+-type contacts() :: [email_contact() | phone_contact()].
+
+```
+
+and some helper functions:
+
+```erlang
+-spec json_to_contacts(binary()) -> {ok, contacts()} | {error, [erldantic:error()]}.
+json_to_contacts(Json) ->
+    Decoded = json:decode(Json),
+    erldantic_json:type_from_json(?MODULE, contacts, 0, Decoded).
+
+-spec contacts_to_json(contacts()) -> binary() | {error, [erldantic:error()]}.
+contacts_to_json(Contacts) ->
+    maybe
+        {ok, Encodeable} ?= erldantic_json:type_to_json(?MODULE, contacts, 0, Contacts),
+        iolist_to_binary(json:encode(Encodeable))
+    end.
+```
 
 
-## TODO PoC Not parse transform
-- [x] Module that doens't use parse transform, but manually calls from to_json from_json function in this lib.
+One can do this:
 
-## TODO Release
-- [ ]
-- [ ] Document special behaviour for `undefined`.
-- [ ] All other types expect `pid()`, `port()`, `Fun` and `reference()`.
-    - [ ] Number? or will it always show up as integer()|float()?
-    - [ ] non_empty ... binary, bitstring,
-    - [ ] any()/term() and dynamic()? none()?
-- [ ] Test error message path with Adams library for nested access
+``` erlang
 
-## TODO If I go with the parse transform:
-- [ ] Add type spec to generated functions.
+Contacts =
+    [#email_contact{address = "john.doe@example.com",
+                    verified = #{source => one_time_code, "code" => "123456"},
+                    domain = "example.com"},
+     #phone_contact{number = "+1-555-123-4567",
+                    verified = #{source => gut_feeling, "confidence" => "high"},
+                    sms_capable = true},
+     #email_contact{address = "alice@company.org", domain = "company.org"}],
+Json = contacts_to_json(Contacts).
+io:format("~p~n", [Json]).
 
-## TODO PoC FastApi
-- [ ] How should I get example values into the mix? Some macro ?spec(example = 2, type = integer) that I write to integer and keep the example separate? Can that be done without IDEs going bananas?
-  - [ ] An alternative is to add an example value to the router in the PoC
-- [ ] Get types from function specs.
-- [ ] Declerative router for Elli/Cowboy
-- [ ] OpenAPI spec
-
-## TODO Later
-- [ ] Handle references beween modules: Can I get the same info by looking at a beam with debug_info? or should I export a __erldantic_info__/0 function?
-- [ ] Only generate to_json from_json if not pressent. Call to_json / from_json instead of looking up type in type_info. This will allow user to override generate for specific DTs.
-- [ ] to/from yaml
-- [ ] to property based test generator
-
-## Not in scope for now
-- [ ] to/from Dynamo DB
-- [ ] to/from grpc
-- [ ] to/from sql
+> <<"[{\"domain\":\"example.com\",\"address\":\"john.doe@example.com\",\"verified\":{\"source\":\"one_time_code\",\"code\":\"123456\"}},{\"number\":\"+1-555-123-4567\",\"verified\":{\"source\":\"gut_feeling\",\"confidence\":\"high\"},\"sms_capable\":true},{\"domain\":\"company.org\",\"address\":\"alice@company.org\"}]">>
 
 
-## Build
-    $ rebar3 compile
+{ok, Contacts} = json_to_contacts(Json).
+
+```
