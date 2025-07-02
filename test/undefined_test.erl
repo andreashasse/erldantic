@@ -133,28 +133,28 @@ from_json(Json) ->
 %% Helper functions for map type
 -spec to_json_map(test_map()) -> {ok, map()} | {error, [erldantic:error()]}.
 to_json_map(Map) ->
-    erldantic_json:type_to_json(?MODULE, test_map, 0, Map).
+    erldantic_json:type_to_json(?MODULE, test_map, Map).
 
 -spec from_json_map(map()) -> {ok, test_map()} | {error, [erldantic:error()]}.
 from_json_map(Json) ->
-    erldantic_json:type_from_json(?MODULE, test_map, 0, Json).
+    erldantic_json:type_from_json(?MODULE, test_map, Json).
 
 %% Helper functions for list type
 -spec to_json_list(maybe_int_list()) -> {ok, list()} | {error, [erldantic:error()]}.
 to_json_list(List) ->
-    erldantic_json:type_to_json(?MODULE, maybe_int_list, 0, List).
+    erldantic_json:type_to_json(?MODULE, maybe_int_list, List).
 
 -spec from_json_list(list()) -> {ok, maybe_int_list()} | {error, [erldantic:error()]}.
 from_json_list(Json) ->
-    erldantic_json:type_from_json(?MODULE, maybe_int_list, 0, Json).
+    erldantic_json:type_from_json(?MODULE, maybe_int_list, Json).
 
 %% Helper functions for maybe_string type
 -spec to_json_maybe_string(maybe_string()) ->
                               {ok, binary() | undefined} | {error, [erldantic:error()]}.
 to_json_maybe_string(MaybeString) ->
-    erldantic_json:type_to_json(?MODULE, maybe_string, 0, MaybeString).
+    erldantic_json:type_to_json(?MODULE, maybe_string, MaybeString).
 
 -spec from_json_maybe_string(binary() | undefined) ->
                                 {ok, maybe_string()} | {error, [erldantic:error()]}.
 from_json_maybe_string(Json) ->
-    erldantic_json:type_from_json(?MODULE, maybe_string, 0, Json).
+    erldantic_json:type_from_json(?MODULE, maybe_string, Json).

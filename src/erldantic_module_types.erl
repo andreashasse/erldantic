@@ -4,7 +4,8 @@
 
 -type module_version() :: term().
 
--include("../include/record_type_introspect.hrl").
+-include("../include/erldantic.hrl").
+
 
 %% API
 -spec get(Module :: module()) ->

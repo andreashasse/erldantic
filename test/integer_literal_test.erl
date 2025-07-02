@@ -2,7 +2,7 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--include("../include/record_type_introspect.hrl").
+-include("../include/erldantic.hrl").
 
 -type one() :: 1.
 -type courses() :: one() | 2 | 5.
@@ -122,28 +122,28 @@ validate_integer_literal_test() ->
 
 -spec to_json_one(one()) -> {ok, json:encode_value()} | {error, [erldantic:error()]}.
 to_json_one(Data) ->
-    erldantic_json:type_to_json(?MODULE, one, 0, Data).
+    erldantic_json:type_to_json(?MODULE, one, Data).
 
 -spec to_json_courses(courses()) ->
                          {ok, json:encode_value()} | {error, [erldantic:error()]}.
 to_json_courses(Data) ->
-    erldantic_json:type_to_json(?MODULE, courses, 0, Data).
+    erldantic_json:type_to_json(?MODULE, courses, Data).
 
 -spec to_json_game(game_state()) ->
                       {ok, json:encode_value()} | {error, [erldantic:error()]}.
 to_json_game(Data) ->
-    erldantic_json:type_to_json(?MODULE, game_state, 0, Data).
+    erldantic_json:type_to_json(?MODULE, game_state, Data).
 
 -spec from_json_one(json:encode_value()) -> {ok, one()} | {error, [erldantic:error()]}.
 from_json_one(Json) ->
-    erldantic_json:type_from_json(?MODULE, one, 0, Json).
+    erldantic_json:type_from_json(?MODULE, one, Json).
 
 -spec from_json_courses(json:encode_value()) ->
                            {ok, courses()} | {error, [erldantic:error()]}.
 from_json_courses(Json) ->
-    erldantic_json:type_from_json(?MODULE, courses, 0, Json).
+    erldantic_json:type_from_json(?MODULE, courses, Json).
 
 -spec from_json_game(json:encode_value()) ->
                         {ok, game_state()} | {error, [erldantic:error()]}.
 from_json_game(Json) ->
-    erldantic_json:type_from_json(?MODULE, game_state, 0, Json).
+    erldantic_json:type_from_json(?MODULE, game_state, Json).

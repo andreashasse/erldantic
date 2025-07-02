@@ -2,7 +2,7 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--include("../include/record_type_introspect.hrl").
+-include("../include/erldantic.hrl").
 
 -type number_data() :: #{name := string(), value := number()}.
 
@@ -44,9 +44,9 @@ validate_number_test() ->
 
 -spec to_json(number_data()) -> {ok, json:encode_value()} | {error, [erldantic:error()]}.
 to_json(Data) ->
-    erldantic_json:type_to_json(?MODULE, number_data, 0, Data).
+    erldantic_json:type_to_json(?MODULE, number_data, Data).
 
 -spec from_json(json:encode_value()) ->
                    {ok, number_data()} | {error, [erldantic:error()]}.
 from_json(Json) ->
-    erldantic_json:type_from_json(?MODULE, number_data, 0, Json).
+    erldantic_json:type_from_json(?MODULE, number_data, Json).

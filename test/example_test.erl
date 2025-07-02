@@ -2,6 +2,8 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
+-include("../include/erldantic.hrl").
+
 -ifdef(OTP_RELEASE).
 
 -if(?OTP_RELEASE >= 27).
@@ -35,17 +37,24 @@ example_json_roundtrip_test() ->
 
     Json = contacts_to_json(Contacts),
     %% io:format("JSON Output: ~p~n", [Json]),
-    ?assertEqual({ok, Contacts}, json_to_contacts(Json)).
+    ?assertMatch({ok, Contacts}, json_to_contacts(Json)).
+
+bad_source_json_test() ->
+    BadSourceJson =
+        <<"[{\"number\":\"+1-555-123-4567\",
+             \"verified\":{\"source\":\"a_bad_source\"},
+             \"sms_capable\":true}]">>,
+    ?assertMatch({error, [#ed_error{}]}, json_to_contacts(BadSourceJson)).
 
 -spec json_to_contacts(binary()) -> {ok, contacts()} | {error, [erldantic:error()]}.
 json_to_contacts(Json) ->
     Decoded = json:decode(Json),
-    erldantic_json:type_from_json(?MODULE, contacts, 0, Decoded).
+    erldantic_json:type_from_json(?MODULE, contacts, Decoded).
 
 -spec contacts_to_json(contacts()) -> binary() | {error, [erldantic:error()]}.
 contacts_to_json(Contacts) ->
     maybe
-        {ok, Encodeable} ?= erldantic_json:type_to_json(?MODULE, contacts, 0, Contacts),
+        {ok, Encodeable} ?= erldantic_json:type_to_json(?MODULE, contacts, Contacts),
         iolist_to_binary(json:encode(Encodeable))
     end.
 

@@ -23,15 +23,3 @@
         orelse PrimaryType =:= module).
 -define(is_predefined_int_range(_Type),
         _Type =:= non_neg_integer orelse _Type =:= neg_integer orelse _Type =:= pos_integer).
-
--record(ed_error,
-        {location :: [string() | atom()],
-         type ::
-             type_mismatch |
-             no_match |
-             missing_data |
-             missing_type |
-             type_not_supported |
-             module_types_not_found |
-             not_matched_fields,
-         ctx :: term()}).

@@ -2,7 +2,8 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--include("../include/record_type_introspect.hrl").
+-include("../include/erldantic.hrl").
+-include("../include/erldantic_internal.hrl").
 
 -record(result, {value, errors = [] :: [atom()]}).
 
@@ -40,8 +41,8 @@ map1_from_json_test() ->
 
 -spec from_json_result_1(term()) -> int_result().
 from_json_result_1(Data) ->
-    erldantic_json:type_from_json(?MODULE, int_result, 0, Data).
+    erldantic_json:type_from_json(?MODULE, int_result, Data).
 
 -spec to_json_result_1(int_result()) -> json:encode_value().
 to_json_result_1(Data) ->
-    erldantic_json:type_to_json(?MODULE, int_result, 0, Data).
+    erldantic_json:type_to_json(?MODULE, int_result, Data).

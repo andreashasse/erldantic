@@ -2,7 +2,7 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--include("../include/record_type_introspect.hrl").
+-include("../include/erldantic.hrl").
 
 -type nonempty_user() :: #{name := nonempty_string(), email := nonempty_string()}.
 
@@ -33,9 +33,9 @@ validate_nonempty_string_test() ->
 -spec to_json(nonempty_user()) ->
                  {ok, json:encode_value()} | {error, [erldantic:error()]}.
 to_json(User) ->
-    erldantic_json:type_to_json(?MODULE, nonempty_user, 0, User).
+    erldantic_json:type_to_json(?MODULE, nonempty_user, User).
 
 -spec from_json(json:encode_value()) ->
                    {ok, nonempty_user()} | {error, [erldantic:error()]}.
 from_json(Json) ->
-    erldantic_json:type_from_json(?MODULE, nonempty_user, 0, Json).
+    erldantic_json:type_from_json(?MODULE, nonempty_user, Json).
