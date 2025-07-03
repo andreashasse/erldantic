@@ -5,14 +5,13 @@
 -include("../include/erldantic.hrl").
 -include("../include/erldantic_internal.hrl").
 
-
 -type int_result() :: result(integer()).
 %-type map_result_2() :: result(#{atom() => integer()}, atom()).
 -type result(ResultType) :: #{result => ResultType, errors => [atom()]}.
 
 type_in_form_test() ->
     {ok, Types} = erldantic_abstract_code:types_in_module(?MODULE),
-    ?assertEqual(#a_type{type = {user_type_ref, result, [{type, integer}]}, vars = []},
+    ?assertEqual({user_type_ref, result, [{type, integer}]},
                  maps:get({type, int_result, 0}, Types)),
 
     ?assertEqual(#a_type{type =

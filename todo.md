@@ -22,11 +22,11 @@
   - [x] There are no test for from_json in map_test.erl
   - [x] 'undefined' as key in map
 - [ ] Types with vars
-  - [ ] Two types with same name but different arity.
+  - [x] Two types with same name but different arity.
   - [ ] Tests for all non primitive types
-    - [ ] Record
-    - [ ] Map
-    - [ ] Union
+    - [x] Record
+    - [x] Map
+    - [x] Union
     - [ ] list
     - [ ] remote type
     - [ ] Literal?
@@ -34,7 +34,6 @@
   - [ ] tuple, pid, port, fun, reference
 - [ ] Error message on not debug_info compiled module
 - [ ] What is #a_type and when should I use it?
-
 
 ## TODO PoC Not parse transform
 - [x] Module that doens't use parse transform, but manually calls from to_json from_json function in this lib.

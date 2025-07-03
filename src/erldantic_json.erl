@@ -119,8 +119,6 @@ do_to_json(TypeInfo, {list, Type}, Data) when is_list(Data) ->
 do_to_json(TypeInfo, {type, TypeName, TypeArity}, Data) when is_atom(TypeName) ->
     %% FIXME: For simple types without arity, default to 0
     data_to_json(TypeInfo, TypeName, TypeArity, Data);
-do_to_json(TypeInfo, #a_type{type = Type, vars = _ArgsNames}, Data) ->
-    do_to_json(TypeInfo, Type, Data);
 do_to_json(TypeInfo, #a_map{} = Map, Data) ->
     map_to_json(TypeInfo, Map, Data);
 do_to_json(_TypeInfo, #a_tuple{} = T, _Data) ->
@@ -444,8 +442,6 @@ from_json(TypeInfo, {record_ref, RecordName, TypeArgs}, Json) when is_atom(Recor
     record_from_json(TypeInfo, RecordName, Json, TypeArgs);
 from_json(TypeInfo, #a_map{fields = Fields}, Json) ->
     map_from_json(TypeInfo, Fields, Json);
-from_json(TypeInfo, #a_type{type = Type, vars = []}, Json) ->
-    from_json(TypeInfo, Type, Json);
 from_json(TypeInfo, {user_type_ref, TypeName, TypeArgs}, Json) when is_atom(TypeName) ->
     type_from_json(TypeInfo, TypeName, length(TypeArgs), TypeArgs, Json);
 from_json(TypeInfo, {nonempty_list, Type}, Data) ->
@@ -667,7 +663,7 @@ arg_names(_) ->
                            erldantic:a_type().
 type_replace_vars(_TypeInfo, {var, Name}, NamedTypes) ->
     maps:get(Name, NamedTypes, {type, term});
-type_replace_vars(TypeInfo, #a_type{type = Type, vars = _Vars}, NamedTypes) ->
+type_replace_vars(TypeInfo, #a_type{type = Type}, NamedTypes) ->
     case Type of
         %% FIXME: lists and ranges?
         {union, Types} ->
