@@ -719,9 +719,7 @@ type_replace_vars(TypeInfo, #a_type{type = Type}, NamedTypes) ->
                     erlang:error(Err)
             end;
         {list, ListType} ->
-            {list, type_replace_vars(TypeInfo, ListType, NamedTypes)};
-        _ ->
-            Type
+            {list, type_replace_vars(TypeInfo, ListType, NamedTypes)}
     end;
 type_replace_vars(_TypeInfo, #a_rec{fields = Fields} = Rec, NamedTypes) ->
     Rec#a_rec{fields =
