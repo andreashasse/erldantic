@@ -705,6 +705,21 @@ type_replace_vars(TypeInfo, #a_type{type = Type}, NamedTypes) ->
                 #{} ->
                     erlang:error({missing_type, {record, RecordName}})
             end;
+        #remote_type{mfargs = {Module, TypeName, Args}} ->
+            case erldantic_module_types:get(Module) of
+                {ok, TypeInfo} ->
+                    TypeArity = length(Args),
+                    case TypeInfo of
+                        #{{type, TypeName, TypeArity} := Type} ->
+                            type_replace_vars(TypeInfo, Type, NamedTypes);
+                        #{} ->
+                            erlang:error({missing_type, {type, TypeName}})
+                    end;
+                {error, _} = Err ->
+                    erlang:error(Err)
+            end;
+        {list, ListType} ->
+            {list, type_replace_vars(TypeInfo, ListType, NamedTypes)};
         _ ->
             Type
     end;

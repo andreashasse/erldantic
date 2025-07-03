@@ -21,15 +21,14 @@
 - [x] #{atom() => string()}
   - [x] There are no test for from_json in map_test.erl
   - [x] 'undefined' as key in map
-- [ ] Types with vars
+- [x] Types with vars
   - [x] Two types with same name but different arity.
   - [ ] Tests for all non primitive types
     - [x] Record
     - [x] Map
     - [x] Union
-    - [ ] list
-    - [ ] remote type
-    - [ ] Literal?
+    - [x] list
+    - [x] remote type
 - [ ] Error message on not supported json types:
   - [ ] tuple, pid, port, fun, reference
 - [ ] Error message on not debug_info compiled module
@@ -39,7 +38,7 @@
 - [x] Module that doens't use parse transform, but manually calls from to_json from_json function in this lib.
 
 ## TODO Release
-- [ ]
+- [ ] Run the thing on lots of modules to see if the abstract code has and types that it doesn't support.
 - [ ] Document special behaviour for `undefined`.
 - [ ] All other types expect `pid()`, `port()`, `Fun` and `reference()`.
     - [ ] Number? or will it always show up as integer()|float()?
