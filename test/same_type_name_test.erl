@@ -13,14 +13,9 @@
 
 type_in_form_test() ->
     {ok, Types} = erldantic_abstract_code:types_in_module(?MODULE),
-    ?assertEqual(#a_type{type =
-                             {user_type_ref,
-                              result,
-                              [#a_map{fields =
-                                          [{map_field_type_assoc,
-                                            {type, atom},
-                                            {type, integer}}]}]},
-                         vars = []},
+    ?assertEqual({user_type_ref,
+                  result,
+                  [#a_map{fields = [{map_field_type_assoc, {type, atom}, {type, integer}}]}]},
                  maps:get({type, map_result, 0}, Types)),
     ?assertEqual(#a_type{type = {union, [{var, 'OkType'}, {literal, error}]},
                          vars = ['OkType']},

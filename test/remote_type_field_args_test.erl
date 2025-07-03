@@ -91,6 +91,13 @@ organization_invalid_users_test() ->
     Result = to_json_organization(InvalidData),
     ?assertMatch({error, [_ | _]}, Result).
 
+organization_invalid_remote_type_test() ->
+    InvalidData =
+        #{users => [#{id => "user1", balance => 123}],
+          results => #result{value = 1, errors = []}},
+    Result = to_json_organization(InvalidData),
+    ?assertMatch({error, [_ | _]}, Result).
+
 organization_from_json_test() ->
     ValidJson =
         #{<<"users">> => [#{<<"id">> => <<"user1">>, <<"balance">> => 100}],

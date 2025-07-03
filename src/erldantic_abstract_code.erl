@@ -48,9 +48,13 @@ type_in_form({attribute, _, type, {TypeName, {type, _, _, _} = Type, Args}})
     when is_atom(TypeName) andalso is_list(Args) ->
     [FieldInfo] = field_info_to_type(Type),
     Vars = lists:map(fun({var, _, VarName}) when is_atom(VarName) -> VarName end, Args),
-    %% TODO: Might not need #a_type here.
     TypeArity = length(Args),
-    {true, {{type, TypeName, TypeArity}, #a_type{type = FieldInfo, vars = Vars}}};
+    case Vars of
+        [] ->
+            {true, {{type, TypeName, TypeArity}, FieldInfo}};
+        _ ->
+            {true, {{type, TypeName, TypeArity}, #a_type{type = FieldInfo, vars = Vars}}}
+    end;
 type_in_form({attribute, _, type, {TypeName, {_Literal, _, Value}, [] = Args}})
     when (is_atom(Value) orelse is_integer(Value)) andalso is_atom(TypeName) ->
     TypeArity = length(Args),
@@ -60,7 +64,13 @@ type_in_form({attribute, _, type, {TypeName, {user_type, _, _, _} = ReferedType,
     [FieldInfo] = field_info_to_type(ReferedType),
     Vars = lists:map(fun({var, _, VarName}) when is_atom(VarName) -> VarName end, Args),
     TypeArity = length(Args),
-    {true, {{type, TypeName, TypeArity}, #a_type{type = FieldInfo, vars = Vars}}};
+    case Vars of
+        [] ->
+            %% No vars, so we can return the type directly
+            {true, {{type, TypeName, TypeArity}, FieldInfo}};
+        _ ->
+            {true, {{type, TypeName, TypeArity}, #a_type{type = FieldInfo, vars = Vars}}}
+    end;
 type_in_form({attribute,
               _,
               type,

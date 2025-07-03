@@ -12,7 +12,7 @@
 
 type_in_form_test() ->
     {ok, Types} = erldantic_abstract_code:types_in_module(?MODULE),
-    ?assertEqual(#a_type{type = {user_type_ref, result_t, [{type, atom}]}, vars = []},
+    ?assertEqual({user_type_ref, result_t, [{type, atom}]},
                  maps:get({type, int_result, 0}, Types)),
     ?assertEqual(#a_type{type =
                              {record_ref,

@@ -6,7 +6,6 @@
 
 -include("../include/erldantic.hrl").
 
-
 %% API
 -spec get(Module :: module()) ->
              {ok, erldantic:type_info()} | {error, [erldantic:error()]}.
