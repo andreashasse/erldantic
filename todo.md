@@ -32,14 +32,16 @@
 - [ ] Error message on not supported json types:
   - [ ] tuple, pid, port, fun, reference
 - [ ] Error message on not debug_info compiled module
-- [ ] What is #a_type and when should I use it?
+- [x] What is #a_type and when should I use it?
+- [ ] Rename #a_type to #type_args
+- [ ] Cleanup erldantic internal types. Use records instead of tagged tuples. #a_type can not have any type in type field.
 
 ## TODO PoC Not parse transform
 - [x] Module that doens't use parse transform, but manually calls from to_json from_json function in this lib.
 
 ## TODO Release
 - [ ] Run the thing on lots of modules to see if the abstract code has and types that it doesn't support.
-- [ ] Document special behaviour for `undefined`.
+- [x] Document special behaviour for `undefined`.
 - [ ] All other types expect `pid()`, `port()`, `Fun` and `reference()`.
     - [ ] Number? or will it always show up as integer()|float()?
     - [ ] non_empty ... binary, bitstring,
@@ -57,10 +59,11 @@
 - [ ] OpenAPI spec
 
 ## TODO Later
-- [ ] Handle references beween modules: Can I get the same info by looking at a beam with debug_info? or should I export a __erldantic_info__/0 function?
+- [x] Handle references beween modules: Can I get the same info by looking at a beam with debug_info? or should I export a __erldantic_info__/0 function?
 - [ ] Only generate to_json from_json if not pressent. Call to_json / from_json instead of looking up type in type_info. This will allow user to override generate for specific DTs.
 - [ ] to/from yaml
 - [ ] to property based test generator
+
 
 ## Not in scope for now
 - [ ] to/from Dynamo DB
