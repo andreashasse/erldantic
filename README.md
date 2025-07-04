@@ -45,7 +45,7 @@ contacts_to_json(Contacts) ->
 ```
 
 
-One can generate do this:
+One can do this:
 
 ``` erlang
 
@@ -74,3 +74,10 @@ And get detailed error messages when the data and types doesn't match:
 BadSourceJson = <<"[{\"number\":\"+1-555-123-4567\",\"verified\":{\"source\":\"a_bad_source\",\"confidence\":\"high\"},\"sms_capable\":true}]">>.
 
 {error, [#ed_error{...}]} =  json_to_contacts(BadSourceJson).
+
+
+### Handling of `undefined`
+
+In records and mandatory maps fields ( with the `:=` operator ), the value undefined will be used when the value is missing if the type includes undefined.
+
+So, `integer() | undefined` will become undefined in records and maps mandatory fields if the value is missing and the value will not be in the json.
