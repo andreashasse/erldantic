@@ -166,7 +166,9 @@ field_info_to_type({TypeOfType, _, Type, TypeAttrs}) ->
         {type, term} ->
             [{type, term}];
         {literal, Literal} ->
-            [{literal, Literal}]
+            [{literal, Literal}];
+        {type, nil} ->
+            [{literal, []}]
     end.
 
 -spec map_field_info(term()) ->
