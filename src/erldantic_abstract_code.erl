@@ -18,11 +18,17 @@ types_in_module(Module) ->
                         location = [],
                         ctx = #{module => Module, error => Error}}]};
         FilePath ->
-            {ok, {Module, [{abstract_code, {_, Forms}}]}} =
-                beam_lib:chunks(FilePath, [abstract_code]),
-            NamedTypes = lists:filtermap(fun type_in_form/1, Forms),
-            TypeInfo = maps:from_list(NamedTypes),
-            {ok, TypeInfo}
+            case beam_lib:chunks(FilePath, [abstract_code]) of
+                {ok, {Module, [{abstract_code, {_, Forms}}]}} ->
+                    NamedTypes = lists:filtermap(fun type_in_form/1, Forms),
+                    TypeInfo = maps:from_list(NamedTypes),
+                    {ok, TypeInfo};
+                {error, beam_lib, Reason} ->
+                    {error,
+                     [#ed_error{type = beam_lib_error,
+                                location = [],
+                                ctx = #{module => Module, reason => Reason}}]}
+            end
     end.
 
 -spec type_in_form(term()) ->
@@ -66,7 +72,6 @@ type_in_form({attribute, _, type, {TypeName, {user_type, _, _, _} = ReferedType,
     TypeArity = length(Args),
     case Vars of
         [] ->
-            %% No vars, so we can return the type directly
             {true, {{type, TypeName, TypeArity}, FieldInfo}};
         _ ->
             {true, {{type, TypeName, TypeArity}, #a_type{type = FieldInfo, vars = Vars}}}
@@ -123,7 +128,6 @@ field_info_to_type({TypeOfType, _, Type, TypeAttrs}) ->
     true = is_list(TypeAttrs),
     case {TypeOfType, Type} of
         {type, record} ->
-            %% HERE
             [{atom, _, SubTypeRecordName} | TypeArgs] = TypeAttrs,
             true = is_atom(SubTypeRecordName),
             FieldTypes =
@@ -202,6 +206,9 @@ map_field_info({TypeOfType, _, Type, TypeAttrs}) ->
     end.
 
 -spec record_field_info(term()) -> {atom(), erldantic:a_type()}.
+record_field_info({record_field, _, {atom, _, FieldName}, {DefaultType, _, DefaultValue}}) when is_atom(FieldName) ->
+    %% FIXME: Handle default values in record fields. Also handle default values in typed_record_field?
+    {FieldName, {type, term}};
 record_field_info({record_field, _, {atom, _, FieldName}}) when is_atom(FieldName) ->
     {FieldName, {type, term}};
 record_field_info({typed_record_field, {record_field, _, {atom, _, FieldName}}, Type})

@@ -32,3 +32,5 @@
 
 
 %% bit strings, dynamic, none(), any(), term(), pid(), port(), reference(),
+%%
+%% Default values in record fields
