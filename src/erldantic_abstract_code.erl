@@ -20,7 +20,12 @@ types_in_module(Module) ->
         FilePath ->
             case beam_lib:chunks(FilePath, [abstract_code]) of
                 {ok, {Module, [{abstract_code, {_, Forms}}]}} ->
-                    NamedTypes = lists:filtermap(fun type_in_form/1, Forms),
+                    NamedTypes =
+                        lists:filtermap(fun(F) ->
+                                           %%io:format("F ~p~n", [F]),
+                                           type_in_form(F)
+                                        end,
+                                        Forms),
                     TypeInfo = maps:from_list(NamedTypes),
                     {ok, TypeInfo};
                 {error, beam_lib, Reason} ->
@@ -107,8 +112,8 @@ type_in_form(_) ->
     false.
 
 -spec field_info_to_type(term()) -> [erldantic:a_type()].
-field_info_to_type({ann_type, _, _Attr}) ->
-    [];
+field_info_to_type({ann_type, _, [{var, _, _VarName}, Type]}) ->
+    field_info_to_type(Type);
 field_info_to_type({atom, _, Value}) when is_atom(Value) ->
     [{literal, Value}];
 field_info_to_type({integer, _, Value}) when is_integer(Value) ->
@@ -124,8 +129,10 @@ field_info_to_type({remote_type, _, [{atom, _, Module}, {atom, _, Type}, Args]})
                   end,
                   Args),
     [#remote_type{mfargs = {Module, Type, MyArgs}}];
-field_info_to_type({TypeOfType, _, Type, TypeAttrs}) ->
-    true = is_list(TypeAttrs),
+field_info_to_type({type, _, map, any}) ->
+    %% FIXME: Add test for map()
+    [#a_map{fields = [{map_field_type_assoc, {type, term}, {type, term}}]}];
+field_info_to_type({TypeOfType, _, Type, TypeAttrs}) when is_list(TypeAttrs) ->
     case {TypeOfType, Type} of
         {type, record} ->
             [{atom, _, SubTypeRecordName} | TypeArgs] = TypeAttrs,
@@ -151,6 +158,26 @@ field_info_to_type({TypeOfType, _, Type, TypeAttrs}) ->
         {type, union} ->
             UnionFields = lists:flatmap(fun field_info_to_type/1, TypeAttrs),
             [{union, UnionFields}];
+        {type, arity} ->
+            [{range, integer, 0, 255}];
+        {type, byte} ->
+            [{range, integer, 0, 255}];
+        {type, char} ->
+            [{range, integer, 0, 16#10ffff}];
+        {type, mfa} ->
+            [#a_tuple{fields = [{type, atom}, {type, atom}, {range, integer, 0, 255}]}];
+        {type, any} ->
+            [{type, term}];
+        {type, timeout} ->
+            [{union, [{type, non_neg_integer}, {literal, infinity}]}];
+        {type, pid} ->
+            [{type, pid}];
+        {type, port} ->
+            [{type, port}];
+        {type, reference} ->
+            [{type, reference}];
+        {type, node} ->
+            [{type, atom}];
         {type, range} ->
             [{RangeType, _, Min}, {RangeType, _, Max}] = TypeAttrs,
             case {RangeType, Min, Max} of
@@ -158,8 +185,12 @@ field_info_to_type({TypeOfType, _, Type, TypeAttrs}) ->
                     [{range, RangeType, Min, Max}]
             end;
         {type, list} ->
-            [ListType] = lists:flatmap(fun field_info_to_type/1, TypeAttrs),
-            [{list, ListType}];
+            case lists:flatmap(fun field_info_to_type/1, TypeAttrs) of
+                [ListType] ->
+                    [{list, ListType}];
+                [] ->
+                    [{list, {type, term}}]
+            end;
         {type, nonempty_list} ->
             [ListType] = lists:flatmap(fun field_info_to_type/1, TypeAttrs),
             [{nonempty_list, ListType}];
@@ -187,7 +218,7 @@ map_field_info({TypeOfType, _, Type, TypeAttrs}) ->
                 [{atom, _, MapFieldName}, FieldInfo] when is_atom(MapFieldName) ->
                     [AType] = field_info_to_type(FieldInfo),
                     [{map_field_assoc, MapFieldName, AType}];
-                [{type, _, _, _} = KeyFieldInfo, ValueFieldInfo] ->
+                [KeyFieldInfo, ValueFieldInfo] ->
                     [KeyType] = field_info_to_type(KeyFieldInfo),
                     [ValueType] = field_info_to_type(ValueFieldInfo),
                     [{map_field_type_assoc, KeyType, ValueType}]
@@ -195,10 +226,11 @@ map_field_info({TypeOfType, _, Type, TypeAttrs}) ->
         {type, map_field_exact} ->
             case TypeAttrs of
                 [{atom, _, MapFieldName}, FieldInfo] ->
+                    %%                    beam_core_to_ssa:format_error(Arg1),
                     true = is_atom(MapFieldName),
                     [AType] = field_info_to_type(FieldInfo),
                     [{map_field_exact, MapFieldName, AType}];
-                [{type, _, _, _} = KeyFieldInfo, ValueFieldInfo] ->
+                [KeyFieldInfo, ValueFieldInfo] ->
                     [KeyType] = field_info_to_type(KeyFieldInfo),
                     [ValueType] = field_info_to_type(ValueFieldInfo),
                     [{map_field_type_exact, KeyType, ValueType}]
@@ -206,7 +238,8 @@ map_field_info({TypeOfType, _, Type, TypeAttrs}) ->
     end.
 
 -spec record_field_info(term()) -> {atom(), erldantic:a_type()}.
-record_field_info({record_field, _, {atom, _, FieldName}, {DefaultType, _, DefaultValue}}) when is_atom(FieldName) ->
+record_field_info({record_field, _, {atom, _, FieldName}, _Type})
+    when is_atom(FieldName) ->
     %% FIXME: Handle default values in record fields. Also handle default values in typed_record_field?
     {FieldName, {type, term}};
 record_field_info({record_field, _, {atom, _, FieldName}}) when is_atom(FieldName) ->

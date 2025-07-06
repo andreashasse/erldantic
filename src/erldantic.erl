@@ -21,7 +21,7 @@
      atom |
      number |
      term |
-     module} |
+     module | reference | pid | port} |
     {record_ref, user_type_name(), [record_field()]} |
     {user_type_ref, user_type_name(), [a_type()]} |
     {var, atom()} |
