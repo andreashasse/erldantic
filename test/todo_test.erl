@@ -23,6 +23,15 @@
 % -type my_tuple() :: tuple().
 % -type my_list() :: iolist().
 % -type my_timeout() :: timeout().
+%
+% From peer.erl
+%-type connection() ::
+        % Port :: 0..65535 |
+
+                % {inet:ip_address(), 0..65535} |
+                % standard_io.
+
+%% Tuple and funs without types needs better representation
 
 %% bit strings, dynamic, none(), any(), term(), pid(), port(), reference(),
 %%

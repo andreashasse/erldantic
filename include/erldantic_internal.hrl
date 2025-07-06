@@ -8,6 +8,7 @@
 %% FIXME: | [] does not work
 -record(a_rec, {name :: atom(), fields :: [{atom(), erldantic:a_type()}]}).
 -record(a_type, {type :: erldantic:a_type(), vars :: [atom()]}).
+-record(a_function, {args :: [erldantic:a_type()], return :: erldantic:a_type()}).
 -record(remote_type, {mfargs :: {module(), atom(), [erldantic:a_type()]}}).
 
 -define(is_primary_type(PrimaryType),

@@ -13,7 +13,7 @@ not_handled_modules() ->
                        case test_abs_code(Module) of
                            {ok, _Types} ->
                                false;
-                           {error, [#ed_error{}|_]} ->
+                           {error, [#ed_error{} | _]} ->
                                false;
                            {error, Reason} ->
                                {true, {Module, Reason}}

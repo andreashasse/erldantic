@@ -553,6 +553,12 @@ check_type_from_json(Type, Json) ->
 
 check_type_to_json(string, Json) when is_list(Json) ->
     {true, list_to_binary(Json)};
+check_type_to_json(iodata, Json) when is_binary(Json) ->
+    {true, Json};
+check_type_to_json(iodata, Json) when is_list(Json) ->
+    {true, iolist_to_binary(Json)};
+check_type_to_json(iolist, Json) when is_list(Json) ->
+    {true, iolist_to_binary(Json)};
 check_type_to_json(nonempty_string, Json) when is_list(Json), Json =/= [] ->
     case io_lib:printable_list(Json) of
         true ->

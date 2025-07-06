@@ -106,6 +106,20 @@ type_in_form({attribute,
     {true,
      {{type, TypeName, TypeArity},
       #remote_type{mfargs = {Module, RemotTypeName, MyTypeArgs}}}};
+type_in_form({attribute,
+              _,
+              type,
+              {TypeName, {ann_type, _, [{var, _, _VarName}, Type]}, [] = Args}})
+    when is_atom(TypeName) andalso is_list(Args) ->
+    [FieldInfo] = field_info_to_type(Type),
+    Vars = lists:map(fun({var, _, VarName}) when is_atom(VarName) -> VarName end, Args),
+    TypeArity = length(Args),
+    case Vars of
+        [] ->
+            {true, {{type, TypeName, TypeArity}, FieldInfo}};
+        _ ->
+            {true, {{type, TypeName, TypeArity}, #a_type{type = FieldInfo, vars = Vars}}}
+    end;
 type_in_form({attribute, _, type, _} = T) ->
     error({not_supported, T}); % TODO: Support this
 type_in_form(_) ->
@@ -117,6 +131,9 @@ field_info_to_type({ann_type, _, [{var, _, _VarName}, Type]}) ->
 field_info_to_type({atom, _, Value}) when is_atom(Value) ->
     [{literal, Value}];
 field_info_to_type({integer, _, Value}) when is_integer(Value) ->
+    [{literal, Value}];
+field_info_to_type(Op) when element(1, Op) =:= op ->
+    Value = integer_value(Op),
     [{literal, Value}];
 field_info_to_type({var, _, VarName}) when is_atom(VarName) ->
     [{var, VarName}];
@@ -132,6 +149,8 @@ field_info_to_type({remote_type, _, [{atom, _, Module}, {atom, _, Type}, Args]})
 field_info_to_type({type, _, map, any}) ->
     %% FIXME: Add test for map()
     [#a_map{fields = [{map_field_type_assoc, {type, term}, {type, term}}]}];
+field_info_to_type({type, _, tuple, any}) ->
+    [{type, tuple}];
 field_info_to_type({TypeOfType, _, Type, TypeAttrs}) when is_list(TypeAttrs) ->
     case {TypeOfType, Type} of
         {type, record} ->
@@ -158,6 +177,16 @@ field_info_to_type({TypeOfType, _, Type, TypeAttrs}) when is_list(TypeAttrs) ->
         {type, union} ->
             UnionFields = lists:flatmap(fun field_info_to_type/1, TypeAttrs),
             [{union, UnionFields}];
+        {type, Fun} when Fun =:= 'fun' orelse Fun =:= function ->
+            case TypeAttrs of
+                [] ->
+                    [{type, 'fun'}];
+                [{type, _, product, FunArgTypes}, ReturnType] ->
+                    true = is_list(FunArgTypes),
+                    AFunArgTypes = lists:flatmap(fun field_info_to_type/1, FunArgTypes),
+                    [AReturnType] = field_info_to_type(ReturnType),
+                    [#a_function{args = AFunArgTypes, return = AReturnType}]
+            end;
         {type, arity} ->
             [{range, integer, 0, 255}];
         {type, byte} ->
@@ -172,6 +201,10 @@ field_info_to_type({TypeOfType, _, Type, TypeAttrs}) when is_list(TypeAttrs) ->
             [{union, [{type, non_neg_integer}, {literal, infinity}]}];
         {type, pid} ->
             [{type, pid}];
+        {type, iodata} ->
+            [{type, iodata}];
+        {type, iolist} ->
+            [{type, iolist}];
         {type, port} ->
             [{type, port}];
         {type, reference} ->
@@ -179,11 +212,11 @@ field_info_to_type({TypeOfType, _, Type, TypeAttrs}) when is_list(TypeAttrs) ->
         {type, node} ->
             [{type, atom}];
         {type, range} ->
-            [{RangeType, _, Min}, {RangeType, _, Max}] = TypeAttrs,
-            case {RangeType, Min, Max} of
-                {integer, Min, Max} when is_integer(Min), is_integer(Max) ->
-                    [{range, RangeType, Min, Max}]
-            end;
+            [MinValue, MaxValue] = TypeAttrs,
+            Min = integer_value(MinValue),
+            Max = integer_value(MaxValue),
+            %% FIXME: check that it is a integer range
+            [{range, integer, Min, Max}];
         {type, list} ->
             case lists:flatmap(fun field_info_to_type/1, TypeAttrs) of
                 [ListType] ->
@@ -194,6 +227,9 @@ field_info_to_type({TypeOfType, _, Type, TypeAttrs}) when is_list(TypeAttrs) ->
         {type, nonempty_list} ->
             [ListType] = lists:flatmap(fun field_info_to_type/1, TypeAttrs),
             [{nonempty_list, ListType}];
+        {type, maybe_improper_list} ->
+            [A, B] = lists:flatmap(fun field_info_to_type/1, TypeAttrs),
+            [{maybe_improper_list, A, B}];
         {type, PrimaryType} when ?is_primary_type(PrimaryType) ->
             [{type, PrimaryType}];
         {type, PartailRangeInteger} when ?is_predefined_int_range(PartailRangeInteger) ->
@@ -204,6 +240,41 @@ field_info_to_type({TypeOfType, _, Type, TypeAttrs}) when is_list(TypeAttrs) ->
             [{literal, Literal}];
         {type, nil} ->
             [{literal, []}]
+    end.
+
+integer_value({integer, _, Value}) when is_integer(Value) ->
+    Value;
+integer_value({op, _, Operator, Left, Right}) ->
+    case Operator of
+        '-' ->
+            integer_value(Left) - integer_value(Right);
+        '+' ->
+            integer_value(Left) + integer_value(Right);
+        '*' ->
+            integer_value(Left) * integer_value(Right);
+        'div' ->
+            integer_value(Left) div integer_value(Right);
+        'rem' ->
+            integer_value(Left) rem integer_value(Right);
+        'band' ->
+            integer_value(Left) band integer_value(Right);
+        'bor' ->
+            integer_value(Left) bor integer_value(Right);
+        'bxor' ->
+            integer_value(Left) bxor integer_value(Right);
+        'bsl' ->
+            integer_value(Left) bsl integer_value(Right);
+        'bsr' ->
+            integer_value(Left) bsr integer_value(Right)
+    end;
+integer_value({op, _, Operator, Unary}) ->
+    case Operator of
+        '-' ->
+            -integer_value(Unary);
+        '+' ->
+            integer_value(Unary);
+        'bnot' ->
+            bnot integer_value(Unary)
     end.
 
 -spec map_field_info(term()) ->

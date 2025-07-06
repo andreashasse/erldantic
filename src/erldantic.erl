@@ -21,7 +21,14 @@
      atom |
      number |
      term |
-     module | reference | pid | port} |
+     module |
+     reference |
+     pid |
+     port |
+     iolist |
+     iodata |
+     tuple |
+     'fun'} |
     {record_ref, user_type_name(), [record_field()]} |
     {user_type_ref, user_type_name(), [a_type()]} |
     {var, atom()} |
@@ -29,11 +36,16 @@
     #a_rec{} |
     #a_tuple{} |
     #a_type{} |
+    #a_function{} |
     {union, [a_type()]} |
     {literal, term()} |
     {range, integer, integer(), integer()} |
     {list | nonempty_list, a_type()} |
+    {maybe_improper_list, a_type(), a_type()} |
     #remote_type{}.
+
+     %% Below here need better representation
+
 -type a_type_reference() ::
     {record, atom()} |
     {record_ref, atom()} |
