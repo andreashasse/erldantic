@@ -1,7 +1,5 @@
 -module(list_arg_type_test).
 
--include_lib("erldantic/include/erldantic.hrl").
--include_lib("erldantic/include/erldantic_internal.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
 -type int_result() :: result(integer()).

@@ -32,8 +32,18 @@ jobs:
       - name: Setup Erlang/OTP
         uses: erlef/setup-beam@v1
         with:
-          otp-version: '27'
+          otp-version: '27.3'
           rebar3-version: '3.25'
+
+      - name: Download and Setup ELP
+        run: |
+          mkdir -p bin
+          wget -q 'https://github.com/WhatsApp/erlang-language-platform/releases/download/2025-07-08/elp-linux-x86_64-unknown-linux-gnu-otp-27.3.tar.gz' -O elp.tar.gz
+          tar -xzf elp.tar.gz
+          mv elp bin/
+          echo "${{ github.workspace }}/bin" >> $GITHUB_PATH
+          echo "ELP installed at ${{ github.workspace }}/bin/elp"
+
 
       - name: Install dependencies
         run: rebar3 get-deps
@@ -43,26 +53,25 @@ jobs:
         uses: anthropics/claude-code-action@beta
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          
+
           # Optional: Specify model (defaults to Claude Sonnet 4, uncomment for Claude Opus 4)
           # model: "claude-opus-4-20250514"
-          
+
           # Optional: Customize the trigger phrase (default: @claude)
           # trigger_phrase: "/claude"
-          
+
           # Optional: Trigger when specific user is assigned to an issue
           # assignee_trigger: "claude-bot"
-          
+
           # Optional: Allow Claude to run specific commands
-          allowed_tools: "Bash(make build-test),Bash(rebar3 *)"
-          
+          allowed_tools: "Bash(make build-test),Bash(make format),Bash(rebar3 *)"
+
           # Optional: Add custom instructions for Claude to customize its behavior for your project
           # custom_instructions: |
           #   Follow our coding standards
           #   Ensure all new code has tests
           #   Use TypeScript for new files
-          
+
           # Optional: Custom environment variables for Claude
           # claude_env: |
           #   NODE_ENV: test
-

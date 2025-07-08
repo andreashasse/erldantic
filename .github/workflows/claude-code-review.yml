@@ -31,6 +31,15 @@ jobs:
           otp-version: '27'
           rebar3-version: '3.25'
 
+      - name: Download and Setup ELP
+        run: |
+          mkdir -p bin
+          wget -q 'https://github.com/WhatsApp/erlang-language-platform/releases/download/2025-07-08/elp-linux-x86_64-unknown-linux-gnu-otp-27.3.tar.gz' -O elp.tar.gz
+          tar -xzf elp.tar.gz
+          mv elp bin/
+          echo "${{ github.workspace }}/bin" >> $GITHUB_PATH
+          echo "ELP installed at ${{ github.workspace }}/bin/elp"
+
       - name: Install dependencies
         run: rebar3 get-deps
 
@@ -51,12 +60,8 @@ jobs:
             Please review this Erlang pull request focusing on:
             - Erlang/OTP best practices and conventions
             - Pattern matching and function clause efficiency
-            - Proper error handling with try/catch or case expressions
+            - Proper error handling. This library should not crash, so check for potential runtime errors.
             - Module design and API clarity
-            - Test coverage for EUnit tests
-            - Compliance with rebar3 project structure
-            - Code formatting according to rebar3 format standards
-            - Compilation without warnings or errors
-            - Exported functions in non test modules should have type specs.
+            - Run `make build-test` to ensure the code compiles and passes tests.
 
             Be constructive and helpful in your feedback.

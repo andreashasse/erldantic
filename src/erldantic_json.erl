@@ -86,6 +86,7 @@ do_to_json(TypeInfo, {record, RecordName}, Record) when is_atom(RecordName) ->
     record_to_json(TypeInfo, RecordName, Record, []);
 do_to_json(TypeInfo, #a_rec{fields = Fields}, Record) when is_tuple(Record) ->
     [_RecordName | Values] = tuple_to_list(Record),
+    %% FIXME: Error messages if record arity and type doesn't match.
     Mojs = lists:zip(Fields, Values),
     do_record_to_json(TypeInfo, Mojs);
 do_to_json(TypeInfo, {record_ref, RecordName, TypeArgs}, Record)
@@ -553,6 +554,12 @@ check_type_from_json(Type, Json) ->
 
 check_type_to_json(string, Json) when is_list(Json) ->
     {true, list_to_binary(Json)};
+check_type_to_json(iodata, Json) when is_binary(Json) ->
+    {true, Json};
+check_type_to_json(iodata, Json) when is_list(Json) ->
+    {true, iolist_to_binary(Json)};
+check_type_to_json(iolist, Json) when is_list(Json) ->
+    {true, iolist_to_binary(Json)};
 check_type_to_json(nonempty_string, Json) when is_list(Json), Json =/= [] ->
     case io_lib:printable_list(Json) of
         true ->
@@ -700,8 +707,7 @@ type_replace_vars(TypeInfo, #a_type{type = Type}, NamedTypes) ->
                                     Fields,
                                     TypeArgs),
                     NewRec = Rec#a_rec{fields = NewFields},
-                    Mojs = type_replace_vars(TypeInfo, NewRec, NamedTypes),
-                    Mojs;
+                    type_replace_vars(TypeInfo, NewRec, NamedTypes);
                 #{} ->
                     erlang:error({missing_type, {record, RecordName}})
             end;

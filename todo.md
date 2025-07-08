@@ -23,12 +23,22 @@
   - [x] 'undefined' as key in map
 - [x] Types with vars
   - [x] Two types with same name but different arity.
-  - [ ] Tests for all non primitive types
+  - [x] Tests for all non primitive types
     - [x] Record
     - [x] Map
     - [x] Union
     - [x] list
     - [x] remote type
+- [ ] Things found in OTP
+  - [ ] The type `nil`
+  - [ ] Having a atom as default value for a record field
+```erlang
+-record(docs_v1, {anno,
+                  beam_language = erlang,
+                  ...}).
+```
+  - [ ] ...
+
 - [ ] Error message on not supported json types:
   - [ ] tuple, pid, port, fun, reference
 - [ ] Error message on not debug_info compiled module
@@ -40,7 +50,7 @@
 - [x] Module that doens't use parse transform, but manually calls from to_json from_json function in this lib.
 
 ## TODO Release
-- [ ] Run the thing on lots of modules to see if the abstract code has and types that it doesn't support.
+- [ ] Run the thing on lots of modules to see if the abstract code can handle all type attributes.
 - [x] Document special behaviour for `undefined`.
 - [ ] All other types expect `pid()`, `port()`, `Fun` and `reference()`.
     - [ ] Number? or will it always show up as integer()|float()?

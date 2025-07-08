@@ -6,10 +6,39 @@
 
 -type one() :: 1.
 -type courses() :: one() | 2 | 5.
+-type bor_t() :: 2 bor 5.
 -type game_state() ::
     #{player := string(),
       lives := 1..3,
       level := courses()}.
+
+bor_t_abstract_code_test() ->
+    {ok, Types} = erldantic_abstract_code:types_in_module(?MODULE),
+    ?assertEqual({literal, 2 bor 5}, maps:get({type, bor_t, 0}, Types)).
+
+bor_t_to_json_test() ->
+    ValidBor = 2 bor 5,
+    InvalidBor = 2 bor 4,
+
+    % Test with valid bor_t type
+    ?assertEqual({ok, 2 bor 5}, to_json_bor_t(ValidBor)),
+
+    % Test with invalid bor_t type
+    {error, Errors} = to_json_bor_t(InvalidBor),
+    ?assertMatch([#ed_error{type = type_mismatch, ctx = #{type := {literal, 7}, value := 6}}],
+                 Errors).
+
+bor_t_from_json_test() ->
+    ValidBorJson = 2 bor 5,
+    InvalidBorJson = 2 bor 4,
+
+    % Test from_json with valid bor_t
+    ?assertEqual({ok, 2 bor 5}, from_json_bor_t(ValidBorJson)),
+
+    % Test from_json with invalid bor_t
+    {error, Errors} = from_json_bor_t(InvalidBorJson),
+    ?assertMatch([#ed_error{type = type_mismatch, ctx = #{type := {literal, 7}, value := 6}}],
+                 Errors).
 
 validate_integer_literal_test() ->
     % Test JSON conversion using to_json
@@ -133,6 +162,15 @@ to_json_courses(Data) ->
                       {ok, json:encode_value()} | {error, [erldantic:error()]}.
 to_json_game(Data) ->
     erldantic_json:type_to_json(?MODULE, game_state, Data).
+
+-spec to_json_bor_t(bor_t()) -> {ok, json:encode_value()} | {error, [erldantic:error()]}.
+to_json_bor_t(Data) ->
+    erldantic_json:type_to_json(?MODULE, bor_t, Data).
+
+-spec from_json_bor_t(json:encode_value()) ->
+                         {ok, bor_t()} | {error, [erldantic:error()]}.
+from_json_bor_t(Json) ->
+    erldantic_json:type_from_json(?MODULE, bor_t, Json).
 
 -spec from_json_one(json:encode_value()) -> {ok, one()} | {error, [erldantic:error()]}.
 from_json_one(Json) ->
