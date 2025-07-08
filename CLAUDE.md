@@ -5,6 +5,7 @@ erldantic - A data validation library for Erlang inspired by Pydantic
 
 ## Commands to run after each change
 ```bash
+make format
 make build-test
 ```
 

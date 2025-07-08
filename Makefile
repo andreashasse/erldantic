@@ -8,13 +8,16 @@ compile:
 format:
 	rebar3 format
 
+format_verify:
+	rebar3 format --verify
+
 test:
 	rebar3 eunit
 
 cover:
 	rebar3 cover
 
-build-test: compile xref type_check test format cover
+build-test: compile xref type_check test format_verify cover
 
 clean:
 	rebar3 clean

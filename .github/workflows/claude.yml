@@ -64,7 +64,7 @@ jobs:
           # assignee_trigger: "claude-bot"
 
           # Optional: Allow Claude to run specific commands
-          allowed_tools: "Bash(make build-test),Bash(rebar3 *)"
+          allowed_tools: "Bash(make build-test),Bash(make format),Bash(rebar3 *)"
 
           # Optional: Add custom instructions for Claude to customize its behavior for your project
           # custom_instructions: |
