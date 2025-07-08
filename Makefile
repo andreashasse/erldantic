@@ -26,6 +26,7 @@ type_check:
 	@output=$$(elp eqwalize-all); \
 	echo "$$output"; \
 	if ! echo "$$output" | grep -q "NO ERRORS"; then \
-		echo "ELP found errors. Failing build."; \
 		exit 1; \
+	else \
+		exit 0; \
 	fi
