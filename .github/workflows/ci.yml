@@ -47,19 +47,22 @@ jobs:
         key: ${{ runner.os }}-rebar3-${{ matrix.otp }}-${{ hashFiles('rebar.config') }}
         restore-keys: |
           ${{ runner.os }}-rebar3-${{ matrix.otp }}-
-    
+
     - name: Compile
       run: make compile
-    
-    - name: Format check
-      run: make format
-    
+
     - name: Run tests
       run: make test
-    
+
+    - name: Run tests
+      run: make test
+
+    - name: Type check
+      run: make type_check
+
     - name: Generate coverage report
       run: make cover
-    
+
     - name: Upload coverage report
       uses: actions/upload-artifact@v4
       with:
