@@ -55,6 +55,9 @@ jobs:
     - name: Type check
       run: make type_check
 
+    - name: Check format
+      run: make format_verify
+
     - name: Generate coverage report
       run: make cover
 
