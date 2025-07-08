@@ -55,61 +55,7 @@ type_in_form({attribute, _, type, {TypeName, {type, _, record, Attrs}, [] = Args
                   FieldInfo),
     TypeArity = length(Args),
     {true, {{type, TypeName, TypeArity}, #a_rec{name = RecordName, fields = FieldTypes}}};
-type_in_form({attribute, _, type, {TypeName, {type, _, _, _} = Type, Args}})
-    when is_atom(TypeName) andalso is_list(Args) ->
-    [FieldInfo] = field_info_to_type(Type),
-    Vars = lists:map(fun({var, _, VarName}) when is_atom(VarName) -> VarName end, Args),
-    TypeArity = length(Args),
-    case Vars of
-        [] ->
-            {true, {{type, TypeName, TypeArity}, FieldInfo}};
-        _ ->
-            {true, {{type, TypeName, TypeArity}, #a_type{type = FieldInfo, vars = Vars}}}
-    end;
-type_in_form({attribute, _, type, {TypeName, {_Literal, _, Value}, [] = Args}})
-    when (is_atom(Value) orelse is_integer(Value)) andalso is_atom(TypeName) ->
-    TypeArity = length(Args),
-    {true, {{type, TypeName, TypeArity}, {literal, Value}}};
-type_in_form({attribute, _, type, {TypeName, {user_type, _, _, _} = ReferedType, Args}})
-    when is_atom(TypeName) andalso is_list(Args) ->
-    [FieldInfo] = field_info_to_type(ReferedType),
-    Vars = lists:map(fun({var, _, VarName}) when is_atom(VarName) -> VarName end, Args),
-    TypeArity = length(Args),
-    case Vars of
-        [] ->
-            {true, {{type, TypeName, TypeArity}, FieldInfo}};
-        _ ->
-            {true, {{type, TypeName, TypeArity}, #a_type{type = FieldInfo, vars = Vars}}}
-    end;
-type_in_form({attribute,
-              _,
-              type,
-              {TypeName,
-               {remote_type, _, [{atom, _, Module}, {atom, _, RemotTypeName}, TypeArgs]},
-               [] = Args}})
-    when is_atom(TypeName)
-         andalso is_atom(Module)
-         andalso is_atom(RemotTypeName)
-         andalso is_list(TypeArgs) ->
-    MyTypeArgs =
-        lists:map(fun ({type, _, field_type, [{atom, _, FieldName}, FieldInfo]})
-                          when is_atom(FieldName) ->
-                          %% TODO should I handle record field and other types in one function clause (one clause for all remote types)?
-                          [AType] = field_info_to_type(FieldInfo),
-                          AType;
-                      (Type) ->
-                          [AType] = field_info_to_type(Type),
-                          AType
-                  end,
-                  TypeArgs),
-    TypeArity = length(Args),
-    {true,
-     {{type, TypeName, TypeArity},
-      #remote_type{mfargs = {Module, RemotTypeName, MyTypeArgs}}}};
-type_in_form({attribute,
-              _,
-              type,
-              {TypeName, {ann_type, _, [{var, _, _VarName}, Type]}, [] = Args}})
+type_in_form({attribute, _, type, {TypeName, Type, Args}})
     when is_atom(TypeName) andalso is_list(Args) ->
     [FieldInfo] = field_info_to_type(Type),
     Vars = lists:map(fun({var, _, VarName}) when is_atom(VarName) -> VarName end, Args),
