@@ -86,6 +86,7 @@ do_to_json(TypeInfo, {record, RecordName}, Record) when is_atom(RecordName) ->
     record_to_json(TypeInfo, RecordName, Record, []);
 do_to_json(TypeInfo, #a_rec{fields = Fields}, Record) when is_tuple(Record) ->
     [_RecordName | Values] = tuple_to_list(Record),
+    %% FIXME: Error messages if record arity and type doesn't match.
     Mojs = lists:zip(Fields, Values),
     do_record_to_json(TypeInfo, Mojs);
 do_to_json(TypeInfo, {record_ref, RecordName, TypeArgs}, Record)
