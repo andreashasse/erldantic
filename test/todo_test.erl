@@ -2,7 +2,6 @@
 
 % -type stack_trim_fun() :: fun((module(), atom(), arity()) -> boolean()).
 % -type neg_integer() :: -1..-1000.
-% -type int_binary_op() :: 11 bor 7.
 % -type fun1() :: fun().
 % -type fun2() :: fun((...) -> integer()).
 % -type fun3() :: fun(() -> integer()).
