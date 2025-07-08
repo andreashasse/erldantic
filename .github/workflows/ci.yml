@@ -12,13 +12,11 @@ jobs:
 
     strategy:
       matrix:
-        otp: ['26.2', '27.3']
+        otp: ['27.3']
         rebar3: ['3.25']
         include:
           - otp: '27.3'
             elp_build: 'https://github.com/WhatsApp/erlang-language-platform/releases/download/2025-07-08/elp-linux-x86_64-unknown-linux-gnu-otp-27.3.tar.gz'
-          - otp: '26.2'
-            elp_build: 'https://github.com/WhatsApp/erlang-language-platform/releases/download/2025-07-08/elp-linux-x86_64-unknown-linux-gnu-otp-26.2.tar.gz'
 
     steps:
     - uses: actions/checkout@v4
