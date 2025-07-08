@@ -44,17 +44,12 @@ type_in_form({attribute, _, record, {RecordName, Fields}})
     {true, {{record, RecordName}, #a_rec{name = RecordName, fields = FieldInfos}}};
 type_in_form({attribute, _, type, {TypeName, {type, _, record, Attrs}, [] = Args}})
     when is_atom(TypeName) ->
-    [{atom, _, RecordName} | FieldInfo] = Attrs,
-    true = is_atom(RecordName),
-    FieldTypes =
-        lists:map(fun({type, _, field_type, [{atom, _, FieldName}, RowFieldInfo]})
-                         when is_atom(FieldName) ->
-                     [A] = field_info_to_type(RowFieldInfo),
-                     {FieldName, A}
-                  end,
-                  FieldInfo),
+    %% FIXME: Sort out why this function clause differs from all others.
+    true = is_list(Attrs),
+    {RecordName, FieldTypes} = record_field_types(Attrs),
     TypeArity = length(Args),
-    {true, {{type, TypeName, TypeArity}, #a_rec{name = RecordName, fields = FieldTypes}}};
+    Record = #a_rec{name = RecordName, fields = FieldTypes},
+    {true, {{type, TypeName, TypeArity}, Record}};
 type_in_form({attribute, _, type, {TypeName, Type, Args}})
     when is_atom(TypeName) andalso is_list(Args) ->
     [FieldInfo] = field_info_to_type(Type),
@@ -70,6 +65,19 @@ type_in_form({attribute, _, type, _} = T) ->
     error({not_supported, T}); % TODO: Support this
 type_in_form(_) ->
     false.
+
+-spec record_field_types(list()) -> {atom(), [{atom(), erldantic:a_type()}]}.
+record_field_types(Attrs) ->
+    [{atom, _, RecordName} | FieldInfo] = Attrs,
+    true = is_atom(RecordName),
+    FieldTypes =
+        lists:map(fun({type, _, field_type, [{atom, _, FieldName}, RowFieldInfo]})
+                         when is_atom(FieldName) ->
+                     [A] = field_info_to_type(RowFieldInfo),
+                     {FieldName, A}
+                  end,
+                  FieldInfo),
+    {RecordName, FieldTypes}.
 
 -spec field_info_to_type(term()) -> [erldantic:a_type()].
 field_info_to_type({ann_type, _, [{var, _, _VarName}, Type]}) ->
@@ -100,15 +108,7 @@ field_info_to_type({type, _, tuple, any}) ->
 field_info_to_type({TypeOfType, _, Type, TypeAttrs}) when is_list(TypeAttrs) ->
     case {TypeOfType, Type} of
         {type, record} ->
-            [{atom, _, SubTypeRecordName} | TypeArgs] = TypeAttrs,
-            true = is_atom(SubTypeRecordName),
-            FieldTypes =
-                lists:map(fun({type, _, field_type, [{atom, _, FieldName}, FieldInfo]})
-                                 when is_atom(FieldName) ->
-                             [AType] = field_info_to_type(FieldInfo),
-                             {FieldName, AType}
-                          end,
-                          TypeArgs),
+            {SubTypeRecordName, FieldTypes} = record_field_types(TypeAttrs),
             [{record_ref, SubTypeRecordName, FieldTypes}];
         {user_type, Type} ->
             true = is_atom(Type),

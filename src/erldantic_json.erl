@@ -706,8 +706,7 @@ type_replace_vars(TypeInfo, #a_type{type = Type}, NamedTypes) ->
                                     Fields,
                                     TypeArgs),
                     NewRec = Rec#a_rec{fields = NewFields},
-                    Mojs = type_replace_vars(TypeInfo, NewRec, NamedTypes),
-                    Mojs;
+                    type_replace_vars(TypeInfo, NewRec, NamedTypes);
                 #{} ->
                     erlang:error({missing_type, {record, RecordName}})
             end;
