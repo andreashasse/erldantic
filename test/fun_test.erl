@@ -71,7 +71,6 @@ erldantic_json_rejects_fun_data_from_json_test() ->
     ?assertMatch({error, [#ed_error{type = type_not_supported}]},
                  erldantic_json:type_from_json(?MODULE, fun6, Data)).
 
-
 erldantic_json_rejects_record_with_fun_field_test() ->
     Record = #with_fun{id = 1, handler = fun() -> ok end},
     ?assertMatch({error, _}, erldantic_json:record_to_json(?MODULE, with_fun, Record)).

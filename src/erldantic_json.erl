@@ -505,7 +505,17 @@ from_json(_TypeInfo, #a_function{} = T, Value) ->
     {error,
      [#ed_error{type = type_not_supported,
                 location = [],
-                ctx = #{type => T, value => Value}}]}.
+                ctx = #{type => T, value => Value}}]};
+from_json(_TypeInfo, {type, tuple} = T, Value) ->
+    {error,
+        [#ed_error{type = type_not_supported,
+                    location = [],
+                    ctx = #{type => T, value => Value}}]};
+from_json(_TypeInfo, #a_tuple{} = T, Value) ->
+    {error,
+        [#ed_error{type = type_not_supported,
+                    location = [],
+                    ctx = #{type => T, value => Value}}]}.
 
 try_convert_to_literal(Literal, Value) when is_atom(Literal) andalso is_binary(Value) ->
     try binary_to_existing_atom(Value, utf8) of
