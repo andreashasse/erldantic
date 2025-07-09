@@ -36,7 +36,7 @@ types_in_module(Module) ->
             end
     end.
 
--spec type_in_form(term()) ->
+-spec type_in_form(erl_parse:abstract_form() | erl_parse:form_info()) ->
                       false | {true, {erldantic:a_type_reference(), erldantic:a_type()}}.
 type_in_form({attribute, _, record, {RecordName, Fields}})
     when is_list(Fields) andalso is_atom(RecordName) ->
