@@ -122,11 +122,6 @@ do_to_json(TypeInfo, {type, TypeName, TypeArity}, Data) when is_atom(TypeName) -
     data_to_json(TypeInfo, TypeName, TypeArity, Data);
 do_to_json(TypeInfo, #a_map{} = Map, Data) ->
     map_to_json(TypeInfo, Map, Data);
-do_to_json(_TypeInfo, #a_tuple{} = T, _Data) ->
-    {error,
-     [#ed_error{type = type_not_supported,
-                location = [],
-                ctx = #{type => T}}]};
 do_to_json(_TypeInfo, #remote_type{mfargs = {Module, TypeName, Args}}, Data) ->
     case erldantic_module_types:get(Module) of
         {ok, TypeInfo} ->
@@ -141,6 +136,22 @@ do_to_json(_TypeInfo, #remote_type{mfargs = {Module, TypeName, Args}}, Data) ->
         {error, _} = Err ->
             Err
     end;
+%% Not supported types
+do_to_json(_TypeInfo, #a_tuple{} = T, _Data) ->
+    {error,
+     [#ed_error{type = type_not_supported,
+                location = [],
+                ctx = #{type => T}}]};
+do_to_json(_TypeInfo, #a_function{} = T, _Data) ->
+    {error,
+     [#ed_error{type = type_not_supported,
+                location = [],
+                ctx = #{type => T}}]};
+do_to_json(_TypeInfo, {type, 'fun'} = T, _Data) ->
+    {error,
+     [#ed_error{type = type_not_supported,
+                location = [],
+                ctx = #{type => T}}]};
 do_to_json(_TypeInfo, T, OtherValue) ->
     {error,
      [#ed_error{type = type_mismatch,
@@ -484,7 +495,17 @@ from_json(_TypeInfo, {range, integer, Min, Max}, Value) when is_integer(Value) -
     {error,
      [#ed_error{type = type_mismatch,
                 location = [],
-                ctx = #{type => {range, integer, Min, Max}, value => Value}}]}.
+                ctx = #{type => {range, integer, Min, Max}, value => Value}}]};
+from_json(_TypeInfo, {type, 'fun'} = T, Value) ->
+    {error,
+     [#ed_error{type = type_not_supported,
+                location = [],
+                ctx = #{type => T, value => Value}}]};
+from_json(_TypeInfo, #a_function{} = T, Value) ->
+    {error,
+     [#ed_error{type = type_not_supported,
+                location = [],
+                ctx = #{type => T, value => Value}}]}.
 
 try_convert_to_literal(Literal, Value) when is_atom(Literal) andalso is_binary(Value) ->
     try binary_to_existing_atom(Value, utf8) of

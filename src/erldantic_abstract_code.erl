@@ -62,7 +62,7 @@ type_in_form({attribute, _, type, {TypeName, Type, Args}})
             {true, {{type, TypeName, TypeArity}, #a_type{type = FieldInfo, vars = Vars}}}
     end;
 type_in_form({attribute, _, type, _} = T) ->
-    error({not_supported, T}); % TODO: Support this
+    error({not_supported, T});
 type_in_form(_) ->
     false.
 
@@ -127,6 +127,9 @@ field_info_to_type({TypeOfType, _, Type, TypeAttrs}) when is_list(TypeAttrs) ->
             case TypeAttrs of
                 [] ->
                     [{type, 'fun'}];
+                [{type, _, any}, ReturnType] ->
+                    [AReturnType] = field_info_to_type(ReturnType),
+                    [#a_function{args = any, return = AReturnType}];
                 [{type, _, product, FunArgTypes}, ReturnType] ->
                     true = is_list(FunArgTypes),
                     AFunArgTypes = lists:flatmap(fun field_info_to_type/1, FunArgTypes),
