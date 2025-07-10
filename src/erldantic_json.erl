@@ -147,11 +147,6 @@ do_to_json(_TypeInfo, #a_function{} = T, _Data) ->
      [#ed_error{type = type_not_supported,
                 location = [],
                 ctx = #{type => T}}]};
-do_to_json(_TypeInfo, {type, 'fun'} = T, _Data) ->
-    {error,
-     [#ed_error{type = type_not_supported,
-                location = [],
-                ctx = #{type => T}}]};
 do_to_json(_TypeInfo, T, OtherValue) ->
     {error,
      [#ed_error{type = type_mismatch,
@@ -496,11 +491,6 @@ from_json(_TypeInfo, {range, integer, Min, Max}, Value) when is_integer(Value) -
      [#ed_error{type = type_mismatch,
                 location = [],
                 ctx = #{type => {range, integer, Min, Max}, value => Value}}]};
-from_json(_TypeInfo, {type, 'fun'} = T, Value) ->
-    {error,
-     [#ed_error{type = type_not_supported,
-                location = [],
-                ctx = #{type => T, value => Value}}]};
 from_json(_TypeInfo, #a_function{} = T, Value) ->
     {error,
      [#ed_error{type = type_not_supported,

@@ -126,7 +126,7 @@ field_info_to_type({TypeOfType, _, Type, TypeAttrs}) when is_list(TypeAttrs) ->
         {type, Fun} when Fun =:= 'fun' orelse Fun =:= function ->
             case TypeAttrs of
                 [] ->
-                    [{type, 'fun'}];
+                    [#a_function{args = any, return = {type, term}}];
                 [{type, _, any}, ReturnType] ->
                     [AReturnType] = field_info_to_type(ReturnType),
                     [#a_function{args = any, return = AReturnType}];
