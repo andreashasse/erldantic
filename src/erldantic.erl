@@ -27,7 +27,6 @@
      port |
      iolist |
      iodata |
-     tuple |
      'fun'} |
     {record_ref, user_type_name(), [record_field()]} |
     {user_type_ref, user_type_name(), [a_type()]} |

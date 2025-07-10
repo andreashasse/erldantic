@@ -1,4 +1,4 @@
--record(a_tuple, {fields :: [erldantic:a_type()]}).
+-record(a_tuple, {fields :: any | [erldantic:a_type()]}).
 -record(a_map,
         {fields ::
              [{map_field_assoc | map_field_exact, Name :: atom(), erldantic:a_type()} |

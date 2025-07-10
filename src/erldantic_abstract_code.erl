@@ -104,7 +104,7 @@ field_info_to_type({type, _, map, any}) ->
     %% FIXME: Add test for map()
     [#a_map{fields = [{map_field_type_assoc, {type, term}, {type, term}}]}];
 field_info_to_type({type, _, tuple, any}) ->
-    [{type, tuple}];
+    [#a_tuple{fields = any}];
 field_info_to_type({TypeOfType, _, Type, TypeAttrs}) when is_list(TypeAttrs) ->
     case {TypeOfType, Type} of
         {type, record} ->

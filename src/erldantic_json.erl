@@ -506,11 +506,6 @@ from_json(_TypeInfo, #a_function{} = T, Value) ->
      [#ed_error{type = type_not_supported,
                 location = [],
                 ctx = #{type => T, value => Value}}]};
-from_json(_TypeInfo, {type, tuple} = T, Value) ->
-    {error,
-        [#ed_error{type = type_not_supported,
-                    location = [],
-                    ctx = #{type => T, value => Value}}]};
 from_json(_TypeInfo, #a_tuple{} = T, Value) ->
     {error,
         [#ed_error{type = type_not_supported,
