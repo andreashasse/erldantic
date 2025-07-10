@@ -20,7 +20,6 @@
         orelse PrimaryType =:= float
         orelse PrimaryType =:= binary
         orelse PrimaryType =:= number
-        orelse PrimaryType =:= term
-        orelse PrimaryType =:= module).
+        orelse PrimaryType =:= term).
 -define(is_predefined_int_range(_Type),
         _Type =:= non_neg_integer orelse _Type =:= neg_integer orelse _Type =:= pos_integer).

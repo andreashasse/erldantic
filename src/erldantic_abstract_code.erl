@@ -179,6 +179,8 @@ field_info_to_type({TypeOfType, _, Type, TypeAttrs}) when is_list(TypeAttrs) ->
         {type, maybe_improper_list} ->
             [A, B] = lists:flatmap(fun field_info_to_type/1, TypeAttrs),
             [{maybe_improper_list, A, B}];
+        {type, module} ->
+            [{type, atom}];
         {type, PrimaryType} when ?is_primary_type(PrimaryType) ->
             [{type, PrimaryType}];
         {type, PartailRangeInteger} when ?is_predefined_int_range(PartailRangeInteger) ->

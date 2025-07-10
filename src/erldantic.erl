@@ -12,16 +12,15 @@
      string |
      nonempty_string |
      integer |
-     boolean |
-     float |
      non_neg_integer |
      neg_integer |
      pos_integer |
+     float |
+     number |
+     boolean |
      binary |
      atom |
-     number |
      term |
-     module |
      reference |
      pid |
      port |
