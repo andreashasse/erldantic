@@ -59,7 +59,8 @@ type_in_form({attribute, _, type, {TypeName, Type, Args}})
         [] ->
             {true, {{type, TypeName, TypeArity}, FieldInfo}};
         _ ->
-            {true, {{type, TypeName, TypeArity}, #a_type{type = FieldInfo, vars = Vars}}}
+            {true,
+             {{type, TypeName, TypeArity}, #type_with_arguments{type = FieldInfo, vars = Vars}}}
     end;
 type_in_form({attribute, _, type, _} = T) ->
     error({not_supported, T});

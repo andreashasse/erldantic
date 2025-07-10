@@ -27,16 +27,23 @@ erldantic_json_handles_tuple_data_test() ->
     Tuple1 = {},
     Tuple2 = {42, hello},
     Tuple3 = {a},
-    ?assertMatch({error, [#ed_error{type = type_not_supported}]}, erldantic_json:type_to_json(?MODULE, empty_tuple, Tuple1)),
-    ?assertMatch({error, [#ed_error{type = type_not_supported}]}, erldantic_json:type_to_json(?MODULE, tuple2, Tuple2)),
-    ?assertMatch({error, [#ed_error{type = type_not_supported}]}, erldantic_json:type_to_json(?MODULE, tuple3, Tuple3)).
+    ?assertMatch({error, [#ed_error{type = type_not_supported}]},
+                 erldantic_json:type_to_json(?MODULE, empty_tuple, Tuple1)),
+    ?assertMatch({error, [#ed_error{type = type_not_supported}]},
+                 erldantic_json:type_to_json(?MODULE, tuple2, Tuple2)),
+    ?assertMatch({error, [#ed_error{type = type_not_supported}]},
+                 erldantic_json:type_to_json(?MODULE, tuple3, Tuple3)).
 
 erldantic_json_handles_tuple_data_from_json_test() ->
     Data = <<"[]">>,
-    ?assertMatch({error, [#ed_error{type = type_not_supported}]}, erldantic_json:type_from_json(?MODULE, empty_tuple, Data)),
-    ?assertMatch({error, [#ed_error{type = type_not_supported}]}, erldantic_json:type_from_json(?MODULE, tuple2, Data)),
-    ?assertMatch({error, [#ed_error{type = type_not_supported}]}, erldantic_json:type_from_json(?MODULE, tuple3, Data)).
+    ?assertMatch({error, [#ed_error{type = type_not_supported}]},
+                 erldantic_json:type_from_json(?MODULE, empty_tuple, Data)),
+    ?assertMatch({error, [#ed_error{type = type_not_supported}]},
+                 erldantic_json:type_from_json(?MODULE, tuple2, Data)),
+    ?assertMatch({error, [#ed_error{type = type_not_supported}]},
+                 erldantic_json:type_from_json(?MODULE, tuple3, Data)).
 
 erldantic_json_error_on_record_with_tuple_field_test() ->
     Record = #with_tuple{id = 1, data = {}},
-    ?assertMatch({error, [#ed_error{type = type_not_supported}]}, erldantic_json:record_to_json(?MODULE, with_tuple, Record)).
+    ?assertMatch({error, [#ed_error{type = type_not_supported}]},
+                 erldantic_json:record_to_json(?MODULE, with_tuple, Record)).
