@@ -7,6 +7,8 @@
 -type var_type() :: {VarName :: atom(), a_type()}.
 -type user_type_name() :: atom().
 -type record_field() :: {FieldName :: atom(), a_type()}.
+%% FIXME: Add doc here.
+%% iolist and iodata are aliases, but are so complex, so it is easier to handle them as separate types
 -type a_type() ::
     {type,
      string |
@@ -41,7 +43,6 @@
     {maybe_improper_list, a_type(), a_type()} |
     #remote_type{}.
 
-     %% iolist and iodata are aliases, but are so complex, so it is easier to handle them as separate types
 
 -type a_type_reference() ::
     {record, atom()} |
