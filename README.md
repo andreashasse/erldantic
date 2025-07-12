@@ -45,7 +45,7 @@ contacts_to_json(Contacts) ->
 ```
 
 
-One can do this:
+One can convert from and to erlang data structures (including records) knowing that the data will match the type.
 
 ``` erlang
 
@@ -81,3 +81,7 @@ BadSourceJson = <<"[{\"number\":\"+1-555-123-4567\",\"verified\":{\"source\":\"a
 In records and mandatory maps fields ( with the `:=` operator ), the value undefined will be used when the value is missing if the type includes undefined.
 
 So, `integer() | undefined` will become undefined in records and maps mandatory fields if the value is missing and the value will not be in the json.
+
+### Handling of `term` in erldantic_json
+
+When you are using types with term, erldantic_json will not reject any data, which means that it can return data that json.erl can not convert to json.

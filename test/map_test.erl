@@ -162,7 +162,11 @@ from_json_empty_map_test() ->
     ?assertEqual({ok, #{}}, from_json_empty_map(#{})),
     ?assertEqual({ok, #{<<"a">> => 1}}, from_json_empty_map(#{<<"a">> => 1})),
     ?assertEqual({ok, #{<<"a">> => <<"value">>, <<"b">> => <<"other">>}},
-                 from_json_empty_map(#{<<"a">> => <<"value">>, <<"b">> => <<"other">>})).
+                 from_json_empty_map(#{<<"a">> => <<"value">>, <<"b">> => <<"other">>})),
+    ?assertEqual({ok, #{<<"k1">> => 1, <<"k2">> => #{1 => 1}}},
+                 to_json_empty_map(#{<<"k1">> => 1, <<"k2">> => #{1 => 1}})),
+    ?assertEqual({ok, #{<<"k1">> => 1, <<"k2">> => <<"value">>}},
+                 to_json_empty_map(#{<<"k1">> => 1, <<"k2">> => <<"value">>})).
 
 from_json_empty_map_bad_test() ->
     ?assertEqual({error,
