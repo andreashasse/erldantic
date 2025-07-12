@@ -283,7 +283,7 @@ map_fields(TypeInfo, MapFieldTypes, Data) ->
                                                              KeyType,
                                                              ValueType}}},
                                     {NewFields ++ FieldsAcc,
-                                     [NoExactMatch] ++ ErrorsAcc ++ ErrorsAcc,
+                                     [NoExactMatch] ++ NewErrors ++ ErrorsAcc,
                                      NewDataAcc};
                                 _ ->
                                     {NewFields ++ FieldsAcc, NewErrors ++ ErrorsAcc, NewDataAcc}
