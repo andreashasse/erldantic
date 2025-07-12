@@ -9,6 +9,7 @@
 -type atom_map3() :: #{a1 := kalle, atom() => atom()}.
 -type type_shaddow_literal_map() :: #{atom() => atom(), a1 => 1}.
 -type mandatory_type_map() :: #{atom() := atom()}.
+-type empty_map() :: map().
 
 map1_test() ->
     ?assertEqual({ok, #{a1 => 1}}, to_json_atom_map(#{a1 => 1})).
@@ -133,6 +134,41 @@ from_json_mandatory_type_map_bad_test() ->
                              ctx = #{type => {type, map}, value => []}}]},
                  from_json_mandatory_type_map([])).
 
+empty_map_test() ->
+    ?assertEqual({ok, #{}}, to_json_empty_map(#{})),
+    ?assertEqual({ok, #{a => 1}}, to_json_empty_map(#{a => 1})),
+    ?assertEqual({ok, #{a => 1, b => 2}}, to_json_empty_map(#{a => 1, b => 2})).
+
+empty_map_bad_test() ->
+    ?assertEqual({error,
+                  [#ed_error{location = [],
+                             type = type_mismatch,
+                             ctx = #{type => {type, map}, value => not_a_map}}]},
+                 to_json_empty_map(not_a_map)),
+    ?assertEqual({error,
+                  [#ed_error{location = [],
+                             type = type_mismatch,
+                             ctx = #{type => {type, map}, value => []}}]},
+                 to_json_empty_map([])).
+
+from_json_empty_map_test() ->
+    ?assertEqual({ok, #{}}, from_json_empty_map(#{})),
+    ?assertEqual({ok, #{<<"a">> => 1}}, from_json_empty_map(#{<<"a">> => 1})),
+    ?assertEqual({ok, #{<<"a">> => <<"value">>, <<"b">> => <<"other">>}},
+                 from_json_empty_map(#{<<"a">> => <<"value">>, <<"b">> => <<"other">>})).
+
+from_json_empty_map_bad_test() ->
+    ?assertEqual({error,
+                  [#ed_error{location = [],
+                             type = type_mismatch,
+                             ctx = #{type => {type, map}, value => not_a_map}}]},
+                 from_json_empty_map(not_a_map)),
+    ?assertEqual({error,
+                  [#ed_error{location = [],
+                             type = type_mismatch,
+                             ctx = #{type => {type, map}, value => []}}]},
+                 from_json_empty_map([])).
+
 -spec to_json_mandatory_type_map(term()) ->
                                     {ok, mandatory_type_map()} | {error, [erldantic:error()]}.
 to_json_mandatory_type_map(Data) ->
@@ -178,3 +214,11 @@ from_json_type_shaddow_literal_map(Data) ->
                                       {ok, mandatory_type_map()} | {error, [erldantic:error()]}.
 from_json_mandatory_type_map(Data) ->
     erldantic_json:type_from_json(?MODULE, mandatory_type_map, Data).
+
+-spec to_json_empty_map(term()) -> {ok, empty_map()} | {error, [erldantic:error()]}.
+to_json_empty_map(Data) ->
+    erldantic_json:type_to_json(?MODULE, empty_map, Data).
+
+-spec from_json_empty_map(term()) -> {ok, empty_map()} | {error, [erldantic:error()]}.
+from_json_empty_map(Data) ->
+    erldantic_json:type_from_json(?MODULE, empty_map, Data).
