@@ -80,7 +80,7 @@ from_json_no_pt(Module, TypeRef, Json) ->
 % FIXME: User can get 'skip' as return value.
 -spec do_to_json(TypeInfo :: erldantic:type_info(),
                  Type :: erldantic:a_type_or_ref(),
-                 Data :: term()) ->
+                 Data :: dynamic()) ->
                     {ok, json:encode_value()} | {error, [erldantic:error()]} | skip.
 do_to_json(TypeInfo, {record, RecordName}, Record) when is_atom(RecordName) ->
     record_to_json(TypeInfo, RecordName, Record, []);
@@ -136,6 +136,19 @@ do_to_json(_TypeInfo, #remote_type{mfargs = {Module, TypeName, Args}}, Data) ->
         {error, _} = Err ->
             Err
     end;
+do_to_json(_TypeInfo,
+           #maybe_improper_list{elements = ElementsType, tail = TailType} = T,
+           Data)
+    when is_list(Data) ->
+    case {is_json_string(ElementsType), is_json_string(TailType)} of
+        {true, true} ->
+            {ok, iolist_to_binary(Data)};
+        {_, _} ->
+            {error,
+             [#ed_error{type = not_implemented,
+                        location = [],
+                        ctx = #{type => T, value => Data}}]}
+    end;
 %% Not supported types
 do_to_json(_TypeInfo, #a_tuple{} = T, _Data) ->
     {error,
@@ -152,6 +165,51 @@ do_to_json(_TypeInfo, T, OtherValue) ->
      [#ed_error{type = type_mismatch,
                 location = [],
                 ctx = #{type => T, value => OtherValue}}]}.
+
+-spec is_json_string(Type :: erldantic:a_type()) -> boolean().
+is_json_string({type, ElementsType})
+    when ElementsType =:= string
+         orelse ElementsType =:= nonempty_string
+         orelse ElementsType =:= binary
+         orelse ElementsType =:= iolist
+         orelse ElementsType =:= atom
+         orelse ElementsType =:= iodata ->
+    true;
+is_json_string(#maybe_improper_list{elements = E, tail = T}) ->
+    is_json_string(E) andalso is_json_string(T);
+is_json_string({List, Element}) when List =:= list orelse List =:= nonempty_list ->
+    is_json_string(Element);
+is_json_string(#remote_type{mfargs = {Module, TypeName, Args}}) ->
+    case erldantic_module_types:get(Module) of
+        {ok, TypeInfo} ->
+            TypeArity = length(Args),
+            case TypeInfo of
+                #{{type, TypeName, TypeArity} := Type} ->
+                    %% FIXME: Tests for this
+                    is_json_string(apply_args(TypeInfo, Type, Args));
+                #{} ->
+                    %% FIXME: Error in this case
+                    false
+            end;
+        {error, _} ->
+            false
+    end;
+is_json_string({union, Types}) ->
+    lists:all(fun(Type) -> is_json_string(Type) end, Types);
+is_json_string({literal, Value}) when is_binary(Value) ->
+    true;
+is_json_string({literal, Value}) when is_list(Value) ->
+    case io_lib:printable_list(Value) of
+        {ok, _} ->
+            true;
+        _ ->
+            false
+    end;
+is_json_string(#type_with_arguments{}) ->
+    %% FIXME: Handle this!
+    false;
+is_json_string(_) ->
+    false.
 
 -spec literal_to_json(Value :: term()) ->
                          {ok, json:encode_value()} | {error, [erldantic:error()]}.

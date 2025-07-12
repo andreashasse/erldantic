@@ -8,5 +8,6 @@
              type_not_supported |
              module_types_not_found |
              not_matched_fields |
-             beam_lib_error,
+             beam_lib_error |
+             not_implemented,
          ctx :: term()}).
