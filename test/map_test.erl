@@ -10,6 +10,10 @@
 -type type_shaddow_literal_map() :: #{atom() => atom(), a1 => 1}.
 -type mandatory_type_map() :: #{atom() := atom()}.
 -type empty_map() :: map().
+-type map_with_tuple_value() :: #{atom() => tuple()}.
+-type map_with_tuple_key() :: #{tuple() => atom()}.
+-type map_with_fun_value() :: #{atom() => fun()}.
+-type map_with_fun_key() :: #{fun() => atom()}.
 
 map1_test() ->
     ?assertEqual({ok, #{a1 => 1}}, to_json_atom_map(#{a1 => 1})).
@@ -169,6 +173,54 @@ from_json_empty_map_bad_test() ->
                              ctx = #{type => {type, map}, value => []}}]},
                  from_json_empty_map([])).
 
+map_with_tuple_value_test() ->
+    Result1 = to_json_map_with_tuple_value(#{a => {a}}),
+    ?assertMatch({error, [#ed_error{type = type_not_supported} | _]}, Result1),
+
+    Result2 = to_json_map_with_tuple_value(#{b => {1, 2, 3}}),
+    ?assertMatch({error, [#ed_error{type = type_not_supported} | _]}, Result2).
+
+map_with_tuple_key_test() ->
+    Result1 = to_json_map_with_tuple_key(#{{a, b} => value}),
+    ?assertMatch({error, [#ed_error{type = not_matched_fields} | _]}, Result1),
+
+    Result2 = to_json_map_with_tuple_key(#{{1, 2} => atom}),
+    ?assertMatch({error, [#ed_error{type = not_matched_fields} | _]}, Result2).
+
+map_with_fun_value_test() ->
+    Result1 = to_json_map_with_fun_value(#{a => fun() -> ok end}),
+    ?assertMatch({error, [#ed_error{type = type_not_supported} | _]}, Result1),
+
+    Result2 = to_json_map_with_fun_value(#{handler => fun(X) -> X + 1 end}),
+    ?assertMatch({error, [#ed_error{type = type_not_supported} | _]}, Result2).
+
+map_with_fun_key_test() ->
+    Fun = fun() -> ok end,
+    Result = to_json_map_with_fun_key(#{Fun => value}),
+    ?assertMatch({error, [#ed_error{type = not_matched_fields} | _]}, Result).
+
+from_json_map_with_tuple_value_test() ->
+    Result1 = from_json_map_with_tuple_value(#{<<"a">> => [1, 2]}),
+    ?assertMatch({error, [#ed_error{type = type_not_supported} | _]}, Result1),
+
+    Result2 = from_json_map_with_tuple_value(#{<<"b">> => [1, 2, 3]}),
+    ?assertMatch({error, [#ed_error{type = type_not_supported} | _]}, Result2).
+
+from_json_map_with_tuple_key_test() ->
+    Result = from_json_map_with_tuple_key(#{<<"key">> => <<"value">>}),
+    ?assertMatch({error, [#ed_error{type = not_matched_fields} | _]}, Result).
+
+from_json_map_with_fun_value_test() ->
+    Result1 = from_json_map_with_fun_value(#{<<"a">> => <<"function">>}),
+    ?assertMatch({error, [#ed_error{type = type_not_supported} | _]}, Result1),
+
+    Result2 = from_json_map_with_fun_value(#{<<"handler">> => <<"callback">>}),
+    ?assertMatch({error, [#ed_error{type = type_not_supported} | _]}, Result2).
+
+from_json_map_with_fun_key_test() ->
+    Result = from_json_map_with_fun_key(#{<<"key">> => <<"value">>}),
+    ?assertMatch({error, [#ed_error{type = not_matched_fields} | _]}, Result).
+
 -spec to_json_mandatory_type_map(term()) ->
                                     {ok, mandatory_type_map()} | {error, [erldantic:error()]}.
 to_json_mandatory_type_map(Data) ->
@@ -222,3 +274,43 @@ to_json_empty_map(Data) ->
 -spec from_json_empty_map(term()) -> {ok, empty_map()} | {error, [erldantic:error()]}.
 from_json_empty_map(Data) ->
     erldantic_json:type_from_json(?MODULE, empty_map, Data).
+
+-spec to_json_map_with_tuple_value(term()) ->
+                                      {ok, map_with_tuple_value()} | {error, [erldantic:error()]}.
+to_json_map_with_tuple_value(Data) ->
+    erldantic_json:type_to_json(?MODULE, map_with_tuple_value, Data).
+
+-spec from_json_map_with_tuple_value(term()) ->
+                                        {ok, map_with_tuple_value()} | {error, [erldantic:error()]}.
+from_json_map_with_tuple_value(Data) ->
+    erldantic_json:type_from_json(?MODULE, map_with_tuple_value, Data).
+
+-spec to_json_map_with_tuple_key(term()) ->
+                                    {ok, map_with_tuple_key()} | {error, [erldantic:error()]}.
+to_json_map_with_tuple_key(Data) ->
+    erldantic_json:type_to_json(?MODULE, map_with_tuple_key, Data).
+
+-spec from_json_map_with_tuple_key(term()) ->
+                                      {ok, map_with_tuple_key()} | {error, [erldantic:error()]}.
+from_json_map_with_tuple_key(Data) ->
+    erldantic_json:type_from_json(?MODULE, map_with_tuple_key, Data).
+
+-spec to_json_map_with_fun_value(term()) ->
+                                    {ok, map_with_fun_value()} | {error, [erldantic:error()]}.
+to_json_map_with_fun_value(Data) ->
+    erldantic_json:type_to_json(?MODULE, map_with_fun_value, Data).
+
+-spec from_json_map_with_fun_value(term()) ->
+                                      {ok, map_with_fun_value()} | {error, [erldantic:error()]}.
+from_json_map_with_fun_value(Data) ->
+    erldantic_json:type_from_json(?MODULE, map_with_fun_value, Data).
+
+-spec to_json_map_with_fun_key(term()) ->
+                                  {ok, map_with_fun_key()} | {error, [erldantic:error()]}.
+to_json_map_with_fun_key(Data) ->
+    erldantic_json:type_to_json(?MODULE, map_with_fun_key, Data).
+
+-spec from_json_map_with_fun_key(term()) ->
+                                    {ok, map_with_fun_key()} | {error, [erldantic:error()]}.
+from_json_map_with_fun_key(Data) ->
+    erldantic_json:type_from_json(?MODULE, map_with_fun_key, Data).
