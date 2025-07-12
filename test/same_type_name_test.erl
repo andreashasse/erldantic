@@ -17,8 +17,8 @@ type_in_form_test() ->
                   result,
                   [#a_map{fields = [{map_field_type_assoc, {type, atom}, {type, integer}}]}]},
                  maps:get({type, map_result, 0}, Types)),
-    ?assertEqual(#a_type{type = {union, [{var, 'OkType'}, {literal, error}]},
-                         vars = ['OkType']},
+    ?assertEqual(#type_with_arguments{type = {union, [{var, 'OkType'}, {literal, error}]},
+                                      vars = ['OkType']},
                  maps:get({type, result, 1}, Types)).
 
 map1_to_json_test() ->

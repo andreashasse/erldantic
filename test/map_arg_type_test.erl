@@ -14,11 +14,15 @@ type_in_form_test() ->
     ?assertEqual({user_type_ref, result, [{type, integer}]},
                  maps:get({type, int_result, 0}, Types)),
 
-    ?assertEqual(#a_type{type =
-                             #a_map{fields =
-                                        [{map_field_assoc, result, {var, 'ResultType'}},
-                                         {map_field_assoc, errors, {list, {type, atom}}}]},
-                         vars = ['ResultType']},
+    ?assertEqual(#type_with_arguments{type =
+                                          #a_map{fields =
+                                                     [{map_field_assoc,
+                                                       result,
+                                                       {var, 'ResultType'}},
+                                                      {map_field_assoc,
+                                                       errors,
+                                                       {list, {type, atom}}}]},
+                                      vars = ['ResultType']},
                  maps:get({type, result, 1}, Types)).
 
 map_to_json_test() ->

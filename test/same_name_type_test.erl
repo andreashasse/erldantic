@@ -10,11 +10,15 @@
 
 type_in_form_test() ->
     {ok, Types} = erldantic_abstract_code:types_in_module(?MODULE),
-    ?assertEqual(#a_type{type =
-                             #a_map{fields =
-                                        [{map_field_assoc, result, {var, 'ResultType'}},
-                                         {map_field_assoc, errors, {list, {type, atom}}}]},
-                         vars = ['ResultType']},
+    ?assertEqual(#type_with_arguments{type =
+                                          #a_map{fields =
+                                                     [{map_field_assoc,
+                                                       result,
+                                                       {var, 'ResultType'}},
+                                                      {map_field_assoc,
+                                                       errors,
+                                                       {list, {type, atom}}}]},
+                                      vars = ['ResultType']},
                  maps:get({type, result, 1}, Types)).
 
 result_0_to_json_test() ->

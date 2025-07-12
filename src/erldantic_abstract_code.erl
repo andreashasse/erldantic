@@ -36,7 +36,7 @@ types_in_module(Module) ->
             end
     end.
 
--spec type_in_form(term()) ->
+-spec type_in_form(erl_parse:abstract_form() | erl_parse:form_info()) ->
                       false | {true, {erldantic:a_type_reference(), erldantic:a_type()}}.
 type_in_form({attribute, _, record, {RecordName, Fields}})
     when is_list(Fields) andalso is_atom(RecordName) ->
@@ -59,10 +59,11 @@ type_in_form({attribute, _, type, {TypeName, Type, Args}})
         [] ->
             {true, {{type, TypeName, TypeArity}, FieldInfo}};
         _ ->
-            {true, {{type, TypeName, TypeArity}, #a_type{type = FieldInfo, vars = Vars}}}
+            {true,
+             {{type, TypeName, TypeArity}, #type_with_arguments{type = FieldInfo, vars = Vars}}}
     end;
 type_in_form({attribute, _, type, _} = T) ->
-    error({not_supported, T}); % TODO: Support this
+    error({not_supported, T});
 type_in_form(_) ->
     false.
 
@@ -104,7 +105,7 @@ field_info_to_type({type, _, map, any}) ->
     %% FIXME: Add test for map()
     [#a_map{fields = [{map_field_type_assoc, {type, term}, {type, term}}]}];
 field_info_to_type({type, _, tuple, any}) ->
-    [{type, tuple}];
+    [#a_tuple{fields = any}];
 field_info_to_type({TypeOfType, _, Type, TypeAttrs}) when is_list(TypeAttrs) ->
     case {TypeOfType, Type} of
         {type, record} ->
@@ -126,7 +127,10 @@ field_info_to_type({TypeOfType, _, Type, TypeAttrs}) when is_list(TypeAttrs) ->
         {type, Fun} when Fun =:= 'fun' orelse Fun =:= function ->
             case TypeAttrs of
                 [] ->
-                    [{type, 'fun'}];
+                    [#a_function{args = any, return = {type, term}}];
+                [{type, _, any}, ReturnType] ->
+                    [AReturnType] = field_info_to_type(ReturnType),
+                    [#a_function{args = any, return = AReturnType}];
                 [{type, _, product, FunArgTypes}, ReturnType] ->
                     true = is_list(FunArgTypes),
                     AFunArgTypes = lists:flatmap(fun field_info_to_type/1, FunArgTypes),
@@ -176,6 +180,8 @@ field_info_to_type({TypeOfType, _, Type, TypeAttrs}) when is_list(TypeAttrs) ->
         {type, maybe_improper_list} ->
             [A, B] = lists:flatmap(fun field_info_to_type/1, TypeAttrs),
             [{maybe_improper_list, A, B}];
+        {type, module} ->
+            [{type, atom}];
         {type, PrimaryType} when ?is_primary_type(PrimaryType) ->
             [{type, PrimaryType}];
         {type, PartailRangeInteger} when ?is_predefined_int_range(PartailRangeInteger) ->

@@ -122,11 +122,6 @@ do_to_json(TypeInfo, {type, TypeName, TypeArity}, Data) when is_atom(TypeName) -
     data_to_json(TypeInfo, TypeName, TypeArity, Data);
 do_to_json(TypeInfo, #a_map{} = Map, Data) ->
     map_to_json(TypeInfo, Map, Data);
-do_to_json(_TypeInfo, #a_tuple{} = T, _Data) ->
-    {error,
-     [#ed_error{type = type_not_supported,
-                location = [],
-                ctx = #{type => T}}]};
 do_to_json(_TypeInfo, #remote_type{mfargs = {Module, TypeName, Args}}, Data) ->
     case erldantic_module_types:get(Module) of
         {ok, TypeInfo} ->
@@ -141,6 +136,17 @@ do_to_json(_TypeInfo, #remote_type{mfargs = {Module, TypeName, Args}}, Data) ->
         {error, _} = Err ->
             Err
     end;
+%% Not supported types
+do_to_json(_TypeInfo, #a_tuple{} = T, _Data) ->
+    {error,
+     [#ed_error{type = type_not_supported,
+                location = [],
+                ctx = #{type => T}}]};
+do_to_json(_TypeInfo, #a_function{} = T, _Data) ->
+    {error,
+     [#ed_error{type = type_not_supported,
+                location = [],
+                ctx = #{type => T}}]};
 do_to_json(_TypeInfo, T, OtherValue) ->
     {error,
      [#ed_error{type = type_mismatch,
@@ -277,7 +283,7 @@ map_fields(TypeInfo, MapFieldTypes, Data) ->
                                                              KeyType,
                                                              ValueType}}},
                                     {NewFields ++ FieldsAcc,
-                                     [NoExactMatch] ++ ErrorsAcc ++ ErrorsAcc,
+                                     [NoExactMatch] ++ NewErrors ++ ErrorsAcc,
                                      NewDataAcc};
                                 _ ->
                                     {NewFields ++ FieldsAcc, NewErrors ++ ErrorsAcc, NewDataAcc}
@@ -484,7 +490,17 @@ from_json(_TypeInfo, {range, integer, Min, Max}, Value) when is_integer(Value) -
     {error,
      [#ed_error{type = type_mismatch,
                 location = [],
-                ctx = #{type => {range, integer, Min, Max}, value => Value}}]}.
+                ctx = #{type => {range, integer, Min, Max}, value => Value}}]};
+from_json(_TypeInfo, #a_function{} = T, Value) ->
+    {error,
+     [#ed_error{type = type_not_supported,
+                location = [],
+                ctx = #{type => T, value => Value}}]};
+from_json(_TypeInfo, #a_tuple{} = T, Value) ->
+    {error,
+     [#ed_error{type = type_not_supported,
+                location = [],
+                ctx = #{type => T, value => Value}}]}.
 
 try_convert_to_literal(Literal, Value) when is_atom(Literal) andalso is_binary(Value) ->
     try binary_to_existing_atom(Value, utf8) of
@@ -659,7 +675,7 @@ apply_args(TypeInfo, Type, TypeArgs) when is_list(TypeArgs) ->
             lists:zip(ArgNames, TypeArgs)),
     type_replace_vars(TypeInfo, Type, NamedTypes).
 
-arg_names(#a_type{vars = Args}) ->
+arg_names(#type_with_arguments{vars = Args}) ->
     Args;
 arg_names(_) ->
     [].
@@ -670,7 +686,7 @@ arg_names(_) ->
                            erldantic:a_type().
 type_replace_vars(_TypeInfo, {var, Name}, NamedTypes) ->
     maps:get(Name, NamedTypes, {type, term});
-type_replace_vars(TypeInfo, #a_type{type = Type}, NamedTypes) ->
+type_replace_vars(TypeInfo, #type_with_arguments{type = Type}, NamedTypes) ->
     case Type of
         %% FIXME: lists and ranges?
         {union, Types} ->
@@ -922,7 +938,7 @@ do_record_from_json(_TypeInfo, RecordName, _RecordInfo, Json) ->
                           boolean().
 can_be_undefined(TypeInfo, Type) ->
     case Type of
-        #a_type{type = Type2} ->
+        #type_with_arguments{type = Type2} ->
             can_be_undefined(TypeInfo, Type2);
         {union, Types} ->
             lists:member({literal, undefined}, Types);
