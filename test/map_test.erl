@@ -141,7 +141,10 @@ from_json_mandatory_type_map_bad_test() ->
 empty_map_test() ->
     ?assertEqual({ok, #{}}, to_json_empty_map(#{})),
     ?assertEqual({ok, #{a => 1}}, to_json_empty_map(#{a => 1})),
-    ?assertEqual({ok, #{a => 1, b => 2}}, to_json_empty_map(#{a => 1, b => 2})).
+    ?assertEqual({ok, #{a => 1, b => 2}}, to_json_empty_map(#{a => 1, b => 2})),
+    ?assertEqual({ok, #{a => 1, b => {a}}},
+                 to_json_empty_map(#{a => 1, b => {a}}),
+                 "All values are passed along when the type is term, even types that can not be converted to json by json.erl").
 
 empty_map_bad_test() ->
     ?assertEqual({error,
