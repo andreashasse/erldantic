@@ -14,10 +14,13 @@ format_verify:
 test:
 	rebar3 eunit
 
+proper:
+	rebar3 proper
+
 cover:
 	rebar3 cover
 
-build-test: compile xref type_check test format_verify cover
+build-test: compile xref type_check test proper format_verify cover
 
 clean:
 	rebar3 clean
