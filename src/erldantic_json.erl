@@ -80,7 +80,7 @@ from_json_no_pt(Module, TypeRef, Json) ->
 % FIXME: User can get 'skip' as return value.
 -spec do_to_json(TypeInfo :: erldantic:type_info(),
                  Type :: erldantic:a_type_or_ref(),
-                 Data :: term()) ->
+                 Data :: dynamic()) ->
                     {ok, json:encode_value()} | {error, [erldantic:error()]} | skip.
 do_to_json(TypeInfo, {record, RecordName}, Record) when is_atom(RecordName) ->
     record_to_json(TypeInfo, RecordName, Record, []);
@@ -136,6 +136,11 @@ do_to_json(_TypeInfo, #remote_type{mfargs = {Module, TypeName, Args}}, Data) ->
         {error, _} = Err ->
             Err
     end;
+do_to_json(_TypeInfo, #maybe_improper_list{} = T, Data) ->
+    {error,
+     [#ed_error{type = not_implemented,
+                location = [],
+                ctx = #{type => T, value => Data}}]};
 %% Not supported types
 do_to_json(_TypeInfo, #a_tuple{} = T, _Data) ->
     {error,
@@ -491,6 +496,12 @@ from_json(_TypeInfo, {range, integer, Min, Max}, Value) when is_integer(Value) -
      [#ed_error{type = type_mismatch,
                 location = [],
                 ctx = #{type => {range, integer, Min, Max}, value => Value}}]};
+from_json(_TypeInfo, #maybe_improper_list{} = T, Value) ->
+    %% erlang:error(...) for not impolemented or supported stuff? It is not an error that should be handled by the user?
+    {error,
+     [#ed_error{type = not_implemented,
+                location = [],
+                ctx = #{type => T, value => Value}}]};
 from_json(_TypeInfo, #a_function{} = T, Value) ->
     {error,
      [#ed_error{type = type_not_supported,

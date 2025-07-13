@@ -2,18 +2,13 @@
 
 % -type stack_trim_fun() :: fun((module(), atom(), arity()) -> boolean()).
 % -type neg_integer() :: -1000..-1
-% -type tuple() :: {}.
-% -type tuple2() :: {integer(), atom()}.
-% -type tuple3() :: tuple().
 % -type maybe_improper() :: maybe_improper_list(integer(), atom()).
 % -type nonempty() :: [integer(), ...].
 % -type nonempty_improper() :: nonempty_improper_list(integer(), atom()).
 % -type list_no_type() :: list().
 % -type my_mfa() :: mfa().
 % -type ar() :: arity().
-% -type my_map() :: map().
 % -type my_iodata() :: iodata().
-% -type my_tuple() :: tuple().
 % -type my_list() :: iolist().
 % -type my_timeout() :: timeout().
 %

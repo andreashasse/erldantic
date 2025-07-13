@@ -10,6 +10,8 @@
 -record(type_with_arguments, {type :: erldantic:a_type(), vars :: [atom()]}).
 -record(a_function, {args :: any | [erldantic:a_type()], return :: erldantic:a_type()}).
 -record(remote_type, {mfargs :: {module(), atom(), [erldantic:a_type()]}}).
+-record(maybe_improper_list,
+        {elements :: erldantic:a_type(), tail :: erldantic:a_type()}).
 
 -define(is_primary_type(PrimaryType),
         PrimaryType =:= string

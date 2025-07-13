@@ -85,3 +85,7 @@ So, `integer() | undefined` will become undefined in records and maps mandatory 
 ### Handling of `term` in erldantic_json
 
 When you are using types with term, erldantic_json will not reject any data, which means that it can return data that json.erl can not convert to json.
+
+### Not yet decided
+
+I haven't decided how to handle maybe_improper_list, so you currently get an error messages when converting to and from json.
