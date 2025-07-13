@@ -185,10 +185,13 @@ field_info_to_type({TypeOfType, _, Type, TypeAttrs}) when is_list(TypeAttrs) ->
         {type, maybe_improper_list} ->
             case lists:flatmap(fun field_info_to_type/1, TypeAttrs) of
                 [A, B] ->
-                    [{maybe_improper_list, A, B}];
+                    [#maybe_improper_list{elements = A, tail = B}];
                 [] ->
-                    [{maybe_improper_list, {type, term}, {type, term}}]
+                    [#maybe_improper_list{elements = {type, term}, tail = {type, term}}]
             end;
+        {type, nonempty_improper_list} ->
+            [A, B] = lists:flatmap(fun field_info_to_type/1, TypeAttrs),
+            [#nonempty_improper_list{elements = A, tail = B}];
         {type, module} ->
             [{type, atom}];
         {type, PrimaryType} when ?is_primary_type(PrimaryType) ->

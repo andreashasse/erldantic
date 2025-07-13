@@ -141,6 +141,11 @@ do_to_json(_TypeInfo, #maybe_improper_list{} = T, Data) ->
      [#ed_error{type = not_implemented,
                 location = [],
                 ctx = #{type => T, value => Data}}]};
+do_to_json(_TypeInfo, #nonempty_improper_list{} = T, Data) ->
+    {error,
+     [#ed_error{type = not_implemented,
+                location = [],
+                ctx = #{type => T, value => Data}}]};
 %% Not supported types
 do_to_json(_TypeInfo, #a_tuple{} = T, _Data) ->
     {error,
@@ -497,6 +502,12 @@ from_json(_TypeInfo, {range, integer, Min, Max}, Value) when is_integer(Value) -
                 location = [],
                 ctx = #{type => {range, integer, Min, Max}, value => Value}}]};
 from_json(_TypeInfo, #maybe_improper_list{} = T, Value) ->
+    %% erlang:error(...) for not impolemented or supported stuff? It is not an error that should be handled by the user?
+    {error,
+     [#ed_error{type = not_implemented,
+                location = [],
+                ctx = #{type => T, value => Value}}]};
+from_json(_TypeInfo, #nonempty_improper_list{} = T, Value) ->
     %% erlang:error(...) for not impolemented or supported stuff? It is not an error that should be handled by the user?
     {error,
      [#ed_error{type = not_implemented,
