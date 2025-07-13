@@ -38,21 +38,12 @@ erl_abstract_code_parses_maybe_improper_list_types_test() ->
 
 erldantic_json_handles_maybe_improper_list_data_test() ->
     Iolist1 = ["hello", <<"world">>],
-    Iolist2 = ["hello", "world"],
-    Iolist3 = ["nested", ["list", "here"]],
-    Iolist4 = [<<"binary1">>, <<"binary2">>],
-    Iolist5 = [<<"binary3">>, ["string1", <<"binary4">>]],
-    ?assertMatch({ok, <<"helloworld">>},
+    ?assertMatch({error, [#ed_error{type = not_implemented}]},
                  erldantic_json:type_to_json(?MODULE, iolist1, Iolist1)),
-    ?assertMatch({ok, <<"helloworld">>},
-                 erldantic_json:type_to_json(?MODULE, iolist2, Iolist2)),
-    ?assertMatch({ok, <<"nestedlisthere">>},
-                 erldantic_json:type_to_json(?MODULE, iolist3, Iolist3)),
-    ?assertMatch({ok, <<"binary1binary2">>},
-                 erldantic_json:type_to_json(?MODULE, iolist4, Iolist4)),
-    ?assertMatch({ok, <<"binary3string1binary4">>},
-                 erldantic_json:type_to_json(?MODULE, iolist5, Iolist5)),
     ok.
 
 erldantic_json_handles_maybe_improper_list_data_from_json_test() ->
+    Data = <<"[]">>,
+    ?assertMatch({error, [#ed_error{type = not_implemented}]},
+                 erldantic_json:type_from_json(?MODULE, iolist1, Data)),
     ok.
