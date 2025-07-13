@@ -12,6 +12,8 @@
 -record(remote_type, {mfargs :: {module(), atom(), [erldantic:a_type()]}}).
 -record(maybe_improper_list,
         {elements :: erldantic:a_type(), tail :: erldantic:a_type()}).
+-record(nonempty_improper_list,
+        {elements :: erldantic:a_type(), tail :: erldantic:a_type()}).
 
 -define(is_primary_type(PrimaryType),
         PrimaryType =:= string

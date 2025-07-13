@@ -74,7 +74,7 @@ And get detailed error messages when the data and types doesn't match:
 BadSourceJson = <<"[{\"number\":\"+1-555-123-4567\",\"verified\":{\"source\":\"a_bad_source\",\"confidence\":\"high\"},\"sms_capable\":true}]">>.
 
 {error, [#ed_error{...}]} =  json_to_contacts(BadSourceJson).
-
+```
 
 ### Handling of `undefined`
 

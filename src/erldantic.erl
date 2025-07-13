@@ -41,6 +41,7 @@
     {range, integer, integer(), integer()} |
     {list | nonempty_list, a_type()} |
     #maybe_improper_list{} |
+    #nonempty_improper_list{} |
     #remote_type{}.
 -type a_type_reference() ::
     {record, atom()} |
