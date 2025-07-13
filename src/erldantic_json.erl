@@ -473,8 +473,6 @@ from_json(_TypeInfo, {type, PrimaryType} = T, Json)
     case check_type_from_json(PrimaryType, Json) of
         {true, NewValue} ->
             {ok, NewValue};
-        true ->
-            {ok, Json};
         false ->
             {error,
              [#ed_error{type = type_mismatch,
