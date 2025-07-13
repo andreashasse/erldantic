@@ -44,7 +44,7 @@ record_from_json(Module, RecordName, Json)
 %% INTERNAL
 
 -spec to_json_no_pt(Module :: module(),
-                    TypeRef :: erldantic:a_type_or_ref(),
+                    TypeRef :: erldantic:a_type_reference(),
                     Data :: dynamic()) ->
                        {ok, json:encode_value()} | {error, [erldantic:error()]}.
 to_json_no_pt(Module, TypeRef, Data) ->
@@ -55,6 +55,8 @@ to_json_no_pt(Module, TypeRef, Data) ->
             Err
     end.
 
+-spec to_json(erldantic:type_info(), erldantic:a_type_or_ref(), Data :: dynamic()) ->
+                 {ok, json:encode_value()} | {error, [erldantic:error()]}.
 to_json(TypeInfo, Type, Data) ->
     case do_to_json(TypeInfo, Type, Data) of
         {ok, Json} ->
@@ -173,7 +175,7 @@ literal_to_json(Term) ->
                 location = [],
                 ctx = #{type => {literal, Term}, value => Term}}]}.
 
--spec prim_type_to_json(Type :: erldantic:a_type_or_ref(), Value :: term()) ->
+-spec prim_type_to_json(Type :: erldantic:a_type(), Value :: term()) ->
                            {ok, json:encode_value()} | {error, [erldantic:error()]}.
 prim_type_to_json({type, Type} = T, Value) ->
     case check_type_to_json(Type, Value) of
@@ -226,6 +228,8 @@ list_to_json(TypeInfo, Type, Data) when is_list(Data) ->
             {error, lists:flatmap(fun({error, Errs}) -> Errs end, Errors)}
     end.
 
+-spec data_to_json(erldantic:type_info(), atom(), arity(), Data :: dynamic()) ->
+                      {ok, json:encode_value()} | {error, [erldantic:error()]} | skip.
 data_to_json(TypeInfo, TypeName, TypeArity, Data) ->
     case TypeInfo of
         #{{type, TypeName, TypeArity} := Type} ->
