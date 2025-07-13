@@ -84,11 +84,9 @@ from_json_no_pt(Module, TypeRef, Json) ->
                     {ok, json:encode_value()} | {error, [erldantic:error()]} | skip.
 do_to_json(TypeInfo, {record, RecordName}, Record) when is_atom(RecordName) ->
     record_to_json(TypeInfo, RecordName, Record, []);
-do_to_json(TypeInfo, #a_rec{fields = Fields}, Record) when is_tuple(Record) ->
-    [_RecordName | Values] = tuple_to_list(Record),
-    %% FIXME: Error messages if record arity and type doesn't match.
-    Mojs = lists:zip(Fields, Values),
-    do_record_to_json(TypeInfo, Mojs);
+do_to_json(TypeInfo, #a_rec{name = RecordName, fields = Fields}, Record)
+    when is_tuple(Record) ->
+    record_to_json(TypeInfo, RecordName, Record, Fields);
 do_to_json(TypeInfo, {record_ref, RecordName, TypeArgs}, Record)
     when is_atom(RecordName) ->
     record_to_json(TypeInfo, RecordName, Record, TypeArgs);
@@ -382,7 +380,8 @@ map_field_type(TypeInfo, KeyType, ValueType, Data) ->
                      Record :: term(),
                      TypeArgs :: [{atom(), erldantic:a_type()}]) ->
                         {ok, #{atom() => json:encode_value()}} | {error, [erldantic:error()]}.
-record_to_json(TypeInfo, RecordName, Record, TypeArgs) when is_tuple(Record) ->
+record_to_json(TypeInfo, RecordName, Record, TypeArgs)
+    when is_tuple(Record) andalso element(1, Record) =:= RecordName ->
     [RecordName | FieldsData] = tuple_to_list(Record),
     #a_rec{name = RecordName, fields = RecordInfo} = maps:get({record, RecordName}, TypeInfo),
     RecordInfoWithVars = apply_record_arg_types(RecordInfo, TypeArgs),
@@ -440,7 +439,7 @@ err_append_location(Err, FieldName) ->
 from_json(TypeInfo, {record, RecordName}, Json) when is_atom(RecordName) ->
     record_from_json(TypeInfo, RecordName, Json, []);
 from_json(TypeInfo, #a_rec{name = RecordName, fields = RecordInfo}, Json) ->
-    do_record_from_json(TypeInfo, RecordName, RecordInfo, Json);
+    record_from_json(TypeInfo, RecordName, Json, RecordInfo);
 from_json(_TypeInfo, #remote_type{mfargs = {Module, TypeName, TypeArgs}}, Json) ->
     case erldantic_module_types:get(Module) of
         {ok, TypeInfo} ->
@@ -577,9 +576,9 @@ list_from_json(_TypeInfo, Type, Data) ->
                 ctx = #{type => {list, Type}, value => Data}}]}.
 
 check_type_from_json(string, Json) when is_binary(Json) ->
-    {true, binary_to_list(Json)};
+    {true, unicode:characters_to_list(Json)};
 check_type_from_json(nonempty_string, Json) when is_binary(Json), byte_size(Json) > 0 ->
-    {true, binary_to_list(Json)};
+    {true, unicode:characters_to_list(Json)};
 check_type_from_json(atom, Json) when is_binary(Json) ->
     try
         {true, binary_to_existing_atom(Json, utf8)}
@@ -591,7 +590,7 @@ check_type_from_json(Type, Json) ->
     check_type(Type, Json).
 
 check_type_to_json(string, Json) when is_list(Json) ->
-    {true, list_to_binary(Json)};
+    {true, unicode:characters_to_binary(Json)};
 check_type_to_json(iodata, Json) when is_binary(Json) ->
     {true, Json};
 check_type_to_json(iodata, Json) when is_list(Json) ->
@@ -601,7 +600,7 @@ check_type_to_json(iolist, Json) when is_list(Json) ->
 check_type_to_json(nonempty_string, Json) when is_list(Json), Json =/= [] ->
     case io_lib:printable_list(Json) of
         true ->
-            {true, list_to_binary(Json)};
+            {true, unicode:characters_to_binary(Json)};
         false ->
             {error,
              [#ed_error{type = type_mismatch,
@@ -906,9 +905,18 @@ map_field_type_from_json(TypeInfo, KeyType, ValueType, Json) ->
                           {ok, term()} | {error, list()}.
 record_from_json(TypeInfo, RecordName, Json, TypeArgs) ->
     ARec = maps:get({record, RecordName}, TypeInfo),
-    NewARec = apply_args(TypeInfo, ARec, TypeArgs),
+    NewARec = record_apply_args(ARec, TypeArgs),
     #a_rec{name = RecordName, fields = RecordInfo} = NewARec,
     do_record_from_json(TypeInfo, RecordName, RecordInfo, Json).
+
+record_apply_args(#a_rec{fields = Fields} = Rec, TypeArgs) ->
+    NewFields =
+        lists:foldl(fun({Field, Type}, FieldsAcc) ->
+                       lists:keyreplace(Field, 1, FieldsAcc, {Field, Type})
+                    end,
+                    Fields,
+                    TypeArgs),
+    Rec#a_rec{fields = NewFields}.
 
 -spec do_record_from_json(TypeInfo :: map(),
                           RecordName :: atom(),

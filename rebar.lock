@@ -4,10 +4,13 @@
               {ref,"ebb8ad42e13f66f339e275f4e87e1c4a3e737324"},
               "eqwalizer_support"},
   0},
- {<<"parse_trans">>,{pkg,<<"parse_trans">>,<<"3.4.2">>},0}]}.
+ {<<"parse_trans">>,{pkg,<<"parse_trans">>,<<"3.4.2">>},0},
+ {<<"proper">>,{pkg,<<"proper">>,<<"1.5.0">>},0}]}.
 [
 {pkg_hash,[
- {<<"parse_trans">>, <<"C352DDC1A0D5E54F9B1654D45F9C432EEF76F9CEA371C55DDFF769EF688FDB74">>}]},
+ {<<"parse_trans">>, <<"C352DDC1A0D5E54F9B1654D45F9C432EEF76F9CEA371C55DDFF769EF688FDB74">>},
+ {<<"proper">>, <<"4A87CE8B219858E64C9AA015F4F7ED739D0AC3CA6BFD77FA62794617EE784225">>}]},
 {pkg_hash_ext,[
- {<<"parse_trans">>, <<"4C25347DE3B7C35732D32E69AB43D1CEEE0BEAE3F3B3ADE1B59CBD3DD224D9CA">>}]}
+ {<<"parse_trans">>, <<"4C25347DE3B7C35732D32E69AB43D1CEEE0BEAE3F3B3ADE1B59CBD3DD224D9CA">>},
+ {<<"proper">>, <<"FBF7CF0625E5441A314514F7D8E1EAFF52090FCD94FF34B5171FF293D3F9969A">>}]}
 ].
