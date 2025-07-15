@@ -86,12 +86,19 @@ So, `integer() | undefined` will become undefined in records and maps mandatory 
 
 When you are using types with term, erldantic_json will not reject any data, which means that it can return data that json.erl can not convert to json.
 
+
 ### Not yet decided
 
 I haven't decided how to handle maybe_improper_list, so you currently get an error messages when converting to and from json.
 
+## TODO
 
-### Random learnings
+### Use default values in records
+
+### Fail early when converting maps, list and records
+This way it should be faster to handling type unions where the first type doesn't match
+
+## Random learnings
 
 * proper can create generators from erlang types, but not from maps it semms?
 

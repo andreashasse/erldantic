@@ -1,81 +1,32 @@
 ## TODO PoC
-- [x] All straight foward types
-  - [X] List
-  - [x] Float
-  - [x] Atom
-  - [x] Boolean
-  - [x] Integer range
-  - [x] non_neg_integer
-  - [x] pos_integer
-  - [x] neg_integer
-  - [x] nonempty_string
-  - [x] binary
-    - [x] Binary should stay binary. Don't allow list when doing to_json
-- [X] Path in error messages
-- [x] Remote type
-  - [x] Missing
-  - [x] Not Missing
-- [x] pass not map to map type
-- [x] pass binary when expecting string
-- [x] skip (undefined) in weird places.
-- [x] #{atom() => string()}
-  - [x] There are no test for from_json in map_test.erl
-  - [x] 'undefined' as key in map
-- [x] Types with vars
-  - [x] Two types with same name but different arity.
-  - [x] Tests for all non primitive types
-    - [x] Record
-    - [x] Map
-    - [x] Union
-    - [x] list
-    - [x] remote type
-- [ ] Things found in OTP
-  - [ ] The type `nil`
-  - [ ] Having a atom as default value for a record field
-```erlang
--record(docs_v1, {anno,
-                  beam_language = erlang,
-                  ...}).
-```
-  - [ ] ...
-
-- [ ] Error message on not supported json types:
-  - [ ] tuple, pid, port, fun, reference
-- [ ] Error message on not debug_info compiled module
-- [x] What is #a_type and when should I use it?
-- [ ] Rename #a_type to #type_args
-- [ ] Cleanup erldantic internal types. Use records instead of tagged tuples. #a_type can not have any type in type field.
-
-## TODO PoC Not parse transform
-- [x] Module that doens't use parse transform, but manually calls from to_json from_json function in this lib.
+  - [ ] More tests
+    - [ ] dynamic/0
+    - [ ] nonempty_binary/0
+    - [ ] bitstring/0
+    - [ ] nonempty_bitstring/0
+    - [ ] no_return/0
+    - [ ] none/0
+    - [ ] -opaque my_opaq_type() :: Type.
+    - [ ] -nominal my_nominal_type() :: Type. (otp 28)
 
 ## TODO Release
 - [ ] Run the thing on lots of modules to see if the abstract code can handle all type attributes.
-- [x] Document special behaviour for `undefined`.
-- [ ] All other types expect `pid()`, `port()`, `Fun` and `reference()`.
-    - [ ] Number? or will it always show up as integer()|float()?
-    - [ ] non_empty ... binary, bitstring,
-    - [ ] any()/term() and dynamic()? none()?
+- [ ] Cleanup erldantic internal types. Use records instead of tagged tuples.
+- [ ] #a_type can not have any type in type field.
 - [ ] Test error message path with Adams library for nested access
 
-## TODO If I go with the parse transform:
-- [ ] Add type spec to generated functions.
-
 ## TODO PoC FastApi
+- [ ] Types for functions in erldantic_abstract_code
 - [ ] How should I get example values into the mix? Some macro ?spec(example = 2, type = integer) that I write to integer and keep the example separate? Can that be done without IDEs going bananas?
   - [ ] An alternative is to add an example value to the router in the PoC
 - [ ] Get types from function specs.
 - [ ] Declerative router for Elli/Cowboy
 - [ ] OpenAPI spec
 
-## TODO Later
-- [x] Handle references beween modules: Can I get the same info by looking at a beam with debug_info? or should I export a __erldantic_info__/0 function?
-- [ ] Only generate to_json from_json if not pressent. Call to_json / from_json instead of looking up type in type_info. This will allow user to override generate for specific DTs.
-- [ ] to/from yaml
-- [ ] to property based test generator
-
-
 ## Not in scope for now
 - [ ] to/from Dynamo DB
+- [ ] to/from yaml
+
+## Maybe never in scope?
 - [ ] to/from grpc
 - [ ] to/from sql

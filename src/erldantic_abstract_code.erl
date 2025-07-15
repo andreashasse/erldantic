@@ -168,6 +168,8 @@ field_info_to_type({TypeOfType, _, Type, TypeAttrs}) when is_list(TypeAttrs) ->
             [{type, reference}];
         {type, node} ->
             [{type, atom}];
+        {type, identifier} ->
+            [{union, [{type, pid}, {type, port}, {type, reference}]}];
         {type, range} ->
             [MinValue, MaxValue] = TypeAttrs,
             Min = integer_value(MinValue),
