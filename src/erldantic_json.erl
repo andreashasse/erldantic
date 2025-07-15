@@ -79,7 +79,6 @@ from_json_no_pt(Module, TypeRef, Json) ->
             Err
     end.
 
-% FIXME: User can get 'skip' as return value.
 -spec do_to_json(TypeInfo :: erldantic:type_info(),
                  Type :: erldantic:a_type_or_ref(),
                  Data :: dynamic()) ->
@@ -101,7 +100,10 @@ do_to_json(TypeInfo, {user_type_ref, TypeName, TypeArgs}, Data) when is_atom(Typ
             {error, [#ed_error{type = missing_type, location = []}]}
     end;
 do_to_json(_TypeInfo, {type, Type} = T, Value)
-    when ?is_primary_type(Type) orelse ?is_predefined_int_range(Type) ->
+    when ?is_primary_type(Type)
+         orelse ?is_predefined_int_range(Type)
+         orelse Type =:= iodata
+         orelse Type =:= iolist ->
     prim_type_to_json(T, Value);
 do_to_json(_TypeInfo, {range, integer, Min, Max}, Value)
     when is_integer(Value) andalso Min =< Value, Value =< Max ->
@@ -152,6 +154,14 @@ do_to_json(_TypeInfo, #a_tuple{} = T, _Data) ->
                 location = [],
                 ctx = #{type => T}}]};
 do_to_json(_TypeInfo, #a_function{} = T, _Data) ->
+    {error,
+     [#ed_error{type = type_not_supported,
+                location = [],
+                ctx = #{type => T}}]};
+do_to_json(_TypeInfo, {type, NotSupported} = T, _Data)
+    when NotSupported =:= pid
+         orelse NotSupported =:= port
+         orelse NotSupported =:= reference ->
     {error,
      [#ed_error{type = type_not_supported,
                 location = [],
@@ -477,7 +487,10 @@ from_json(TypeInfo, {nonempty_list, Type}, Data) ->
 from_json(TypeInfo, {list, Type}, Data) ->
     list_from_json(TypeInfo, Type, Data);
 from_json(_TypeInfo, {type, PrimaryType} = T, Json)
-    when ?is_primary_type(PrimaryType) orelse ?is_predefined_int_range(PrimaryType) ->
+    when ?is_primary_type(PrimaryType)
+         orelse ?is_predefined_int_range(PrimaryType)
+         orelse PrimaryType =:= iodata
+         orelse PrimaryType =:= iolist ->
     case check_type_from_json(PrimaryType, Json) of
         {true, NewValue} ->
             {ok, NewValue};
@@ -530,6 +543,19 @@ from_json(_TypeInfo, #a_function{} = T, Value) ->
 from_json(_TypeInfo, #a_tuple{} = T, Value) ->
     {error,
      [#ed_error{type = type_not_supported,
+                location = [],
+                ctx = #{type => T, value => Value}}]};
+from_json(_TypeInfo, {type, NotSupported} = T, Value)
+    when NotSupported =:= pid
+         orelse NotSupported =:= port
+         orelse NotSupported =:= reference ->
+    {error,
+     [#ed_error{type = type_not_supported,
+                location = [],
+                ctx = #{type => T, value => Value}}]};
+from_json(_TypeInfo, T, Value) ->
+    {error,
+     [#ed_error{type = type_mismatch,
                 location = [],
                 ctx = #{type => T, value => Value}}]}.
 
@@ -589,6 +615,10 @@ check_type_from_json(string, Json) when is_binary(Json) ->
     {true, unicode:characters_to_list(Json)};
 check_type_from_json(nonempty_string, Json) when is_binary(Json), byte_size(Json) > 0 ->
     {true, unicode:characters_to_list(Json)};
+check_type_from_json(iodata, Json) when is_binary(Json) ->
+    {true, Json};
+check_type_from_json(iolist, Json) when is_binary(Json) ->
+    {true, Json};
 check_type_from_json(atom, Json) when is_binary(Json) ->
     try
         {true, binary_to_existing_atom(Json, utf8)}

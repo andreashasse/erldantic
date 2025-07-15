@@ -23,7 +23,9 @@ map1_bad_test() ->
                   [#ed_error{location = [a1],
                              type = type_mismatch,
                              ctx = #{type => {type, integer}, value => hej}}]},
-                 to_json_atom_map(#{a1 => hej})).
+                 to_json_atom_map(#{a1 => hej})),
+    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
+                 to_json_atom_map(<<"not_a_map">>)).
 
 map2_test() ->
     ?assertEqual({ok, #{a1 => 1, other => value2}},
@@ -91,7 +93,9 @@ from_json_map1_bad_test() ->
                   [#ed_error{location = [a1],
                              type = type_mismatch,
                              ctx = #{type => {type, integer}, value => <<"not_an_integer">>}}]},
-                 from_json_atom_map(#{<<"a1">> => <<"not_an_integer">>})).
+                 from_json_atom_map(#{<<"a1">> => <<"not_an_integer">>})),
+    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
+                 from_json_atom_map(<<"not_a_map">>)).
 
 from_json_map2_test() ->
     ?assertEqual({ok, #{a1 => 1, other => value2}},
