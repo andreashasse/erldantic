@@ -89,3 +89,10 @@ When you are using types with term, erldantic_json will not reject any data, whi
 ### Not yet decided
 
 I haven't decided how to handle maybe_improper_list, so you currently get an error messages when converting to and from json.
+
+
+### Random learnings
+
+* proper can create generators from erlang types, but not from maps it semms?
+
+* erl_parse:abstract_form() has a union member af_wild_attribute() that would be nice to remove.
