@@ -5,6 +5,9 @@
 
 -export([types_in_module/1]).
 
+%% Due to erl_parse:af_wild_attribute() I can't use some of the types.
+-type erl_parse__af_field_decl() :: term().
+
 -spec types_in_module(atom()) ->
                          {ok, erldantic:type_info()} | {error, [erldantic:error()]}.
 types_in_module(Module) ->
@@ -272,7 +275,7 @@ map_field_info({TypeOfType, _, Type, TypeAttrs}) ->
             end
     end.
 
--spec record_field_info(term()) -> {atom(), erldantic:a_type()}.
+-spec record_field_info(erl_parse__af_field_decl()) -> {atom(), erldantic:a_type()}.
 record_field_info({record_field, _, {atom, _, FieldName}, _Type})
     when is_atom(FieldName) ->
     %% FIXME: Handle default values in record fields. Also handle default values in typed_record_field?
