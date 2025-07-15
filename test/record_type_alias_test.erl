@@ -16,18 +16,28 @@
 type_in_form_test() ->
     {ok, Types} = erldantic_abstract_code:types_in_module(?MODULE),
 
-    ?assertMatch(#a_rec{name = person,
-                        fields = [{name, {type, string}}, {age, {type, integer}}]},
+    ?assertMatch({record_ref, person, [{name, {type, string}}, {age, {type, integer}}]},
                  maps:get({type, person_alias, 0}, Types)),
 
-    ?assertMatch(#a_rec{name = address,
-                        fields = [{street, {type, string}}, {city, {type, string}}]},
+    ?assertMatch({record_ref, address, [{street, {type, string}}, {city, {type, string}}]},
                  maps:get({type, address_alias, 0}, Types)),
 
-    ?assertMatch(#a_rec{name = person, fields = [{age, {type, non_neg_integer}}]},
+    ?assertMatch({record_ref, person, [{age, {type, non_neg_integer}}]},
                  maps:get({type, person_new_age, 0}, Types)),
 
-    ?assertMatch(#a_rec{name = person, fields = []}, maps:get({type, person_t, 0}, Types)).
+    ?assertMatch({record_ref, person, []}, maps:get({type, person_t, 0}, Types)).
+
+to_json_person_record_test() ->
+    Person = #person{name = "John", age = 30},
+    ?assertEqual({ok, #{name => <<"John">>, age => 30}}, to_json_person(Person)).
+
+to_json_person_record_bad_test() ->
+    NotPersonArity = {person, "John"},
+    ?assertMatch({error, [#ed_error{type = type_mismatch}]}, to_json_person(NotPersonArity)).
+
+from_json_person_record_test() ->
+    Person = #{<<"name">> => <<"John">>, <<"age">> => 30},
+    ?assertEqual({ok, #person{name = "John", age = 30}}, from_json_person(Person)).
 
 to_json_person_alias_test() ->
     Person = #person{name = "John", age = -1},
@@ -103,14 +113,25 @@ from_json_address_alias_test() ->
     ?assertEqual({ok, #address{street = "Main St", city = "Boston"}},
                  from_json_address_alias(Json)).
 
--spec to_json_person_new_age(term()) ->
-                                {ok, person_new_age()} | {error, [erldantic:error()]}.
+-spec to_json_person_new_age(person_new_age()) ->
+                                {ok, json:encode_value()} | {error, [erldantic:error()]}.
 to_json_person_new_age(Data) ->
     erldantic_json:type_to_json(?MODULE, person_new_age, Data).
 
--spec to_json_person_t(term()) -> {ok, person_t()} | {error, [erldantic:error()]}.
+-spec to_json_person_t(person_t()) ->
+                          {ok, json:encode_value()} | {error, [erldantic:error()]}.
 to_json_person_t(Data) ->
     erldantic_json:type_to_json(?MODULE, person_t, Data).
+
+-spec to_json_person(#person{}) ->
+                        {ok, json:encode_value()} | {error, [erldantic:error()]}.
+to_json_person(Person) ->
+    erldantic_json:record_to_json(?MODULE, person, Person).
+
+-spec from_json_person(json:decode_value()) ->
+                          {ok, #person{}} | {error, [erldantic:error()]}.
+from_json_person(Person) ->
+    erldantic_json:record_from_json(?MODULE, person, Person).
 
 -spec to_json_person_alias(term()) -> {ok, person_alias()} | {error, [erldantic:error()]}.
 to_json_person_alias(Data) ->

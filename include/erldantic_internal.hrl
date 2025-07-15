@@ -6,7 +6,8 @@
                erldantic:a_type(),
                erldantic:a_type()}]}).
 %% FIXME: | [] does not work
--record(a_rec, {name :: atom(), fields :: [{atom(), erldantic:a_type()}]}).
+-record(a_rec,
+        {name :: atom(), fields :: [{atom(), erldantic:a_type()}], arity :: pos_integer()}).
 -record(type_with_arguments, {type :: erldantic:a_type(), vars :: [atom()]}).
 -record(a_function, {args :: any | [erldantic:a_type()], return :: erldantic:a_type()}).
 -record(remote_type, {mfargs :: {module(), atom(), [erldantic:a_type()]}}).

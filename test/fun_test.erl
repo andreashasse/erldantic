@@ -37,7 +37,8 @@ erl_abstract_code_parses_fun_types_test() ->
     ?assertEqual(#a_rec{name = with_fun,
                         fields =
                             [{id, {type, integer}},
-                             {handler, #a_function{args = any, return = {type, term}}}]},
+                             {handler, #a_function{args = any, return = {type, term}}}],
+                        arity = 3},
                  maps:get({record, with_fun}, TypeInfo)).
 
 erldantic_json_rejects_fun_data_test() ->

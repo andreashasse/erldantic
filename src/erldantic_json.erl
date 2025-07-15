@@ -86,9 +86,8 @@ from_json_no_pt(Module, TypeRef, Json) ->
                     {ok, json:encode_value()} | {error, [erldantic:error()]} | skip.
 do_to_json(TypeInfo, {record, RecordName}, Record) when is_atom(RecordName) ->
     record_to_json(TypeInfo, RecordName, Record, []);
-do_to_json(TypeInfo, #a_rec{name = RecordName, fields = Fields}, Record)
-    when is_tuple(Record) ->
-    record_to_json(TypeInfo, RecordName, Record, Fields);
+do_to_json(TypeInfo, #a_rec{} = RecordInfo, Record) when is_tuple(Record) ->
+    record_to_json(TypeInfo, RecordInfo, Record, []);
 do_to_json(TypeInfo, {record_ref, RecordName, TypeArgs}, Record)
     when is_atom(RecordName) ->
     record_to_json(TypeInfo, RecordName, Record, TypeArgs);
@@ -380,15 +379,24 @@ map_field_type(TypeInfo, KeyType, ValueType, Data) ->
                 maps:to_list(Data)).
 
 -spec record_to_json(TypeInfo :: map(),
-                     RecordName :: atom(),
+                     RecordName :: atom() | #a_rec{},
                      Record :: term(),
                      TypeArgs :: [{atom(), erldantic:a_type()}]) ->
                         {ok, #{atom() => json:encode_value()}} | {error, [erldantic:error()]}.
-record_to_json(TypeInfo, RecordName, Record, TypeArgs)
-    when is_tuple(Record) andalso element(1, Record) =:= RecordName ->
+record_to_json(TypeInfo, RecordName, Record, TypeArgs) when is_atom(RecordName) ->
+    RecordInfo = maps:get({record, RecordName}, TypeInfo),
+    record_to_json(TypeInfo, RecordInfo, Record, TypeArgs);
+record_to_json(TypeInfo,
+               #a_rec{name = RecordName,
+                      fields = Fields,
+                      arity = Arity},
+               Record,
+               TypeArgs)
+    when is_tuple(Record)
+         andalso element(1, Record) =:= RecordName
+         andalso tuple_size(Record) =:= Arity ->
     [RecordName | FieldsData] = tuple_to_list(Record),
-    #a_rec{name = RecordName, fields = RecordInfo} = maps:get({record, RecordName}, TypeInfo),
-    RecordInfoWithVars = apply_record_arg_types(RecordInfo, TypeArgs),
+    RecordInfoWithVars = apply_record_arg_types(Fields, TypeArgs),
     Mojs = lists:zip(RecordInfoWithVars, FieldsData),
     do_record_to_json(TypeInfo, Mojs);
 record_to_json(_TypeInfo, RecordName, Record, TypeArgs) ->
