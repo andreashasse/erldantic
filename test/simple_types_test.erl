@@ -20,6 +20,11 @@
 -type my_reference() :: reference().
 -type my_node() :: node().
 -type my_identifier() :: identifier().
+-type my_literal() :: 1.
+-type my_list() :: list().
+-type my_term() :: term().
+-type my_nonempty_list() :: nonempty_list().
+-type my_nil() :: []. %% My code formater re-writes nil to [].
 
 missing_test() ->
     {ok, Types} = erldantic_abstract_code:types_in_module(?MODULE),
@@ -126,4 +131,35 @@ missing_test() ->
     ?assertMatch({error, [#ed_error{type = no_match}]},
                  erldantic_json:type_to_json(?MODULE, my_identifier, my_identifier)),
     ?assertMatch({error, [#ed_error{type = no_match}]},
-                 erldantic_json:type_to_json(?MODULE, my_identifier, my_identifier)).
+                 erldantic_json:type_to_json(?MODULE, my_identifier, my_identifier)),
+
+    %% literal
+    ?assertEqual({literal, 1}, maps:get({type, my_literal, 0}, Types)),
+    ?assertEqual({ok, 1}, erldantic_json:type_to_json(?MODULE, my_literal, 1)),
+    ?assertEqual({ok, 1}, erldantic_json:type_from_json(?MODULE, my_literal, 1)),
+
+    %% list
+    ?assertEqual({list, {type, term}}, maps:get({type, my_list, 0}, Types)),
+    ?assertEqual({ok, [1, 2, 3]}, erldantic_json:type_to_json(?MODULE, my_list, [1, 2, 3])),
+    ?assertEqual({ok, [1, 2, 3]}, erldantic_json:type_from_json(?MODULE, my_list, [1, 2, 3])),
+
+    %% term
+    ?assertEqual({type, term}, maps:get({type, my_term, 0}, Types)),
+    ?assertEqual({ok, 42}, erldantic_json:type_to_json(?MODULE, my_term, 42)),
+    ?assertEqual({ok, 42}, erldantic_json:type_from_json(?MODULE, my_term, 42)),
+
+    %% nonempty_list
+    ?assertEqual({nonempty_list, {type, term}}, maps:get({type, my_nonempty_list, 0}, Types)),
+    ?assertEqual({ok, [1, 2, 3]},
+                 erldantic_json:type_to_json(?MODULE, my_nonempty_list, [1, 2, 3])),
+    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
+                 erldantic_json:type_to_json(?MODULE, my_nonempty_list, [])),
+    ?assertEqual({ok, [1, 2, 3]},
+                 erldantic_json:type_from_json(?MODULE, my_nonempty_list, [1, 2, 3])),
+    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
+                 erldantic_json:type_from_json(?MODULE, my_nonempty_list, [])),
+
+    %% nil
+    ?assertEqual({literal, []}, maps:get({type, my_nil, 0}, Types)),
+    ?assertEqual({ok, []}, erldantic_json:type_to_json(?MODULE, my_nil, [])),
+    ?assertEqual({ok, []}, erldantic_json:type_from_json(?MODULE, my_nil, [])).

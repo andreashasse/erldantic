@@ -111,7 +111,7 @@ do_to_json(_TypeInfo, {range, integer, Min, Max}, Value)
 do_to_json(_TypeInfo, {literal, undefined}, undefined) ->
     skip;
 do_to_json(_TypeInfo, {literal, Value}, Value) ->
-    literal_to_json(Value);
+    {ok, Value};
 do_to_json(TypeInfo, {union, _} = T, Data) ->
     union(fun do_to_json/3, TypeInfo, T, Data);
 do_to_json(TypeInfo, {nonempty_list, Type}, Data) ->
@@ -171,18 +171,6 @@ do_to_json(_TypeInfo, T, OtherValue) ->
      [#ed_error{type = type_mismatch,
                 location = [],
                 ctx = #{type => T, value => OtherValue}}]}.
-
--spec literal_to_json(Value :: term()) ->
-                         {ok, json:encode_value()} | {error, [erldantic:error()]}.
-%% FIXME: Handle maps, records, list (strings?).
-literal_to_json(Term)
-    when is_integer(Term) orelse is_float(Term) orelse is_binary(Term) orelse is_atom(Term) ->
-    {ok, Term};
-literal_to_json(Term) ->
-    {error,
-     [#ed_error{type = type_mismatch,
-                location = [],
-                ctx = #{type => {literal, Term}, value => Term}}]}.
 
 -spec prim_type_to_json(Type :: erldantic:a_type(), Value :: term()) ->
                            {ok, json:encode_value()} | {error, [erldantic:error()]}.

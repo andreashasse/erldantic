@@ -1,8 +1,7 @@
 ## TODO PoC
   - [ ] More tests
     - [ ] dynamic/0
-    - [ ] nil/0
-    - [ ] onempty_binary/0
+    - [ ] nonempty_binary/0
     - [ ] bitstring/0
     - [ ] nonempty_bitstring/0
     - [ ] no_return/0
