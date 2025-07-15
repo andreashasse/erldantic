@@ -20,7 +20,8 @@ erl_abstract_code_parses_tuple_types_test() ->
                  maps:get({type, tuple2, 0}, TypeInfo)),
     ?assertEqual(#a_tuple{fields = any}, maps:get({type, tuple3, 0}, TypeInfo)),
     ?assertEqual(#a_rec{name = with_tuple,
-                        fields = [{id, {type, integer}}, {data, #a_tuple{fields = any}}]},
+                        fields = [{id, {type, integer}}, {data, #a_tuple{fields = any}}],
+                        arity = 3},
                  maps:get({record, with_tuple}, TypeInfo)).
 
 erldantic_json_handles_tuple_data_test() ->

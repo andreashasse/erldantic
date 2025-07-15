@@ -44,14 +44,18 @@ types_in_module(Module) ->
 type_in_form({attribute, _, record, {RecordName, Fields}})
     when is_list(Fields) andalso is_atom(RecordName) ->
     FieldInfos = lists:map(fun record_field_info/1, Fields),
-    {true, {{record, RecordName}, #a_rec{name = RecordName, fields = FieldInfos}}};
+    {true,
+     {{record, RecordName},
+      #a_rec{name = RecordName,
+             fields = FieldInfos,
+             arity = length(FieldInfos) + 1}}};
 type_in_form({attribute, _, type, {TypeName, {type, _, record, Attrs}, [] = Args}})
     when is_atom(TypeName) ->
     %% FIXME: Sort out why this function clause differs from all others.
     true = is_list(Attrs),
     {RecordName, FieldTypes} = record_field_types(Attrs),
     TypeArity = length(Args),
-    Record = #a_rec{name = RecordName, fields = FieldTypes},
+    Record = {record_ref, RecordName, FieldTypes},
     {true, {{type, TypeName, TypeArity}, Record}};
 type_in_form({attribute, _, type, {TypeName, Type, Args}})
     when is_atom(TypeName) andalso is_list(Args) ->
