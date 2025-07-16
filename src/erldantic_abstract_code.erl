@@ -49,16 +49,18 @@ type_in_form({attribute, _, record, {RecordName, Fields}})
       #a_rec{name = RecordName,
              fields = FieldInfos,
              arity = length(FieldInfos) + 1}}};
-type_in_form({attribute, _, type, {TypeName, {type, _, record, Attrs}, [] = Args}})
-    when is_atom(TypeName) ->
+type_in_form({attribute, _, TypeOrOpaque, {TypeName, {_, _, record, Attrs}, [] = Args}})
+    when is_atom(TypeName) andalso (TypeOrOpaque =:= type orelse TypeOrOpaque =:= opaque) ->
     %% FIXME: Sort out why this function clause differs from all others.
     true = is_list(Attrs),
     {RecordName, FieldTypes} = record_field_types(Attrs),
     TypeArity = length(Args),
     Record = {record_ref, RecordName, FieldTypes},
     {true, {{type, TypeName, TypeArity}, Record}};
-type_in_form({attribute, _, type, {TypeName, Type, Args}})
-    when is_atom(TypeName) andalso is_list(Args) ->
+type_in_form({attribute, _, TypeOrOpaque, {TypeName, Type, Args}})
+    when is_atom(TypeName)
+         andalso is_list(Args)
+         andalso (TypeOrOpaque =:= type orelse TypeOrOpaque =:= opaque) ->
     [FieldInfo] = field_info_to_type(Type),
     Vars = lists:map(fun({var, _, VarName}) when is_atom(VarName) -> VarName end, Args),
     TypeArity = length(Args),
@@ -69,7 +71,8 @@ type_in_form({attribute, _, type, {TypeName, Type, Args}})
             {true,
              {{type, TypeName, TypeArity}, #type_with_arguments{type = FieldInfo, vars = Vars}}}
     end;
-type_in_form({attribute, _, type, _} = T) ->
+type_in_form({attribute, _, TypeOrOpaque, _} = T)
+    when TypeOrOpaque =:= opaque orelse TypeOrOpaque =:= type ->
     error({not_supported, T});
 type_in_form(_) ->
     false.
@@ -108,30 +111,31 @@ field_info_to_type({remote_type, _, [{atom, _, Module}, {atom, _, Type}, Args]})
                   end,
                   Args),
     [#remote_type{mfargs = {Module, Type, MyArgs}}];
-field_info_to_type({type, _, map, any}) ->
+field_info_to_type({Type, _, map, any}) when Type =:= type orelse Type =:= opaque ->
     %% FIXME: Add test for map()
     [#a_map{fields = [{map_field_type_assoc, {type, term}, {type, term}}]}];
-field_info_to_type({type, _, tuple, any}) ->
+field_info_to_type({Type, _, tuple, any}) when Type =:= type orelse Type =:= opaque ->
     [#a_tuple{fields = any}];
-field_info_to_type({TypeOfType, _, Type, TypeAttrs}) when is_list(TypeAttrs) ->
-    case {TypeOfType, Type} of
-        {type, record} ->
+field_info_to_type({user_type, _, Type, TypeAttrs})
+    when is_atom(Type) andalso is_list(TypeAttrs) ->
+    TAttrs = lists:flatmap(fun field_info_to_type/1, TypeAttrs),
+    [{user_type_ref, Type, TAttrs}];
+field_info_to_type({TypeOrOpaque, _, Type, TypeAttrs})
+    when is_list(TypeAttrs) andalso (TypeOrOpaque =:= type orelse TypeOrOpaque =:= opaque) ->
+    case Type of
+        record ->
             {SubTypeRecordName, FieldTypes} = record_field_types(TypeAttrs),
             [{record_ref, SubTypeRecordName, FieldTypes}];
-        {user_type, Type} ->
-            true = is_atom(Type),
-            TAttrs = lists:flatmap(fun field_info_to_type/1, TypeAttrs),
-            [{user_type_ref, Type, TAttrs}];
-        {type, map} ->
+        map ->
             MapFields = lists:flatmap(fun map_field_info/1, TypeAttrs),
             [#a_map{fields = MapFields}];
-        {type, tuple} ->
+        tuple ->
             TupleFields = lists:flatmap(fun field_info_to_type/1, TypeAttrs),
             [#a_tuple{fields = TupleFields}];
-        {type, union} ->
+        union ->
             UnionFields = lists:flatmap(fun field_info_to_type/1, TypeAttrs),
             [{union, UnionFields}];
-        {type, Fun} when Fun =:= 'fun' orelse Fun =:= function ->
+        Fun when Fun =:= 'fun' orelse Fun =:= function ->
             case TypeAttrs of
                 [] ->
                     [#a_function{args = any, return = {type, term}}];
@@ -144,46 +148,46 @@ field_info_to_type({TypeOfType, _, Type, TypeAttrs}) when is_list(TypeAttrs) ->
                     [AReturnType] = field_info_to_type(ReturnType),
                     [#a_function{args = AFunArgTypes, return = AReturnType}]
             end;
-        {type, arity} ->
+        arity ->
             [{range, integer, 0, 255}];
-        {type, byte} ->
+        byte ->
             [{range, integer, 0, 255}];
-        {type, char} ->
+        char ->
             [{range, integer, 0, 16#10ffff}];
-        {type, mfa} ->
+        mfa ->
             [#a_tuple{fields = [{type, atom}, {type, atom}, {range, integer, 0, 255}]}];
-        {type, any} ->
+        any ->
             [{type, term}];
-        {type, timeout} ->
+        timeout ->
             [{union, [{type, non_neg_integer}, {literal, infinity}]}];
-        {type, pid} ->
+        pid ->
             [{type, pid}];
-        {type, iodata} ->
+        iodata ->
             [{type, iodata}];
-        {type, iolist} ->
+        iolist ->
             [{type, iolist}];
-        {type, port} ->
+        port ->
             [{type, port}];
-        {type, reference} ->
+        reference ->
             [{type, reference}];
-        {type, node} ->
+        node ->
             [{type, atom}];
-        {type, identifier} ->
+        identifier ->
             [{union, [{type, pid}, {type, port}, {type, reference}]}];
-        {type, range} ->
+        range ->
             [MinValue, MaxValue] = TypeAttrs,
             Min = integer_value(MinValue),
             Max = integer_value(MaxValue),
             %% FIXME: check that it is a integer range
             [{range, integer, Min, Max}];
-        {type, list} ->
+        list ->
             case lists:flatmap(fun field_info_to_type/1, TypeAttrs) of
                 [ListType] ->
                     [{list, ListType}];
                 [] ->
                     [{list, {type, term}}]
             end;
-        {type, nonempty_list} ->
+        nonempty_list ->
             case lists:flatmap(fun field_info_to_type/1, TypeAttrs) of
                 [ListType] ->
                     [{nonempty_list, ListType}];
@@ -191,37 +195,33 @@ field_info_to_type({TypeOfType, _, Type, TypeAttrs}) when is_list(TypeAttrs) ->
                     %% FIXME: missing test.
                     [{nonempty_list, {type, term}}]
             end;
-        {type, maybe_improper_list} ->
+        maybe_improper_list ->
             case lists:flatmap(fun field_info_to_type/1, TypeAttrs) of
                 [A, B] ->
                     [#maybe_improper_list{elements = A, tail = B}];
                 [] ->
                     [#maybe_improper_list{elements = {type, term}, tail = {type, term}}]
             end;
-        {type, nonempty_improper_list} ->
+        nonempty_improper_list ->
             [A, B] = lists:flatmap(fun field_info_to_type/1, TypeAttrs),
             [#nonempty_improper_list{elements = A, tail = B}];
-        {type, module} ->
+        module ->
             [{type, atom}];
-        {type, PrimaryType} when ?is_primary_type(PrimaryType) ->
+        PrimaryType when ?is_primary_type(PrimaryType) ->
             [{type, PrimaryType}];
-        {type, PartailRangeInteger} when ?is_predefined_int_range(PartailRangeInteger) ->
+        PartailRangeInteger when ?is_predefined_int_range(PartailRangeInteger) ->
             [{type, PartailRangeInteger}];
-        {type, bitstring} ->
+        bitstring ->
             [{type, bitstring}];
-        {type, nonempty_bitstring} ->
+        nonempty_bitstring ->
             [{type, nonempty_bitstring}];
-        {type, term} ->
+        dynamic ->
             [{type, term}];
-        {type, dynamic} ->
-            [{type, term}];
-        {literal, Literal} ->
-            [{literal, Literal}];
-        {type, nil} ->
+        nil ->
             [{literal, []}];
-        {type, none} ->
+        none ->
             [{type, none}];
-        {type, no_return} ->
+        no_return ->
             [{type, none}]
     end.
 
