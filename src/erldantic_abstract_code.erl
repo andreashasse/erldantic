@@ -207,12 +207,22 @@ field_info_to_type({TypeOfType, _, Type, TypeAttrs}) when is_list(TypeAttrs) ->
             [{type, PrimaryType}];
         {type, PartailRangeInteger} when ?is_predefined_int_range(PartailRangeInteger) ->
             [{type, PartailRangeInteger}];
+        {type, bitstring} ->
+            [{type, bitstring}];
+        {type, nonempty_bitstring} ->
+            [{type, nonempty_bitstring}];
         {type, term} ->
+            [{type, term}];
+        {type, dynamic} ->
             [{type, term}];
         {literal, Literal} ->
             [{literal, Literal}];
         {type, nil} ->
-            [{literal, []}]
+            [{literal, []}];
+        {type, none} ->
+            [{type, none}];
+        {type, no_return} ->
+            [{type, none}]
     end.
 
 integer_value({integer, _, Value}) when is_integer(Value) ->

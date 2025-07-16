@@ -21,13 +21,17 @@
      number |
      boolean |
      binary |
+     nonempty_binary |
+     bitstring |
+     nonempty_bitstring |
      atom |
      term |
      reference |
      pid |
      port |
      iolist |
-     iodata} |
+     iodata |
+     none} |
     {record_ref, user_type_name(), [record_field()]} |
     {user_type_ref, user_type_name(), [a_type()]} |
     {var, atom()} |

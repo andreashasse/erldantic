@@ -1,19 +1,15 @@
 ## TODO PoC
   - [ ] More tests
-    - [ ] dynamic/0
-    - [ ] nonempty_binary/0
-    - [ ] bitstring/0
-    - [ ] nonempty_bitstring/0
-    - [ ] no_return/0
-    - [ ] none/0
+    - [x] Test that I can parse (but don't use for now) default values on record fields
     - [ ] -opaque my_opaq_type() :: Type.
-    - [ ] -nominal my_nominal_type() :: Type. (otp 28)
 
 ## TODO Release
 - [ ] Run the thing on lots of modules to see if the abstract code can handle all type attributes.
 - [ ] Cleanup erldantic internal types. Use records instead of tagged tuples.
 - [ ] #a_type can not have any type in type field.
 - [ ] Test error message path with Adams library for nested access
+- [ ] Support otp 28
+  - [ ] -nominal my_nominal_type() :: Type.
 
 ## TODO PoC FastApi
 - [ ] Types for functions in erldantic_abstract_code
