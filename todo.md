@@ -1,7 +1,5 @@
 ## TODO PoC
-  - [ ] More tests
-    - [x] Test that I can parse (but don't use for now) default values on record fields
-    - [ ] -opaque my_opaq_type() :: Type.
+- [ ] Better README
 
 ## TODO Release
 - [ ] Run the thing on lots of modules to see if the abstract code can handle all type attributes.

@@ -1,16 +1,38 @@
-# erldantic
+# Erldantic
 
-This is Pydantic, but for Erlang. Hopefully for Elixir and Gleam in the future!
+A data validation library for Erlang inspired by Pydantic. Hopefully easy to add support for Elixir and Gleam in the future.
 
-Erldantic provides type-safe JSON serialization and deserialization for Records and all Erlang types that can be converted to json, converting between Erlang's type system and data expected by the json.erl module.
-It provides detailed errors when data and types doesn't match.
+## What is erldantic?
 
-## Usage
+Erldantic provides type-safe JSON serialization and deserialization for Erlang records and all Erlang types that can be converted to JSON. It seamlessly converts between Erlang's type system and the data format expected by the `json.erl` module, with comprehensive error reporting when data and types don't match.
 
-Given some types:
+## Key Features
+
+- **Type-safe JSON conversion**: Convert typed erlang values to/from JSON, making sure the data conforms to the type.
+- **Detailed error reporting**: Get precise error messages with location information when validation fails
+- **Support for complex types**: Handles unions, records, atoms, and nested structures
+- **Built-in support for common patterns**: Handles `undefined` values, optional fields, and default values
+
+## Installation
+
+Add erldantic to your rebar.config dependencies:
 
 ```erlang
+{deps, [
+    {erldantic, ".*", {git, "https://github.com/andreashasse/erldantic.git", {branch, "main"}}}
+]}.
+```
 
+## Quick Start
+
+### Basic Usage
+
+Here's how to use erldantic for JSON serialization and deserialization:
+(The same code is available in `test/example_test.erl`)
+
+#### 1. Define your types:
+
+```erlang
 -record(email_contact, {address, verified, domain}).
 -record(phone_contact, {number, verified, sms_capable}).
 
@@ -25,10 +47,9 @@ Given some types:
                    verified :: verified(),
                    sms_capable :: boolean()}.
 -type contacts() :: [email_contact() | phone_contact()].
-
 ```
 
-Some helper functions:
+#### 2. Optionally, create helper functions:
 
 ```erlang
 -spec json_to_contacts(binary()) -> {ok, contacts()} | {error, [erldantic:error()]}.
@@ -44,62 +65,78 @@ contacts_to_json(Contacts) ->
     end.
 ```
 
-
-One can convert from and to erlang data structures (including records) knowing that the data will match the type.
-
-``` erlang
-
-Contacts =
-    [#email_contact{address = "john.doe@example.com",
-                    verified = #{source => one_time_code, "code" => "123456"},
-                    domain = "example.com"},
-     #phone_contact{number = "+1-555-123-4567",
-                    verified = #{source => gut_feeling, "confidence" => "high"},
-                    sms_capable = true},
-     #email_contact{address = "alice@company.org", domain = "company.org"}],
-Json = contacts_to_json(Contacts),
-io:format("~p~n", [Json]).
-
-> <<"[{\"domain\":\"example.com\",\"address\":\"john.doe@example.com\",\"verified\":{\"source\":\"one_time_code\",\"code\":\"123456\"}},{\"number\":\"+1-555-123-4567\",\"verified\":{\"source\":\"gut_feeling\",\"confidence\":\"high\"},\"sms_capable\":true},{\"domain\":\"company.org\",\"address\":\"alice@company.org\"}]">>
-
-
-{ok, Contacts} = json_to_contacts(Json).
-
-```
-
-And get detailed error messages when the data and types doesn't match:
+#### 3. Use the functions:
 
 ```erlang
+%% Create some data
+Contacts = [
+    #email_contact{
+        address = "john.doe@example.com",
+        verified = #{source => one_time_code, "code" => "123456"},
+        domain = "example.com"
+    },
+    #phone_contact{
+        number = "+1-555-123-4567",
+        verified = #{source => gut_feeling, "confidence" => "high"},
+        sms_capable = true
+    },
+    #email_contact{
+        address = "alice@company.org",
+        domain = "company.org"
+    }
+],
 
-BadSourceJson = <<"[{\"number\":\"+1-555-123-4567\",\"verified\":{\"source\":\"a_bad_source\",\"confidence\":\"high\"},\"sms_capable\":true}]">>.
+%% Convert to JSON
+Json = contacts_to_json(Contacts),
+%% Results in:
+%% <<"[{\"domain\":\"example.com\",\"address\":\"john.doe@example.com\",\"verified\":{\"source\":\"one_time_code\",\"code\":\"123456\"}},{\"number\":\"+1-555-123-4567\",\"verified\":{\"source\":\"gut_feeling\",\"confidence\":\"high\"},\"sms_capable\":true},{\"domain\":\"company.org\",\"address\":\"alice@company.org\"}]">>
 
-{error, [#ed_error{...}]} =  json_to_contacts(BadSourceJson).
+%% Convert back from JSON
+{ok, Contacts} = json_to_contacts(Json).
 ```
 
-### Handling of `undefined`
+### Error Handling
 
-In records and mandatory maps fields ( with the `:=` operator ), the value undefined will be used when the value is missing if the type includes undefined.
+Erldantic provides detailed error messages when data doesn't match your type specifications:
 
-So, `integer() | undefined` will become undefined in records and maps mandatory fields if the value is missing and the value will not be in the json.
+```erlang
+BadSourceJson = <<"[{\"number\":\"+1-555-123-4567\",\"verified\":{\"source\":\"a_bad_source\",\"confidence\":\"high\"},\"sms_capable\":true}]">>.
 
-### Handling of `term` in erldantic_json
+{error, [#ed_error{...}]} = json_to_contacts(BadSourceJson).
+```
 
-When you are using types with term, erldantic_json will not reject any data, which means that it can return data that json.erl can not convert to json.
+## Special Handling
 
+### `undefined` Values
 
-### Not yet decided
+In records and mandatory map fields (with the `:=` operator), the value `undefined` will be used when the value is missing if the type includes `undefined`.
 
-I haven't decided how to handle maybe_improper_list, so you currently get an error messages when converting to and from json.
+For example, `integer() | undefined` will become `undefined` in records and maps mandatory fields if the value is missing, and the value will not be present in the JSON.
 
-## TODO
+### `term()` | `any()`
 
-### Use default values in records
+When using types with `term`, `erldantic_json` will not reject any data, which means it can return data that `json.erl` cannot convert to JSON.
 
-### Fail early when converting maps, list and records
-This way it should be faster to handling type unions where the first type doesn't match
+### Unsupported Types
 
-## Random learnings
+Some Erlang types are not supported for JSON conversion:
+- `maybe_improper_list()` - Currently returns an error
+- `pid()`, `port()`, `reference()` - Cannot be serialized to JSON
+- `tuple()`, `bitstring()`, `nonempty_bitstring()` - Not JSON-compatible
+- Function types - Cannot be serialized
 
-* proper can create generators from erlang types, but not from maps it semms?
+## Error Types
 
-* erl_parse:abstract_form() has a union member af_wild_attribute() that would be nice to remove.
+`#error{}` contains:
+
+- `location` - List showing the path to where the error occurred
+- `type` - Error type: `type_mismatch`, `no_match`, `missing_data`, `missing_type`, `type_not_supported`, `not_matched_fields`, `not_implemented`
+- `ctx` - Context information about the error
+
+## Development Status
+
+This library is under active development. APIs and error messages will probably change.
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit issues and pull requests.
