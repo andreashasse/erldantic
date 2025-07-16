@@ -25,6 +25,12 @@
 -type my_term() :: term().
 -type my_nonempty_list() :: nonempty_list().
 -type my_nil() :: []. %% My code formater re-writes nil to [].
+-type my_dynamic() :: dynamic().
+-type my_nonempty_binary() :: nonempty_binary().
+-type my_bitstring() :: bitstring().
+-type my_nonempty_bitstring() :: nonempty_bitstring().
+-type my_no_return() :: no_return().
+-type my_none() :: none().
 
 missing_test() ->
     {ok, Types} = erldantic_abstract_code:types_in_module(?MODULE),
@@ -53,9 +59,9 @@ missing_test() ->
                  erldantic_json:type_from_json(?MODULE, my_mfa, {module, function, 42})),
 
     %% any
-    ?assertEqual({type, term}, maps:get({type, my_any, 0}, Types)),
-    ?assertEqual({ok, 42}, erldantic_json:type_to_json(?MODULE, my_any, 42)),
-    ?assertEqual({ok, 42}, erldantic_json:type_from_json(?MODULE, my_any, 42)),
+    ?assertEqual({type, term}, maps:get({type, my_term, 0}, Types)),
+    ?assertEqual({ok, 42}, erldantic_json:type_to_json(?MODULE, my_term, 42)),
+    ?assertEqual({ok, 42}, erldantic_json:type_from_json(?MODULE, my_term, 42)),
 
     %% timeout
     ?assertEqual({union, [{type, non_neg_integer}, {literal, infinity}]},
@@ -162,4 +168,49 @@ missing_test() ->
     %% nil
     ?assertEqual({literal, []}, maps:get({type, my_nil, 0}, Types)),
     ?assertEqual({ok, []}, erldantic_json:type_to_json(?MODULE, my_nil, [])),
-    ?assertEqual({ok, []}, erldantic_json:type_from_json(?MODULE, my_nil, [])).
+    ?assertEqual({ok, []}, erldantic_json:type_from_json(?MODULE, my_nil, [])),
+
+    %% dynamic
+    ?assertEqual({type, term}, maps:get({type, my_dynamic, 0}, Types)),
+    ?assertEqual({ok, 42}, erldantic_json:type_to_json(?MODULE, my_dynamic, 42)),
+    ?assertEqual({ok, 42}, erldantic_json:type_from_json(?MODULE, my_dynamic, 42)),
+
+    %% nonempty_binary
+    ?assertEqual({type, nonempty_binary}, maps:get({type, my_nonempty_binary, 0}, Types)),
+    ?assertEqual({ok, <<"hello">>},
+                 erldantic_json:type_to_json(?MODULE, my_nonempty_binary, <<"hello">>)),
+    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
+                 erldantic_json:type_to_json(?MODULE, my_nonempty_binary, <<>>)),
+    ?assertEqual({ok, <<"hello">>},
+                 erldantic_json:type_from_json(?MODULE, my_nonempty_binary, <<"hello">>)),
+    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
+                 erldantic_json:type_from_json(?MODULE, my_nonempty_binary, <<>>)),
+
+    %% bitstring
+    ?assertEqual({type, bitstring}, maps:get({type, my_bitstring, 0}, Types)),
+    ?assertMatch({error, [#ed_error{type = type_not_supported}]},
+                 erldantic_json:type_to_json(?MODULE, my_bitstring, <<1, 2, 3>>)),
+    ?assertMatch({error, [#ed_error{type = type_not_supported}]},
+                 erldantic_json:type_from_json(?MODULE, my_bitstring, <<1, 2, 3>>)),
+
+    %% nonempty_bitstring
+    ?assertEqual({type, nonempty_bitstring},
+                 maps:get({type, my_nonempty_bitstring, 0}, Types)),
+    ?assertMatch({error, [#ed_error{type = type_not_supported}]},
+                 erldantic_json:type_to_json(?MODULE, my_nonempty_bitstring, <<1, 2, 3>>)),
+    ?assertMatch({error, [#ed_error{type = type_not_supported}]},
+                 erldantic_json:type_from_json(?MODULE, my_nonempty_bitstring, <<1, 2, 3>>)),
+
+    %% no_return
+    ?assertEqual({type, none}, maps:get({type, my_no_return, 0}, Types)),
+    ?assertMatch({error, [#ed_error{type = type_not_supported}]},
+                 erldantic_json:type_to_json(?MODULE, my_no_return, a)),
+    ?assertMatch({error, [#ed_error{type = type_not_supported}]},
+                 erldantic_json:type_from_json(?MODULE, my_no_return, <<"not_a_no_return">>)),
+
+    %% none
+    ?assertEqual({type, none}, maps:get({type, my_none, 0}, Types)),
+    ?assertMatch({error, [#ed_error{type = type_not_supported}]},
+                 erldantic_json:type_to_json(?MODULE, my_none, a)),
+    ?assertMatch({error, [#ed_error{type = type_not_supported}]},
+                 erldantic_json:type_from_json(?MODULE, my_none, <<"not_a_none">>)).

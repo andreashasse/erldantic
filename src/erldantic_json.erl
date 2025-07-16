@@ -161,7 +161,10 @@ do_to_json(_TypeInfo, #a_function{} = T, _Data) ->
 do_to_json(_TypeInfo, {type, NotSupported} = T, _Data)
     when NotSupported =:= pid
          orelse NotSupported =:= port
-         orelse NotSupported =:= reference ->
+         orelse NotSupported =:= reference
+         orelse NotSupported =:= bitstring
+         orelse NotSupported =:= nonempty_bitstring
+         orelse NotSupported =:= none ->
     {error,
      [#ed_error{type = type_not_supported,
                 location = [],
@@ -536,7 +539,10 @@ from_json(_TypeInfo, #a_tuple{} = T, Value) ->
 from_json(_TypeInfo, {type, NotSupported} = T, Value)
     when NotSupported =:= pid
          orelse NotSupported =:= port
-         orelse NotSupported =:= reference ->
+         orelse NotSupported =:= reference
+         orelse NotSupported =:= bitstring
+         orelse NotSupported =:= nonempty_bitstring
+         orelse NotSupported =:= none ->
     {error,
      [#ed_error{type = type_not_supported,
                 location = [],
@@ -671,6 +677,8 @@ check_type(pos_integer, Json) when is_integer(Json) andalso Json > 0 ->
 check_type(neg_integer, Json) when is_integer(Json) andalso Json < 0 ->
     {true, Json};
 check_type(binary, Json) when is_binary(Json) ->
+    {true, Json};
+check_type(nonempty_binary, Json) when is_binary(Json), byte_size(Json) > 0 ->
     {true, Json};
 check_type(atom, Json) when is_atom(Json) ->
     {true, Json};

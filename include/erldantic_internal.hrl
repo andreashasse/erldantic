@@ -24,6 +24,7 @@
         orelse PrimaryType =:= atom
         orelse PrimaryType =:= float
         orelse PrimaryType =:= binary
+        orelse PrimaryType =:= nonempty_binary
         orelse PrimaryType =:= number
         orelse PrimaryType =:= term).
 -define(is_predefined_int_range(_Type),
