@@ -101,6 +101,18 @@ BadSourceJson = <<"[{\"number\":\"+1-555-123-4567\",\"verified\":{\"source\":\"a
 {error, [#ed_error{...}]} = json_to_contacts(BadSourceJson).
 ```
 
+## API
+
+These are the functions intended to be called.
+```erlang
+erldantic_json:type_to_json(Module, TypeName, Value)
+erldantic_json:type_from_json(Module, TypeName, Json)
+erldantic_json:record_to_json(Module, RecordName, Value)
+erldantic_json:record_from_json(Module, RecordName, Json)
+```
+
+Where `Module` is the module where the type/record is defined. The type can not have any parameters.
+
 ## Special Handling
 
 ### `undefined` Values

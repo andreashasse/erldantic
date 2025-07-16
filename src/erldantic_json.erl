@@ -11,12 +11,25 @@
 -include("../include/erldantic_internal.hrl").
 
 %% API
+
+-doc("Converts an Erlang value to JSON format based on a type specification.\nThis function validates the given value against the specified type definition\nfrom the module and converts it to a JSON-encodable format.\nThe type must be of arity 0.\n\n### Returns\n{ok, JsonValue} if conversion succeeds, or {error, Errors} if validation fails").
+-doc(#{params =>
+           #{"Module" => "The module containing the type definition",
+             "TypeName" => "The name of the type to validate against",
+             "Value" => "The Erlang value to convert to JSON"}}).
+
 -spec type_to_json(Module :: module(), TypeName :: atom(), Value :: dynamic()) ->
                       {ok, json:encode_value()} | {error, [erldantic:error()]}.
 type_to_json(Module, TypeName, Value) when is_atom(Module) andalso is_atom(TypeName) ->
     TypeArity = 0,
     TypeRef = {type, TypeName, TypeArity},
     to_json_no_pt(Module, TypeRef, Value).
+
+-doc("Converts a JSON value to an Erlang value based on a type specification.\nThis function validates the given JSON value against the specified type definition\nfrom the module and converts it to the corresponding Erlang value. The type must be\nof arity 0.\n\n### Returns\n{ok, ErlangValue} if conversion succeeds, or {error, Errors} if validation fails").
+-doc(#{params =>
+           #{"Json" => "The JSON value to convert to Erlang format",
+             "Module" => "The module containing the type definition",
+             "TypeName" => "The name of the type to validate against"}}).
 
 -spec type_from_json(Module :: module(),
                      TypeName :: atom(),
@@ -27,11 +40,23 @@ type_from_json(Module, TypeName, Json) when is_atom(Module) andalso is_atom(Type
     TypeRef = {type, TypeName, TypeArity},
     from_json_no_pt(Module, TypeRef, Json).
 
+-doc("Converts an Erlang record to JSON format based on a record specification.\nThis function validates the given record value against the specified record definition\nfrom the module and converts it to a JSON object.\n\n### Returns\n{ok, JsonObject} if conversion succeeds, or {error, Errors} if validation fails").
+-doc(#{params =>
+           #{"Module" => "The module containing the record definition",
+             "RecordName" => "The name of the record to validate against",
+             "Value" => "The Erlang record value to convert to JSON"}}).
+
 -spec record_to_json(Module :: module(), RecordName :: atom(), Value :: dynamic()) ->
                         {ok, json:encode_value()} | {error, [erldantic:error()]}.
 record_to_json(Module, RecordName, Value)
     when is_atom(Module) andalso is_atom(RecordName) ->
     to_json_no_pt(Module, {record, RecordName}, Value).
+
+-doc("Converts a JSON value to an Erlang record based on a record specification.\nThis function validates the given JSON value against the specified record definition\nfrom the module and converts it to the corresponding Erlang record.\n\n### Returns\n{ok, ErlangRecord} if conversion succeeds, or {error, Errors} if validation fails").
+-doc(#{params =>
+           #{"Json" => "The JSON value to convert to Erlang record format",
+             "Module" => "The module containing the record definition",
+             "RecordName" => "The name of the record to validate against"}}).
 
 -spec record_from_json(Module :: module(),
                        RecordName :: atom(),
