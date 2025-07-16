@@ -1,17 +1,13 @@
 # Erldantic
 
-A data validation library for Erlang inspired by Pydantic. Hopefully easy to add support for Elixir and Gleam in the future.
-
-## What is erldantic?
-
-Erldantic provides type-safe JSON serialization and deserialization for Erlang records and all Erlang types that can be converted to JSON. It seamlessly converts between Erlang's type system and the data format expected by the `json.erl` module, with comprehensive error reporting when data and types don't match.
-
-## Key Features
+A data validation library for Erlang inspired by Pydantic. Erldantic provides type-safe JSON serialization and deserialization for Erlang records and all Erlang types that can be converted to JSON.
 
 - **Type-safe JSON conversion**: Convert typed erlang values to/from JSON, making sure the data conforms to the type.
-- **Detailed error reporting**: Get precise error messages with location information when validation fails
-- **Support for complex types**: Handles unions, records, atoms, and nested structures
-- **Built-in support for common patterns**: Handles `undefined` values, optional fields, and default values
+- **Detailed errors**: Get error messages with location information when validation fails
+- **Support for complex scenarios**: Handles unions, records, atoms, nested structures, ...
+- **Works in tandem with json.erl**: Relies on json.erl to do the encoding / decoding.
+
+Hopefully easy to add support for Elixir and Gleam in the future.
 
 ## Installation
 
