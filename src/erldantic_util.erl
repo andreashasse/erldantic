@@ -33,20 +33,21 @@ test_abs_code(Module) ->
             {error, {Class, Reason, Stacktrace}}
     end.
 
--spec fold_until_error(fun((Elem :: dynamic(), Acc :: dynamic()) ->
-                               {error, Err :: dynamic()} | {ok, Acc :: dynamic()}),
+-spec fold_until_error(Fun ::
+                           fun((Elem :: dynamic(), Acc :: dynamic()) ->
+                                   {error, Err :: dynamic()} | {ok, Acc :: dynamic()}),
                        Acc :: dynamic(),
-                       [Elem :: dynamic()]) ->
+                       List :: [Elem :: dynamic()]) ->
                           {ok, Acc :: dynamic()} | {error, Err :: dynamic()}.
-fold_until_error(Fun, Acc, []) when is_function(Fun, 2) ->
-    {ok, Acc};
 fold_until_error(Fun, Acc, [H | T]) ->
     case Fun(H, Acc) of
         {error, _} = Error ->
             Error;
         {ok, NewAcc} ->
             fold_until_error(Fun, NewAcc, T)
-    end.
+    end;
+fold_until_error(Fun, Acc, []) when is_function(Fun, 2) ->
+    {ok, Acc}.
 
 -spec map_until_error(fun((Elem :: dynamic()) ->
                               {error, Err :: dynamic()} | {ok, ResElem :: dynamic()}),
