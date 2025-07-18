@@ -335,14 +335,14 @@ map_fields(TypeInfo, MapFieldTypes, Data) ->
             case maps:to_list(FinalData) of
                 [] ->
                     {ok, MapFields};
-                _ ->
+                L ->
                     {error,
                      lists:map(fun({Key, Value}) ->
                                   #ed_error{type = not_matched_fields,
                                             location = [],
                                             ctx = #{key => Key, value => Value}}
                                end,
-                               maps:to_list(FinalData))}
+                               L)}
             end;
         {error, _} = Err ->
             Err
