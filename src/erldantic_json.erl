@@ -226,32 +226,21 @@ nonempty_list_to_json(_TypeInfo, Type, Data) ->
                    Data :: [term()]) ->
                       {ok, [json:encode_value()]} | {error, [erldantic:error()]}.
 list_to_json(TypeInfo, Type, Data) when is_list(Data) ->
-    JsonRes =
-        lists:map(fun({Nr, Item}) ->
-                     case do_to_json(TypeInfo, Type, Item) of
-                         {ok, Json} ->
-                             {ok, Json};
-                         skip ->
-                             {ok, undefined};
-                         {error, Errs} ->
-                             Errs2 = lists:map(fun(Err) -> err_append_location(Err, Nr) end, Errs),
-                             {error, Errs2}
-                     end
-                  end,
-                  lists:enumerate(Data)),
-    {AllOk, Errors} =
-        lists:partition(fun ({ok, _}) ->
-                                true;
-                            (_) ->
-                                false
-                        end,
-                        JsonRes),
-    case Errors of
-        [] ->
-            {ok, lists:map(fun({ok, Json}) -> Json end, AllOk)};
-        _ ->
-            {error, lists:flatmap(fun({error, Errs}) -> Errs end, Errors)}
-    end.
+    erldantic_util:map_until_error(fun({Nr, Item}) ->
+                                      case do_to_json(TypeInfo, Type, Item) of
+                                          {ok, Json} ->
+                                              {ok, Json};
+                                          skip ->
+                                              {ok, undefined};
+                                          {error, Errs} ->
+                                              Errs2 =
+                                                  lists:map(fun(Err) -> err_append_location(Err, Nr)
+                                                            end,
+                                                            Errs),
+                                              {error, Errs2}
+                                      end
+                                   end,
+                                   lists:enumerate(Data)).
 
 -spec data_to_json(erldantic:type_info(), atom(), arity(), Data :: dynamic()) ->
                       {ok, json:encode_value()} | {error, [erldantic:error()]} | skip.
