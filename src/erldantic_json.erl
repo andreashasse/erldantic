@@ -272,7 +272,7 @@ map_fields(TypeInfo, MapFieldTypes, Data) ->
                           case do_to_json(TypeInfo, FieldType, FieldData) of
                               {ok, FieldJson} ->
                                   {ok,
-                                   {FieldsAcc ++ [{FieldName, FieldJson}],
+                                   {[{FieldName, FieldJson}] ++ FieldsAcc,
                                     maps:remove(FieldName, DataAcc)}};
                               skip ->
                                   {ok, {FieldsAcc, NewDataAcc}};
@@ -311,7 +311,7 @@ map_fields(TypeInfo, MapFieldTypes, Data) ->
                       {FieldData, NewDataAcc} ->
                           case do_to_json(TypeInfo, FieldType, FieldData) of
                               {ok, FieldJson} ->
-                                  {ok, {FieldsAcc ++ [{FieldName, FieldJson}], NewDataAcc}};
+                                  {ok, {[{FieldName, FieldJson}] ++ FieldsAcc, NewDataAcc}};
                               skip ->
                                   %% FIXME: Warn about weird type def??
                                   {ok, {FieldsAcc, NewDataAcc}};
