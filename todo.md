@@ -2,13 +2,13 @@
 - [ ] Better README
 
 ## TODO Release
-- [ ] why is there no record_apply_args in record_to_json?
 - [ ] Run the thing on lots of modules to see if the abstract code can handle all type attributes.
 - [ ] Cleanup erldantic internal types. Use records instead of tagged tuples.
 - [ ] #a_type can not have any type in type field.
 - [ ] Test error message path with Adams library for nested access
 - [ ] Support otp 28
   - [ ] -nominal my_nominal_type() :: Type.
+- [ ] remove the no_pt everywhere.
 
 ## TODO Performance improvements
 - [ ] For each literal atom, convert to binary in erldantic_abstract_code, so that we don't have to do binary_to_existing_atom so see that the values match

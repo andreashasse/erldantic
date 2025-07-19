@@ -911,18 +911,8 @@ map_field_type_from_json(TypeInfo, KeyType, ValueType, Json) ->
                           {ok, term()} | {error, list()}.
 record_from_json(TypeInfo, RecordName, Json, TypeArgs) ->
     ARec = maps:get({record, RecordName}, TypeInfo),
-    NewARec = record_apply_args(ARec, TypeArgs),
-    #a_rec{name = RecordName, fields = RecordInfo} = NewARec,
+    RecordInfo = apply_record_arg_types(ARec#a_rec.fields, TypeArgs),
     do_record_from_json(TypeInfo, RecordName, RecordInfo, Json).
-
-record_apply_args(#a_rec{fields = Fields} = Rec, TypeArgs) ->
-    NewFields =
-        lists:foldl(fun({Field, Type}, FieldsAcc) ->
-                       lists:keyreplace(Field, 1, FieldsAcc, {Field, Type})
-                    end,
-                    Fields,
-                    TypeArgs),
-    Rec#a_rec{fields = NewFields}.
 
 -spec do_record_from_json(TypeInfo :: map(),
                           RecordName :: atom(),
