@@ -442,8 +442,8 @@ err_append_location(Err, FieldName) ->
 %% why {record, atom()}?
 from_json(TypeInfo, {record, RecordName}, Json) when is_atom(RecordName) ->
     record_from_json(TypeInfo, RecordName, Json, []);
-from_json(TypeInfo, #a_rec{name = RecordName, fields = RecordInfo}, Json) ->
-    record_from_json(TypeInfo, RecordName, Json, RecordInfo);
+from_json(TypeInfo, #a_rec{} = Rec, Json) ->
+    record_from_json(TypeInfo, Rec, Json, []);
 from_json(_TypeInfo, #remote_type{mfargs = {Module, TypeName, TypeArgs}}, Json) ->
     case erldantic_module_types:get(Module) of
         {ok, TypeInfo} ->
@@ -905,12 +905,14 @@ map_field_type_from_json(TypeInfo, KeyType, ValueType, Json) ->
                                     maps:to_list(Json)).
 
 -spec record_from_json(TypeInfo :: map(),
-                       RecordName :: atom(),
+                       RecordName :: atom() | #a_rec{},
                        Json :: json:decode_value(),
                        TypeArgs :: [erldantic:record_field()]) ->
                           {ok, term()} | {error, list()}.
-record_from_json(TypeInfo, RecordName, Json, TypeArgs) ->
+record_from_json(TypeInfo, RecordName, Json, TypeArgs) when is_atom(RecordName) ->
     ARec = maps:get({record, RecordName}, TypeInfo),
+    record_from_json(TypeInfo, ARec, Json, TypeArgs);
+record_from_json(TypeInfo, #a_rec{name = RecordName} = ARec, Json, TypeArgs) ->
     RecordInfo = apply_record_arg_types(ARec#a_rec.fields, TypeArgs),
     do_record_from_json(TypeInfo, RecordName, RecordInfo, Json).
 
