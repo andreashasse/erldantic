@@ -796,7 +796,7 @@ map_from_json(TypeInfo, MapFieldType, Json) when is_map(Json) ->
                       {FieldData, NewJsonAcc} ->
                           case from_json(TypeInfo, FieldType, FieldData) of
                               {ok, FieldJson} ->
-                                  {ok, {FieldsAcc ++ [{FieldName, FieldJson}], NewJsonAcc}};
+                                  {ok, {[{FieldName, FieldJson}] ++ FieldsAcc, NewJsonAcc}};
                               {error, Errs} ->
                                   Errs2 =
                                       lists:map(fun(Err) -> err_append_location(Err, FieldName) end,
@@ -811,7 +811,7 @@ map_from_json(TypeInfo, MapFieldType, Json) when is_map(Json) ->
                       {FieldData, NewJsonAcc} ->
                           case from_json(TypeInfo, FieldType, FieldData) of
                               {ok, FieldJson} ->
-                                  {ok, {FieldsAcc ++ [{FieldName, FieldJson}], NewJsonAcc}};
+                                  {ok, {[{FieldName, FieldJson}] ++ FieldsAcc, NewJsonAcc}};
                               {error, Errs} ->
                                   Errs2 =
                                       lists:map(fun(Err) -> err_append_location(Err, FieldName) end,
@@ -821,7 +821,7 @@ map_from_json(TypeInfo, MapFieldType, Json) when is_map(Json) ->
                       error ->
                           case can_be_undefined(TypeInfo, FieldType) of
                               true ->
-                                  {ok, {FieldsAcc ++ [{FieldName, undefined}], JsonAcc}};
+                                  {ok, {[{FieldName, undefined}] ++ FieldsAcc, JsonAcc}};
                               false ->
                                   {error, [#ed_error{type = missing_data, location = [FieldName]}]}
                           end
@@ -829,7 +829,7 @@ map_from_json(TypeInfo, MapFieldType, Json) when is_map(Json) ->
               ({map_field_type_assoc, KeyType, ValueType}, {FieldsAcc, JsonAcc}) ->
                   case map_field_type_from_json(TypeInfo, KeyType, ValueType, JsonAcc) of
                       {ok, {NewFields, NewJsonAcc}} ->
-                          {ok, {FieldsAcc ++ NewFields, NewJsonAcc}};
+                          {ok, {NewFields ++ FieldsAcc, NewJsonAcc}};
                       {error, Reason} ->
                           {error, Reason}
                   end;
