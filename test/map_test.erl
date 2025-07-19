@@ -69,15 +69,9 @@ mandatory_type_map_test() ->
 
 mandatory_type_map_bad_test() ->
     ?assertEqual({error,
-                  [#ed_error{location = [],
-                             type = not_matched_fields,
-                             ctx = #{type => {map_field_type_exact, {type, atom}, {type, atom}}}},
-                   #ed_error{location = [a1],
+                  [#ed_error{location = [a1],
                              type = type_mismatch,
-                             ctx = #{type => {type, atom}, value => 1}},
-                   #ed_error{location = [],
-                             type = not_matched_fields,
-                             ctx = #{value => 1, key => a1}}]},
+                             ctx = #{type => {type, atom}, value => 1}}]},
                  to_json_mandatory_type_map(#{a1 => 1})),
     ?assertEqual({error,
                   [#ed_error{location = [],

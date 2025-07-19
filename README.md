@@ -105,10 +105,10 @@ BadSourceJson = <<"[{\"number\":\"+1-555-123-4567\",\"verified\":{\"source\":\"a
 
 These are the functions intended to be called.
 ```erlang
-erldantic_json:type_to_json(Module, TypeName, Value)
-erldantic_json:type_from_json(Module, TypeName, Json)
-erldantic_json:record_to_json(Module, RecordName, Value)
-erldantic_json:record_from_json(Module, RecordName, Json)
+erldantic_json:type_to_json(Module, TypeName, Value) -> {ok, json:encode_value()} | {error, [erldantic:error()]}.
+erldantic_json:type_from_json(Module, TypeName, Json) -> {ok, ... your type ...} | {error, [erldantic:error()]}.
+erldantic_json:record_to_json(Module, RecordName, Value) -> {ok, json:encode_value()} | {error, [erldantic:error()]}.
+erldantic_json:record_from_json(Module, RecordName, Json) -> {ok, ... your record ...} | {error, [erldantic:error()]}.
 ```
 
 Where `Module` is the module where the type/record is defined. The type can not have any parameters.
