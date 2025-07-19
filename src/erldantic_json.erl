@@ -348,6 +348,12 @@ map_fields(TypeInfo, MapFieldTypes, Data) ->
             Err
     end.
 
+-spec map_field_type(TypeInfo :: erldantic:type_info(),
+                     KeyType :: erldantic:a_type(),
+                     ValueType :: erldantic:a_type(),
+                     Data :: map()) ->
+                        {ok, {[{json:encode_value(), json:encode_value()}], map()}} |
+                        {error, [erldantic:error()]}.
 map_field_type(TypeInfo, KeyType, ValueType, Data) ->
     Fun = fun({Key, Value}, {FieldsAcc, DataAcc}) ->
              case do_to_json(TypeInfo, KeyType, Key) of
@@ -794,6 +800,10 @@ type_replace_vars(_TypeInfo, #a_rec{fields = Fields} = Rec, NamedTypes) ->
 type_replace_vars(_TypeInfo, Type, _NamedTypes) ->
     Type.
 
+-spec map_from_json(erldantic:type_info(),
+                    [erldantic:map_field()],
+                    json:decode_value()) ->
+                       {ok, #{json:encode_value() => json:encode_value()}} | {error, [#ed_error{}]}.
 map_from_json(TypeInfo, MapFieldType, Json) when is_map(Json) ->
     Fun = fun ({map_field_assoc, FieldName, FieldType}, {FieldsAcc, JsonAcc}) ->
                   case maps:take(atom_to_binary(FieldName), JsonAcc) of

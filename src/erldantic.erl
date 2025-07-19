@@ -47,6 +47,9 @@
     #maybe_improper_list{} |
     #nonempty_improper_list{} |
     #remote_type{}.
+-type map_field() ::
+    {map_field_assoc | map_field_exact, Name :: atom(), erldantic:a_type()} |
+    {map_field_type_assoc | map_field_type_exact, erldantic:a_type(), erldantic:a_type()}.
 -type a_type_reference() ::
     {record, atom()} |
     {record_ref, atom()} |
@@ -55,4 +58,4 @@
 -type a_type_or_ref() :: a_type() | a_type_reference().
 
 -export_type([a_type/0, a_type_reference/0, a_type_or_ref/0, var_type/0, type_info/0,
-              record_field/0, error/0]).
+              record_field/0, error/0, map_field/0]).

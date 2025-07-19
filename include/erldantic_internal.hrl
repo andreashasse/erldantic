@@ -1,10 +1,5 @@
 -record(a_tuple, {fields :: any | [erldantic:a_type()]}).
--record(a_map,
-        {fields ::
-             [{map_field_assoc | map_field_exact, Name :: atom(), erldantic:a_type()} |
-              {map_field_type_assoc | map_field_type_exact,
-               erldantic:a_type(),
-               erldantic:a_type()}]}).
+-record(a_map, {fields :: [erldantic:map_field()]}).
 %% FIXME: | [] does not work
 -record(a_rec,
         {name :: atom(), fields :: [{atom(), erldantic:a_type()}], arity :: pos_integer()}).
