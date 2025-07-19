@@ -750,12 +750,7 @@ type_replace_vars(TypeInfo, #type_with_arguments{type = Type}, NamedTypes) ->
         {record_ref, RecordName, TypeArgs} ->
             case TypeInfo of
                 #{{record, RecordName} := #a_rec{fields = Fields} = Rec} ->
-                    NewFields =
-                        lists:foldl(fun({Name, NType}, FieldsAcc) ->
-                                       lists:keyreplace(Name, 1, FieldsAcc, {Name, NType})
-                                    end,
-                                    Fields,
-                                    TypeArgs),
+                    NewFields = apply_record_arg_types(Fields, TypeArgs),
                     NewRec = Rec#a_rec{fields = NewFields},
                     type_replace_vars(TypeInfo, NewRec, NamedTypes);
                 #{} ->
