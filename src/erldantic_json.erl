@@ -722,7 +722,6 @@ type_replace_vars(_TypeInfo, {var, Name}, NamedTypes) ->
     maps:get(Name, NamedTypes, {type, term});
 type_replace_vars(TypeInfo, #type_with_arguments{type = Type}, NamedTypes) ->
     case Type of
-        %% FIXME: lists and ranges?
         {union, Types} ->
             {union, lists:map(fun(T) -> type_replace_vars(TypeInfo, T, NamedTypes) end, Types)};
         #a_map{fields = Fields} ->

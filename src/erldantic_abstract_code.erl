@@ -112,7 +112,6 @@ field_info_to_type({remote_type, _, [{atom, _, Module}, {atom, _, Type}, Args]})
                   Args),
     [#remote_type{mfargs = {Module, Type, MyArgs}}];
 field_info_to_type({Type, _, map, any}) when Type =:= type orelse Type =:= opaque ->
-    %% FIXME: Add test for map()
     [#a_map{fields = [{map_field_type_assoc, {type, term}, {type, term}}]}];
 field_info_to_type({Type, _, tuple, any}) when Type =:= type orelse Type =:= opaque ->
     [#a_tuple{fields = any}];
@@ -178,7 +177,6 @@ field_info_to_type({TypeOrOpaque, _, Type, TypeAttrs})
             [MinValue, MaxValue] = TypeAttrs,
             Min = integer_value(MinValue),
             Max = integer_value(MaxValue),
-            %% FIXME: check that it is a integer range
             [{range, integer, Min, Max}];
         list ->
             case lists:flatmap(fun field_info_to_type/1, TypeAttrs) of
@@ -192,7 +190,6 @@ field_info_to_type({TypeOrOpaque, _, Type, TypeAttrs})
                 [ListType] ->
                     [{nonempty_list, ListType}];
                 [] ->
-                    %% FIXME: missing test.
                     [{nonempty_list, {type, term}}]
             end;
         maybe_improper_list ->
