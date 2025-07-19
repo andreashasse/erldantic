@@ -405,28 +405,23 @@ apply_record_arg_types(RecordInfo, TypeArgs) ->
                 TypeArgs).
 
 do_record_to_json(TypeInfo, Mojs) ->
-    {Fields, Errors} =
-        lists:foldl(fun({{FieldName, FieldType}, RecordFieldData}, {FieldsAcc, ErrorsAcc})
-                           when is_atom(FieldName) ->
-                       case do_to_json(TypeInfo, FieldType, RecordFieldData) of
-                           {ok, FieldJson} ->
-                               {FieldsAcc ++ [{FieldName, FieldJson}], ErrorsAcc};
-                           skip ->
-                               {FieldsAcc, ErrorsAcc};
-                           {error, Errs} ->
-                               Errs2 =
-                                   lists:map(fun(Err) -> err_append_location(Err, FieldName) end,
-                                             Errs),
-                               {FieldsAcc, ErrorsAcc ++ Errs2}
-                       end
-                    end,
-                    {[], []},
-                    Mojs),
-    case Errors of
-        [] ->
+    Fun = fun({{FieldName, FieldType}, RecordFieldData}, FieldsAcc) when is_atom(FieldName) ->
+             case do_to_json(TypeInfo, FieldType, RecordFieldData) of
+                 {ok, FieldJson} ->
+                     {ok, [{FieldName, FieldJson}] ++ FieldsAcc};
+                 skip ->
+                     {ok, FieldsAcc};
+                 {error, Errors} ->
+                     {error,
+                      lists:map(fun(Error) -> err_append_location(Error, FieldName) end, Errors)}
+             end
+          end,
+
+    case erldantic_util:fold_until_error(Fun, [], Mojs) of
+        {ok, Fields} ->
             {ok, maps:from_list(Fields)};
-        _ ->
-            {error, Errors}
+        {error, _} = Err ->
+            Err
     end.
 
 err_append_location(Err, FieldName) ->
