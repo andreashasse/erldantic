@@ -944,39 +944,32 @@ record_apply_args(#a_rec{fields = Fields} = Rec, TypeArgs) ->
                           Json :: json:decode_value()) ->
                              {ok, term()} | {error, list()}.
 do_record_from_json(TypeInfo, RecordName, RecordInfo, Json) when is_map(Json) ->
-    %% FIXME: Apply type args?
-    {Fields, Errors} =
-        lists:foldl(fun({FieldName, FieldType}, {FieldsAcc, ErrorsAcc}) when is_atom(FieldName) ->
-                       case maps:find(atom_to_binary(FieldName), Json) of
-                           {ok, RecordFieldData} ->
-                               case from_json(TypeInfo, FieldType, RecordFieldData) of
-                                   {ok, FieldJson} ->
-                                       {FieldsAcc ++ [FieldJson], ErrorsAcc};
-                                   {error, Errs} ->
-                                       Errs2 =
-                                           lists:map(fun(Err) -> err_append_location(Err, FieldName)
-                                                     end,
-                                                     Errs),
-                                       {FieldsAcc, ErrorsAcc ++ Errs2}
-                               end;
-                           error ->
-                               case can_be_undefined(TypeInfo, FieldType) of
-                                   true ->
-                                       {FieldsAcc ++ [undefined], ErrorsAcc};
-                                   false ->
-                                       {FieldsAcc,
-                                        ErrorsAcc
-                                        ++ [#ed_error{type = missing_data, location = [FieldName]}]}
-                               end
-                       end
-                    end,
-                    {[], []},
-                    RecordInfo),
-    case Errors of
-        [] ->
+    Fun = fun({FieldName, FieldType}) when is_atom(FieldName) ->
+             case maps:find(atom_to_binary(FieldName), Json) of
+                 {ok, RecordFieldData} ->
+                     case from_json(TypeInfo, FieldType, RecordFieldData) of
+                         {ok, FieldJson} ->
+                             {ok, FieldJson};
+                         {error, Errs} ->
+                             Errs2 =
+                                 lists:map(fun(Err) -> err_append_location(Err, FieldName) end,
+                                           Errs),
+                             {error, Errs2}
+                     end;
+                 error ->
+                     case can_be_undefined(TypeInfo, FieldType) of
+                         true ->
+                             {ok, undefined};
+                         false ->
+                             {error, [#ed_error{type = missing_data, location = [FieldName]}]}
+                     end
+             end
+          end,
+    case erldantic_util:map_until_error(Fun, RecordInfo) of
+        {ok, Fields} ->
             {ok, list_to_tuple([RecordName | Fields])};
-        _ ->
-            {error, Errors}
+        {error, Errs} ->
+            {error, Errs}
     end;
 do_record_from_json(_TypeInfo, RecordName, _RecordInfo, Json) ->
     {error,
