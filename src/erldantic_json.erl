@@ -442,8 +442,8 @@ err_append_location(Err, FieldName) ->
 %% why {record, atom()}?
 from_json(TypeInfo, {record, RecordName}, Json) when is_atom(RecordName) ->
     record_from_json(TypeInfo, RecordName, Json, []);
-from_json(TypeInfo, #a_rec{name = RecordName, fields = RecordInfo}, Json) ->
-    record_from_json(TypeInfo, RecordName, Json, RecordInfo);
+from_json(TypeInfo, #a_rec{} = Rec, Json) ->
+    record_from_json(TypeInfo, Rec, Json, []);
 from_json(_TypeInfo, #remote_type{mfargs = {Module, TypeName, TypeArgs}}, Json) ->
     case erldantic_module_types:get(Module) of
         {ok, TypeInfo} ->
@@ -722,7 +722,6 @@ type_replace_vars(_TypeInfo, {var, Name}, NamedTypes) ->
     maps:get(Name, NamedTypes, {type, term});
 type_replace_vars(TypeInfo, #type_with_arguments{type = Type}, NamedTypes) ->
     case Type of
-        %% FIXME: lists and ranges?
         {union, Types} ->
             {union, lists:map(fun(T) -> type_replace_vars(TypeInfo, T, NamedTypes) end, Types)};
         #a_map{fields = Fields} ->
@@ -750,12 +749,7 @@ type_replace_vars(TypeInfo, #type_with_arguments{type = Type}, NamedTypes) ->
         {record_ref, RecordName, TypeArgs} ->
             case TypeInfo of
                 #{{record, RecordName} := #a_rec{fields = Fields} = Rec} ->
-                    NewFields =
-                        lists:foldl(fun({Name, NType}, FieldsAcc) ->
-                                       lists:keyreplace(Name, 1, FieldsAcc, {Name, NType})
-                                    end,
-                                    Fields,
-                                    TypeArgs),
+                    NewFields = apply_record_arg_types(Fields, TypeArgs),
                     NewRec = Rec#a_rec{fields = NewFields},
                     type_replace_vars(TypeInfo, NewRec, NamedTypes);
                 #{} ->
@@ -905,24 +899,16 @@ map_field_type_from_json(TypeInfo, KeyType, ValueType, Json) ->
                                     maps:to_list(Json)).
 
 -spec record_from_json(TypeInfo :: map(),
-                       RecordName :: atom(),
+                       RecordName :: atom() | #a_rec{},
                        Json :: json:decode_value(),
                        TypeArgs :: [erldantic:record_field()]) ->
                           {ok, term()} | {error, list()}.
-record_from_json(TypeInfo, RecordName, Json, TypeArgs) ->
+record_from_json(TypeInfo, RecordName, Json, TypeArgs) when is_atom(RecordName) ->
     ARec = maps:get({record, RecordName}, TypeInfo),
-    NewARec = record_apply_args(ARec, TypeArgs),
-    #a_rec{name = RecordName, fields = RecordInfo} = NewARec,
+    record_from_json(TypeInfo, ARec, Json, TypeArgs);
+record_from_json(TypeInfo, #a_rec{name = RecordName} = ARec, Json, TypeArgs) ->
+    RecordInfo = apply_record_arg_types(ARec#a_rec.fields, TypeArgs),
     do_record_from_json(TypeInfo, RecordName, RecordInfo, Json).
-
-record_apply_args(#a_rec{fields = Fields} = Rec, TypeArgs) ->
-    NewFields =
-        lists:foldl(fun({Field, Type}, FieldsAcc) ->
-                       lists:keyreplace(Field, 1, FieldsAcc, {Field, Type})
-                    end,
-                    Fields,
-                    TypeArgs),
-    Rec#a_rec{fields = NewFields}.
 
 -spec do_record_from_json(TypeInfo :: map(),
                           RecordName :: atom(),
