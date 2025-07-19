@@ -12,8 +12,10 @@
 
 ## TODO Performance improvements
 - [ ] For each literal atom, convert to binary in erldantic_abstract_code, so that we don't have to do binary_to_existing_atom so see that the values match
-- [ ] user_type_ref -> just switches to another type with args, can be done in erldantic_abstract_code.
-- [ ] do record_apply_args in erldantic_abstract_code.
+- [ ] Do work in erldantic_abstract_code
+  - [ ] user_type_ref -> just switches to another type with args, can be done in  erldantic_abstract_code.
+  - [ ] do record_apply_args in erldantic_abstract_code.
+  - [ ] erldantic_json:type_replace_vars can also be done in erldantic_abstract_code
 
 ## TODO PoC FastApi
 - [ ] Types for functions in erldantic_abstract_code
