@@ -15,7 +15,7 @@
 
 bor_t_abstract_code_test() ->
     {ok, Types} = erldantic_abstract_code:types_in_module(?MODULE),
-    ?assertEqual({literal, 2 bor 5}, maps:get({type, bor_t, 0}, Types)).
+    ?assertEqual(#ed_literal{value = 2 bor 5}, maps:get({type, bor_t, 0}, Types)).
 
 bor_t_to_json_test() ->
     ValidBor = 2 bor 5,
@@ -26,7 +26,8 @@ bor_t_to_json_test() ->
 
     % Test with invalid bor_t type
     {error, Errors} = to_json_bor_t(InvalidBor),
-    ?assertMatch([#ed_error{type = type_mismatch, ctx = #{type := {literal, 7}, value := 6}}],
+    ?assertMatch([#ed_error{type = type_mismatch,
+                            ctx = #{type := #ed_literal{value = 7}, value := 6}}],
                  Errors).
 
 bor_t_from_json_test() ->
@@ -38,7 +39,8 @@ bor_t_from_json_test() ->
 
     % Test from_json with invalid bor_t
     {error, Errors} = from_json_bor_t(InvalidBorJson),
-    ?assertMatch([#ed_error{type = type_mismatch, ctx = #{type := {literal, 7}, value := 6}}],
+    ?assertMatch([#ed_error{type = type_mismatch,
+                            ctx = #{type := #ed_literal{value = 7}, value := 6}}],
                  Errors).
 
 validate_integer_literal_test() ->
@@ -67,7 +69,8 @@ validate_integer_literal_test() ->
 
     % Test with invalid one() type
     {error, OneErrors} = to_json_one(InvalidOneData),
-    ?assertMatch([#ed_error{type = type_mismatch, ctx = #{type := {literal, 1}, value := 2}}],
+    ?assertMatch([#ed_error{type = type_mismatch,
+                            ctx = #{type := #ed_literal{value = 1}, value := 2}}],
                  OneErrors),
 
     % Test with valid courses() type
@@ -78,7 +81,10 @@ validate_integer_literal_test() ->
     ?assertMatch([#ed_error{type = no_match,
                             ctx =
                                 #{type :=
-                                      #ed_union{types = [{user_type_ref, one, []}, {literal, 2}, {literal, 5}]},
+                                      #ed_union{types =
+                                                    [{user_type_ref, one, []},
+                                                     #ed_literal{value = 2},
+                                                     #ed_literal{value = 5}]},
                                   value := 3}}],
                  CoursesErrors),
 
@@ -100,7 +106,13 @@ validate_integer_literal_test() ->
     {error, LevelErrors} = to_json_game(InvalidLevelGame),
     ?assertMatch([#ed_error{location = [level],
                             type = no_match,
-                            ctx = #{type := #ed_union{types = [{user_type_ref, one, []}, {literal, 2}, {literal, 5}]}, value := 4}}],
+                            ctx =
+                                #{type :=
+                                      #ed_union{types =
+                                                    [{user_type_ref, one, []},
+                                                     #ed_literal{value = 2},
+                                                     #ed_literal{value = 5}]},
+                                  value := 4}}],
                  LevelErrors),
 
     % Test JSON conversion using from_json
@@ -121,7 +133,8 @@ validate_integer_literal_test() ->
 
     % Test from_json with invalid one()
     {error, OneFromErrors} = from_json_one(InvalidOneJson),
-    ?assertMatch([#ed_error{type = type_mismatch, ctx = #{type := {literal, 1}, value := 2}}],
+    ?assertMatch([#ed_error{type = type_mismatch,
+                            ctx = #{type := #ed_literal{value = 1}, value := 2}}],
                  OneFromErrors),
 
     % Test from_json with valid courses()

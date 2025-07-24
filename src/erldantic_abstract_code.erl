@@ -94,12 +94,12 @@ record_field_types(Attrs) ->
 field_info_to_type({ann_type, _, [{var, _, _VarName}, Type]}) ->
     field_info_to_type(Type);
 field_info_to_type({atom, _, Value}) when is_atom(Value) ->
-    [{literal, Value}];
+    [#ed_literal{value = Value}];
 field_info_to_type({integer, _, Value}) when is_integer(Value) ->
-    [{literal, Value}];
+    [#ed_literal{value = Value}];
 field_info_to_type(Op) when element(1, Op) =:= op ->
     Value = integer_value(Op),
-    [{literal, Value}];
+    [#ed_literal{value = Value}];
 field_info_to_type({var, _, VarName}) when is_atom(VarName) ->
     [{var, VarName}];
 field_info_to_type({remote_type, _, [{atom, _, Module}, {atom, _, Type}, Args]})
@@ -158,7 +158,7 @@ field_info_to_type({TypeOrOpaque, _, Type, TypeAttrs})
         any ->
             [{type, term}];
         timeout ->
-            [#ed_union{types = [{type, non_neg_integer}, {literal, infinity}]}];
+            [#ed_union{types = [{type, non_neg_integer}, #ed_literal{value = infinity}]}];
         pid ->
             [{type, pid}];
         iodata ->
@@ -215,7 +215,7 @@ field_info_to_type({TypeOrOpaque, _, Type, TypeAttrs})
         dynamic ->
             [{type, term}];
         nil ->
-            [{literal, []}];
+            [#ed_literal{value = []}];
         none ->
             [{type, none}];
         no_return ->

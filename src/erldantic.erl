@@ -41,7 +41,7 @@
     #type_with_arguments{} |
     #a_function{} |
     #ed_union{} |
-    {literal, term()} |
+    #ed_literal{} |
     {range, integer, integer(), integer()} |
     {list | nonempty_list, a_type()} |
     #maybe_improper_list{} |

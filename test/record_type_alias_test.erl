@@ -4,7 +4,6 @@
 
 -include("../include/erldantic.hrl").
 
-
 -record(person, {name :: string(), age :: integer()}).
 -record(address, {street :: string(), city :: string()}).
 

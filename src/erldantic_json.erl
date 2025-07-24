@@ -133,9 +133,9 @@ do_to_json(_TypeInfo, {type, Type} = T, Value)
 do_to_json(_TypeInfo, {range, integer, Min, Max}, Value)
     when is_integer(Value) andalso Min =< Value, Value =< Max ->
     {ok, Value};
-do_to_json(_TypeInfo, {literal, undefined}, undefined) ->
+do_to_json(_TypeInfo, #ed_literal{value = undefined}, undefined) ->
     skip;
-do_to_json(_TypeInfo, {literal, Value}, Value) ->
+do_to_json(_TypeInfo, #ed_literal{value = Value}, Value) ->
     {ok, Value};
 do_to_json(TypeInfo, #ed_union{} = T, Data) ->
     union(fun do_to_json/3, TypeInfo, T, Data);
@@ -475,9 +475,9 @@ from_json(_TypeInfo, {type, PrimaryType} = T, Json)
                         location = [],
                         ctx = #{type => T, value => Json}}]}
     end;
-from_json(_TypeInfo, {literal, Literal}, Literal) ->
+from_json(_TypeInfo, #ed_literal{value = Literal}, Literal) ->
     {ok, Literal};
-from_json(_TypeInfo, {literal, Literal} = T, Value) ->
+from_json(_TypeInfo, #ed_literal{value = Literal} = T, Value) ->
     case try_convert_to_literal(Literal, Value) of
         {ok, Literal} ->
             {ok, Literal};
@@ -716,7 +716,9 @@ type_replace_vars(_TypeInfo, {var, Name}, NamedTypes) ->
 type_replace_vars(TypeInfo, #type_with_arguments{type = Type}, NamedTypes) ->
     case Type of
         #ed_union{types = Types} ->
-            #ed_union{types = lists:map(fun(T) -> type_replace_vars(TypeInfo, T, NamedTypes) end, Types)};
+            #ed_union{types =
+                          lists:map(fun(T) -> type_replace_vars(TypeInfo, T, NamedTypes) end,
+                                    Types)};
         #a_map{fields = Fields} ->
             #a_map{fields =
                        lists:map(fun ({map_field_assoc, FieldName, FieldType}) ->
@@ -949,8 +951,8 @@ can_be_undefined(TypeInfo, Type) ->
         #type_with_arguments{type = Type2} ->
             can_be_undefined(TypeInfo, Type2);
         #ed_union{types = Types} ->
-            lists:member({literal, undefined}, Types);
-        {literal, undefined} ->
+            lists:member(#ed_literal{value = undefined}, Types);
+        #ed_literal{value = undefined} ->
             true;
         {user_type_ref, TypeName, TypeArgs} ->
             TypeArity = length(TypeArgs),

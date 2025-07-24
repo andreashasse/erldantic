@@ -3,6 +3,7 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -include("../include/erldantic.hrl").
+-include("../include/erldantic_internal.hrl").
 
 -type atom_map() :: #{a1 := integer(), atom() => atom()}.
 -type atom_map2() :: #{a1 => 1, atom() => atom()}.
@@ -35,7 +36,7 @@ map2_bad_test() ->
     ?assertEqual({error,
                   [#ed_error{location = [a1],
                              type = type_mismatch,
-                             ctx = #{type => {literal, 1}, value => should_not_work}}]},
+                             ctx = #{type => #ed_literal{value = 1}, value => should_not_work}}]},
                  to_json_atom_map2(#{a1 => should_not_work, other => value2})),
     ?assertMatch({error,
                   [#ed_error{location = [a1],
@@ -99,7 +100,7 @@ from_json_map2_bad_test() ->
     ?assertEqual({error,
                   [#ed_error{location = [a1],
                              type = type_mismatch,
-                             ctx = #{type => {literal, 1}, value => 2}}]},
+                             ctx = #{type => #ed_literal{value = 1}, value => 2}}]},
                  from_json_atom_map2(#{<<"a1">> => 2, <<"other">> => <<"value2">>})).
 
 from_json_map3_test() ->

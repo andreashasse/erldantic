@@ -64,7 +64,7 @@ missing_test() ->
     ?assertEqual({ok, 42}, erldantic_json:type_from_json(?MODULE, my_term, 42)),
 
     %% timeout
-    ?assertEqual(#ed_union{types = [{type, non_neg_integer}, {literal, infinity}]},
+    ?assertEqual(#ed_union{types = [{type, non_neg_integer}, #ed_literal{value = infinity}]},
                  maps:get({type, my_timeout, 0}, Types)),
     ?assertMatch({error, [#ed_error{type = no_match}]},
                  erldantic_json:type_to_json(?MODULE, my_timeout, <<"infinity">>)),
@@ -140,7 +140,7 @@ missing_test() ->
                  erldantic_json:type_to_json(?MODULE, my_identifier, my_identifier)),
 
     %% literal
-    ?assertEqual({literal, 1}, maps:get({type, my_literal, 0}, Types)),
+    ?assertEqual(#ed_literal{value = 1}, maps:get({type, my_literal, 0}, Types)),
     ?assertEqual({ok, 1}, erldantic_json:type_to_json(?MODULE, my_literal, 1)),
     ?assertEqual({ok, 1}, erldantic_json:type_from_json(?MODULE, my_literal, 1)),
 
@@ -166,7 +166,7 @@ missing_test() ->
                  erldantic_json:type_from_json(?MODULE, my_nonempty_list, [])),
 
     %% nil
-    ?assertEqual({literal, []}, maps:get({type, my_nil, 0}, Types)),
+    ?assertEqual(#ed_literal{value = []}, maps:get({type, my_nil, 0}, Types)),
     ?assertEqual({ok, []}, erldantic_json:type_to_json(?MODULE, my_nil, [])),
     ?assertEqual({ok, []}, erldantic_json:type_from_json(?MODULE, my_nil, [])),
 
