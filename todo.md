@@ -25,6 +25,9 @@
 - [ ] Declerative router for Elli/Cowboy
 - [ ] OpenAPI spec
 
+## For completeness
+- [ ] handle functions and all types of lists in type_replace_vars/3
+
 ## Not in scope for now
 - [ ] to/from Dynamo DB
 - [ ] to/from yaml

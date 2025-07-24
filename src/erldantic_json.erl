@@ -253,7 +253,7 @@ data_to_json(TypeInfo, TypeName, TypeArity, Data) ->
     end.
 
 map_to_json(TypeInfo, #a_map{fields = Fields}, Data) when is_map(Data) ->
-    case map_fields(TypeInfo, Fields, Data) of
+    case map_fields_to_json(TypeInfo, Fields, Data) of
         {ok, MapFields} ->
             {ok, maps:from_list(MapFields)};
         {error, Errors} ->
@@ -265,7 +265,7 @@ map_to_json(_TypeInfo, _MapFieldTypes, Data) ->
                 location = [],
                 ctx = #{type => {type, map}, value => Data}}]}.
 
-map_fields(TypeInfo, MapFieldTypes, Data) ->
+map_fields_to_json(TypeInfo, MapFieldTypes, Data) ->
     Fun = fun ({map_field_assoc, FieldName, FieldType}, {FieldsAcc, DataAcc}) ->
                   case maps:take(FieldName, DataAcc) of
                       {FieldData, NewDataAcc} ->
@@ -439,7 +439,6 @@ err_append_location(Err, FieldName) ->
                 Type :: erldantic:a_type_or_ref(),
                 Json :: json:decode_value()) ->
                    {ok, term()} | {error, [erldantic:error()]}.
-%% why {record, atom()}?
 from_json(TypeInfo, {record, RecordName}, Json) when is_atom(RecordName) ->
     record_from_json(TypeInfo, RecordName, Json, []);
 from_json(TypeInfo, #a_rec{} = Rec, Json) ->
@@ -448,13 +447,7 @@ from_json(_TypeInfo, #remote_type{mfargs = {Module, TypeName, TypeArgs}}, Json) 
     case erldantic_module_types:get(Module) of
         {ok, TypeInfo} ->
             TypeArity = length(TypeArgs),
-            case TypeInfo of
-                #{{type, TypeName, TypeArity} := Type} ->
-                    TypeWithoutVars = apply_args(TypeInfo, Type, TypeArgs),
-                    from_json(TypeInfo, TypeWithoutVars, Json);
-                #{} ->
-                    {error, [#ed_error{type = missing_type, location = []}]}
-            end;
+            type_from_json(TypeInfo, TypeName, TypeArity, TypeArgs, Json);
         {error, _} = Err ->
             Err
     end;

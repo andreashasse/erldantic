@@ -1,6 +1,9 @@
 -module(erldantic_module_types).
 
--export([get/1]).
+-export([get/1, clear/1]).
+
+%% Meant to be used when doing manual testing.
+-ignore_xref([clear/1]).
 
 -type module_version() :: term().
 
@@ -27,6 +30,11 @@ get(Module) ->
         {error, _} = Err ->
             Err
     end.
+
+-spec clear(Module :: module()) -> ok.
+clear(Module) ->
+    persistent_term:erase({?MODULE, pers_types, Module}),
+    ok.
 
 %% INTERNAL
 

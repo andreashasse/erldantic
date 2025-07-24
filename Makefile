@@ -8,6 +8,9 @@ compile:
 format:
 	rebar3 format
 
+hank:
+	rebar3 hank
+
 format_verify:
 	rebar3 format --verify
 
@@ -20,7 +23,7 @@ proper:
 cover:
 	rebar3 cover
 
-build-test: compile xref type_check test proper format_verify cover
+build-test: compile xref type_check test proper format_verify hank cover
 
 clean:
 	rebar3 clean

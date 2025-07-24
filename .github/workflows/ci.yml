@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   test:
@@ -12,61 +12,64 @@ jobs:
 
     strategy:
       matrix:
-        otp: ['27.3']
-        rebar3: ['3.25']
+        otp: ["27.3"]
+        rebar3: ["3.25"]
         include:
-          - otp: '27.3'
-            elp_build: 'https://github.com/WhatsApp/erlang-language-platform/releases/download/2025-07-08/elp-linux-x86_64-unknown-linux-gnu-otp-27.3.tar.gz'
+          - otp: "27.3"
+            elp_build: "https://github.com/WhatsApp/erlang-language-platform/releases/download/2025-07-08/elp-linux-x86_64-unknown-linux-gnu-otp-27.3.tar.gz"
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Setup Erlang/OTP
-      uses: erlef/setup-beam@v1
-      with:
-        otp-version: ${{ matrix.otp }}
-        rebar3-version: ${{ matrix.rebar3 }}
+      - name: Setup Erlang/OTP
+        uses: erlef/setup-beam@v1
+        with:
+          otp-version: ${{ matrix.otp }}
+          rebar3-version: ${{ matrix.rebar3 }}
 
-    - name: Download and Setup ELP
-      run: |
-        mkdir -p bin
-        wget -q ${{ matrix.elp_build }} -O elp.tar.gz
-        tar -xzf elp.tar.gz
-        mv elp bin/
-        echo "${{ github.workspace }}/bin" >> $GITHUB_PATH
-        echo "ELP installed at ${{ github.workspace }}/bin/elp"
+      - name: Download and Setup ELP
+        run: |
+          mkdir -p bin
+          wget -q ${{ matrix.elp_build }} -O elp.tar.gz
+          tar -xzf elp.tar.gz
+          mv elp bin/
+          echo "${{ github.workspace }}/bin" >> $GITHUB_PATH
+          echo "ELP installed at ${{ github.workspace }}/bin/elp"
 
-    - name: Cache rebar3 dependencies
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.cache/rebar3
-          _build
-        key: ${{ runner.os }}-rebar3-${{ matrix.otp }}-${{ hashFiles('rebar.config') }}
-        restore-keys: |
-          ${{ runner.os }}-rebar3-${{ matrix.otp }}-
+      - name: Cache rebar3 dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/rebar3
+            _build
+          key: ${{ runner.os }}-rebar3-${{ matrix.otp }}-${{ hashFiles('rebar.config') }}
+          restore-keys: |
+            ${{ runner.os }}-rebar3-${{ matrix.otp }}-
 
-    - name: Compile
-      run: make compile
+      - name: Compile
+        run: make compile
 
-    - name: Run tests
-      run: make test
+      - name: Run tests
+        run: make test
 
-    - name: Run Proper
-      run: make proper
+      - name: Run Proper
+        run: make proper
 
-    - name: Type check
-      run: make type_check
+      - name: Type check
+        run: make type_check
 
-    - name: Check format
-      run: make format_verify
+      - name: Check format
+        run: make format_verify
 
-    - name: Generate coverage report
-      run: make cover
+      - name: Run Hank
+        run: make hank
 
-    - name: Upload coverage report
-      uses: actions/upload-artifact@v4
-      with:
-        name: coverage-report-otp-${{ matrix.otp }}
-        path: _build/test/cover/
-        retention-days: 30
+      - name: Generate coverage report
+        run: make cover
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report-otp-${{ matrix.otp }}
+          path: _build/test/cover/
+          retention-days: 30
