@@ -133,7 +133,7 @@ field_info_to_type({TypeOrOpaque, _, Type, TypeAttrs})
             [#a_tuple{fields = TupleFields}];
         union ->
             UnionFields = lists:flatmap(fun field_info_to_type/1, TypeAttrs),
-            [{union, UnionFields}];
+            [#ed_union{types = UnionFields}];
         Fun when Fun =:= 'fun' orelse Fun =:= function ->
             case TypeAttrs of
                 [] ->
@@ -158,7 +158,7 @@ field_info_to_type({TypeOrOpaque, _, Type, TypeAttrs})
         any ->
             [{type, term}];
         timeout ->
-            [{union, [{type, non_neg_integer}, {literal, infinity}]}];
+            [#ed_union{types = [{type, non_neg_integer}, {literal, infinity}]}];
         pid ->
             [{type, pid}];
         iodata ->
@@ -172,7 +172,7 @@ field_info_to_type({TypeOrOpaque, _, Type, TypeAttrs})
         node ->
             [{type, atom}];
         identifier ->
-            [{union, [{type, pid}, {type, port}, {type, reference}]}];
+            [#ed_union{types = [{type, pid}, {type, port}, {type, reference}]}];
         range ->
             [MinValue, MaxValue] = TypeAttrs,
             Min = integer_value(MinValue),

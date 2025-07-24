@@ -3,6 +3,7 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -include("../include/erldantic.hrl").
+-include("../include/erldantic_internal.hrl").
 
 -type one() :: 1.
 -type courses() :: one() | 2 | 5.
@@ -77,8 +78,7 @@ validate_integer_literal_test() ->
     ?assertMatch([#ed_error{type = no_match,
                             ctx =
                                 #{type :=
-                                      {union,
-                                       [{user_type_ref, one, []}, {literal, 2}, {literal, 5}]},
+                                      #ed_union{types = [{user_type_ref, one, []}, {literal, 2}, {literal, 5}]},
                                   value := 3}}],
                  CoursesErrors),
 
@@ -100,7 +100,7 @@ validate_integer_literal_test() ->
     {error, LevelErrors} = to_json_game(InvalidLevelGame),
     ?assertMatch([#ed_error{location = [level],
                             type = no_match,
-                            ctx = #{type := {union, [_, _, _]}, value := 4}}],
+                            ctx = #{type := #ed_union{types = [{user_type_ref, one, []}, {literal, 2}, {literal, 5}]}, value := 4}}],
                  LevelErrors),
 
     % Test JSON conversion using from_json
@@ -132,7 +132,7 @@ validate_integer_literal_test() ->
     InvalidCoursesJson = 3,
     {error, CoursesFromErrors} = from_json_courses(InvalidCoursesJson),
     ?assertMatch([#ed_error{type = no_match,
-                            ctx = #{type := {union, [_, _, _]}, value := 3}}],
+                            ctx = #{type := #ed_union{types = [_, _, _]}, value := 3}}],
                  CoursesFromErrors),
 
     % Test from_json with valid game_state()
@@ -146,7 +146,7 @@ validate_integer_literal_test() ->
     {error, GameFromErrors} = from_json_game(InvalidGameJson),
     ?assertMatch([#ed_error{location = [level],
                             type = no_match,
-                            ctx = #{type := {union, [_, _, _]}, value := 6}}],
+                            ctx = #{type := #ed_union{types = [_, _, _]}, value := 6}}],
                  GameFromErrors).
 
 -spec to_json_one(one()) -> {ok, json:encode_value()} | {error, [erldantic:error()]}.

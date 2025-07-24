@@ -17,7 +17,7 @@ type_in_form_test() ->
                   result,
                   [#a_map{fields = [{map_field_type_assoc, {type, atom}, {type, integer}}]}]},
                  maps:get({type, map_result, 0}, Types)),
-    ?assertEqual(#type_with_arguments{type = {union, [{var, 'OkType'}, {literal, error}]},
+    ?assertEqual(#type_with_arguments{type = #ed_union{types= [{var, 'OkType'}, {literal, error}]},
                                       vars = ['OkType']},
                  maps:get({type, result, 1}, Types)).
 
@@ -35,7 +35,7 @@ map1_to_json_bad_test() ->
                              type = no_match,
                              ctx =
                                  #{type =>
-                                       {union,
+                                       #ed_union{types =
                                         [{a_map,
                                           [{map_field_type_assoc, {type, atom}, {type, integer}}]},
                                          {literal, error}]},
@@ -46,7 +46,7 @@ map1_to_json_bad_test() ->
                              type = no_match,
                              ctx =
                                  #{type =>
-                                       {union,
+                                       #ed_union{types =
                                         [{a_map,
                                           [{map_field_type_assoc, {type, atom}, {type, integer}}]},
                                          {literal, error}]},
@@ -59,7 +59,7 @@ map1_from_json_bad_test() ->
                              type = no_match,
                              ctx =
                                  #{type =>
-                                       {union,
+                                       #ed_union{types =
                                         [{a_map,
                                           [{map_field_type_assoc, {type, atom}, {type, integer}}]},
                                          {literal, error}]},
@@ -70,7 +70,7 @@ map1_from_json_bad_test() ->
                              type = no_match,
                              ctx =
                                  #{type =>
-                                       {union,
+                                       #ed_union{types =
                                         [{a_map,
                                           [{map_field_type_assoc, {type, atom}, {type, integer}}]},
                                          {literal, error}]},

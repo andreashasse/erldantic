@@ -137,7 +137,7 @@ do_to_json(_TypeInfo, {literal, undefined}, undefined) ->
     skip;
 do_to_json(_TypeInfo, {literal, Value}, Value) ->
     {ok, Value};
-do_to_json(TypeInfo, {union, _} = T, Data) ->
+do_to_json(TypeInfo, #ed_union{} = T, Data) ->
     union(fun do_to_json/3, TypeInfo, T, Data);
 do_to_json(TypeInfo, {nonempty_list, Type}, Data) ->
     nonempty_list_to_json(TypeInfo, Type, Data);
@@ -489,7 +489,7 @@ from_json(_TypeInfo, {literal, Literal} = T, Value) ->
     end;
 from_json(TypeInfo, {type, TypeName, TypeArity}, Json) when is_atom(TypeName) ->
     type_from_json(TypeInfo, TypeName, TypeArity, [], Json);
-from_json(TypeInfo, {union, _} = T, Json) ->
+from_json(TypeInfo, #ed_union{} = T, Json) ->
     union(fun from_json/3, TypeInfo, T, Json);
 from_json(_TypeInfo, {range, integer, Min, Max}, Value) when Min =< Value, Value =< Max ->
     {ok, Value};
@@ -657,7 +657,7 @@ check_type(term, Json) ->
 check_type(_Type, _Json) ->
     false.
 
-union(F, TypeInfo, {union, Types} = T, Json) ->
+union(F, TypeInfo, #ed_union{types = Types} = T, Json) ->
     case do_first(F, TypeInfo, Types, Json) of
         {error, no_match} ->
             {error,
@@ -715,8 +715,8 @@ type_replace_vars(_TypeInfo, {var, Name}, NamedTypes) ->
     maps:get(Name, NamedTypes, {type, term});
 type_replace_vars(TypeInfo, #type_with_arguments{type = Type}, NamedTypes) ->
     case Type of
-        {union, Types} ->
-            {union, lists:map(fun(T) -> type_replace_vars(TypeInfo, T, NamedTypes) end, Types)};
+        #ed_union{types = Types} ->
+            #ed_union{types = lists:map(fun(T) -> type_replace_vars(TypeInfo, T, NamedTypes) end, Types)};
         #a_map{fields = Fields} ->
             #a_map{fields =
                        lists:map(fun ({map_field_assoc, FieldName, FieldType}) ->
@@ -948,7 +948,7 @@ can_be_undefined(TypeInfo, Type) ->
     case Type of
         #type_with_arguments{type = Type2} ->
             can_be_undefined(TypeInfo, Type2);
-        {union, Types} ->
+        #ed_union{types = Types} ->
             lists:member({literal, undefined}, Types);
         {literal, undefined} ->
             true;

@@ -64,7 +64,7 @@ missing_test() ->
     ?assertEqual({ok, 42}, erldantic_json:type_from_json(?MODULE, my_term, 42)),
 
     %% timeout
-    ?assertEqual({union, [{type, non_neg_integer}, {literal, infinity}]},
+    ?assertEqual(#ed_union{types = [{type, non_neg_integer}, {literal, infinity}]},
                  maps:get({type, my_timeout, 0}, Types)),
     ?assertMatch({error, [#ed_error{type = no_match}]},
                  erldantic_json:type_to_json(?MODULE, my_timeout, <<"infinity">>)),
@@ -132,7 +132,7 @@ missing_test() ->
                  erldantic_json:type_from_json(?MODULE, my_node, <<"nonode@nohost">>)),
 
     %% identifier
-    ?assertEqual({union, [{type, pid}, {type, port}, {type, reference}]},
+    ?assertEqual(#ed_union{types = [{type, pid}, {type, port}, {type, reference}]},
                  maps:get({type, my_identifier, 0}, Types)),
     ?assertMatch({error, [#ed_error{type = no_match}]},
                  erldantic_json:type_to_json(?MODULE, my_identifier, my_identifier)),

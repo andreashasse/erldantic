@@ -3,7 +3,7 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -include("../include/erldantic.hrl").
--include("../include/erldantic_internal.hrl").
+
 
 -record(person, {name :: string(), age :: integer()}).
 -record(address, {street :: string(), city :: string()}).

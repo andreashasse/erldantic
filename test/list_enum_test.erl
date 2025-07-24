@@ -3,6 +3,7 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -include("../include/erldantic.hrl").
+-include("../include/erldantic_internal.hrl").
 
 -type accesses() :: [read | write].
 
@@ -25,7 +26,7 @@ validate_accesses_test() ->
     {error, Errors} = to_json_accesses(InvalidData),
     ?assertMatch([#ed_error{type = no_match,
                             ctx =
-                                #{type := {union, [{literal, read}, {literal, write}]},
+                                #{type := #ed_union{types = [{literal, read}, {literal, write}]},
                                   value := invalid}}],
                  Errors),
 
@@ -46,7 +47,7 @@ validate_accesses_test() ->
     {error, FromErrors} = from_json_accesses(InvalidJson),
     ?assertMatch([#ed_error{type = no_match,
                             ctx =
-                                #{type := {union, [{literal, read}, {literal, write}]},
+                                #{type := #ed_union{types = [{literal, read}, {literal, write}]},
                                   value := <<"invalid">>}}],
                  FromErrors).
 

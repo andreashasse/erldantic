@@ -40,7 +40,7 @@
     #a_tuple{} |
     #type_with_arguments{} |
     #a_function{} |
-    {union, [a_type()]} |
+    #ed_union{} |
     {literal, term()} |
     {range, integer, integer(), integer()} |
     {list | nonempty_list, a_type()} |
