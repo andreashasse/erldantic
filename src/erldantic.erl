@@ -33,28 +33,26 @@
      iodata |
      none} |
     ed_record_ref() |
-    #ed_user_type_ref{} |
-    #ed_var{} |
-    #ed_map{} |
-    #ed_rec{} |
-    #ed_tuple{} |
-    #ed_type_with_variables{} |
-    #ed_function{} |
-    #ed_union{} |
-    #ed_literal{} |
-    #ed_range{} |
-    #ed_list{} |
-    #ed_nonempty_list{} |
-    #ed_maybe_improper_list{} |
-    #ed_nonempty_improper_list{} |
-    #ed_remote_type{}.
+    ed_user_type_ref() |
+    ed_var() |
+    ed_map() |
+    ed_rec() |
+    ed_tuple() |
+    ed_type_with_variables() |
+    ed_function() |
+    ed_union() |
+    ed_literal() |
+    ed_range() |
+    ed_list() |
+    ed_nonempty_list() |
+    ed_maybe_improper_list() |
+    ed_nonempty_improper_list() |
+    ed_remote_type().
 -type map_field() ::
     {map_field_assoc | map_field_exact, Name :: atom(), ed_type()} |
     {map_field_type_assoc | map_field_type_exact, ed_type(), ed_type()}.
 -type ed_type_reference() ::
-    {record, atom()} |
-    {ed_record_ref, atom()} |
-    {type, Name :: atom(), Arity :: non_neg_integer()}.
+    {record, atom()} | {type, Name :: atom(), Arity :: non_neg_integer()}.
 -type error() :: #ed_error{}.
 -type ed_type_or_ref() :: ed_type() | ed_type_reference().
 %% Internal type definitions moved from erldantic_internal.hrl
@@ -64,7 +62,7 @@
     #ed_rec{name :: atom(),
             fields :: [{atom(), ed_type()}],
             arity :: pos_integer()}.
--type ed_type_with_arguments() ::
+-type ed_type_with_variables() ::
     #ed_type_with_variables{type :: ed_type(), vars :: [atom()]}.
 -type ed_function() :: #ed_function{args :: any | [ed_type()], return :: ed_type()}.
 -type ed_union() :: #ed_union{types :: [ed_type()]}.
@@ -88,6 +86,6 @@
 
 -export_type([ed_type/0, ed_type_reference/0, ed_type_or_ref/0, var_type/0, type_info/0,
               record_field/0, error/0, map_field/0, ed_tuple/0, ed_map/0, ed_rec/0,
-              ed_type_with_arguments/0, ed_function/0, ed_union/0, ed_literal/0, ed_record_ref/0,
+              ed_type_with_variables/0, ed_function/0, ed_union/0, ed_literal/0, ed_record_ref/0,
               ed_remote_type/0, ed_maybe_improper_list/0, ed_nonempty_improper_list/0,
               ed_user_type_ref/0, ed_var/0, ed_range/0, ed_list/0, ed_nonempty_list/0]).
