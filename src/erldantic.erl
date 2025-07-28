@@ -32,7 +32,7 @@
      iolist |
      iodata |
      none} |
-    #ed_rec_ref{} |
+    record_ref() |
     {user_type_ref, user_type_name(), [a_type()]} |
     {var, atom()} |
     #a_map{} |

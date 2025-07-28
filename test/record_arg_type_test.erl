@@ -15,11 +15,10 @@ type_in_form_test() ->
     ?assertEqual({user_type_ref, result_t, [{type, atom}]},
                  maps:get({type, int_result, 0}, Types)),
     ?assertEqual(#type_with_arguments{type =
-                                          #ed_rec_ref{name = result,
-                                                         fields =
-                                                             [{value, {type, integer}},
-                                                              {errors,
-                                                               {list, {var, 'ResultType'}}}]},
+                                          #ed_rec_ref{record_name = result,
+                                                      field_types =
+                                                          [{value, {type, integer}},
+                                                           {errors, {list, {var, 'ResultType'}}}]},
                                       vars = ['ResultType']},
                  maps:get({type, result_t, 1}, Types)).
 

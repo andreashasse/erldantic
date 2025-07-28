@@ -7,8 +7,12 @@
 -record(a_function, {args :: any | [erldantic:a_type()], return :: erldantic:a_type()}).
 -record(ed_union, {types = [erldantic:a_type()]}).
 -record(ed_literal, {value :: term()}).
--record(ed_rec_ref,
-        {name :: erldantic:user_type_name(), fields :: [erldantic:record_field()]}).
+-record(ed_rec_ref, {record_name, field_types}).
+
+-type record_ref() ::
+    #ed_rec_ref{record_name :: erldantic:user_type_name(),
+                field_types :: [erldantic:record_field()]}.
+
 -record(remote_type, {mfargs :: {module(), atom(), [erldantic:a_type()]}}).
 -record(maybe_improper_list,
         {elements :: erldantic:a_type(), tail :: erldantic:a_type()}).
