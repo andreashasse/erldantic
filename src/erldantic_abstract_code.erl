@@ -55,7 +55,7 @@ type_in_form({attribute, _, TypeOrOpaque, {TypeName, {_, _, record, Attrs}, [] =
     true = is_list(Attrs),
     {RecordName, FieldTypes} = record_field_types(Attrs),
     TypeArity = length(Args),
-    Record = {record_ref, RecordName, FieldTypes},
+    Record = #ed_rec_ref{name = RecordName, fields = FieldTypes},
     {true, {{type, TypeName, TypeArity}, Record}};
 type_in_form({attribute, _, TypeOrOpaque, {TypeName, Type, Args}})
     when is_atom(TypeName)
@@ -124,7 +124,7 @@ field_info_to_type({TypeOrOpaque, _, Type, TypeAttrs})
     case Type of
         record ->
             {SubTypeRecordName, FieldTypes} = record_field_types(TypeAttrs),
-            [{record_ref, SubTypeRecordName, FieldTypes}];
+            [#ed_rec_ref{name = SubTypeRecordName, fields = FieldTypes}];
         map ->
             MapFields = lists:flatmap(fun map_field_info/1, TypeAttrs),
             [#a_map{fields = MapFields}];

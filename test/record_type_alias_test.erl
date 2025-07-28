@@ -3,6 +3,7 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -include("../include/erldantic.hrl").
+-include("../include/erldantic_internal.hrl").
 
 -record(person, {name :: string(), age :: integer()}).
 -record(address, {street :: string(), city :: string()}).
@@ -15,16 +16,19 @@
 type_in_form_test() ->
     {ok, Types} = erldantic_abstract_code:types_in_module(?MODULE),
 
-    ?assertMatch({record_ref, person, [{name, {type, string}}, {age, {type, integer}}]},
+    ?assertMatch(#ed_rec_ref{name = person,
+                             fields = [{name, {type, string}}, {age, {type, integer}}]},
                  maps:get({type, person_alias, 0}, Types)),
 
-    ?assertMatch({record_ref, address, [{street, {type, string}}, {city, {type, string}}]},
+    ?assertMatch(#ed_rec_ref{name = address,
+                             fields = [{street, {type, string}}, {city, {type, string}}]},
                  maps:get({type, address_alias, 0}, Types)),
 
-    ?assertMatch({record_ref, person, [{age, {type, non_neg_integer}}]},
+    ?assertMatch(#ed_rec_ref{name = person, fields = [{age, {type, non_neg_integer}}]},
                  maps:get({type, person_new_age, 0}, Types)),
 
-    ?assertMatch({record_ref, person, []}, maps:get({type, person_t, 0}, Types)).
+    ?assertMatch(#ed_rec_ref{name = person, fields = []},
+                 maps:get({type, person_t, 0}, Types)).
 
 to_json_person_record_test() ->
     Person = #person{name = "John", age = 30},

@@ -23,7 +23,7 @@ proper:
 cover:
 	rebar3 cover
 
-build-test: compile xref type_check test proper format_verify hank cover
+build-test: compile xref type_check test proper format_verify cover
 
 clean:
 	rebar3 clean

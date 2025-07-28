@@ -5,6 +5,7 @@
 %% Meant to be used when doing manual testing.
 -ignore_xref([clear/1]).
 
+arity :: pos_integer()
 -type module_version() :: term().
 
 -include("../include/erldantic.hrl").

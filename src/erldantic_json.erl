@@ -112,7 +112,7 @@ do_to_json(TypeInfo, {record, RecordName}, Record) when is_atom(RecordName) ->
     record_to_json(TypeInfo, RecordName, Record, []);
 do_to_json(TypeInfo, #a_rec{} = RecordInfo, Record) when is_tuple(Record) ->
     record_to_json(TypeInfo, RecordInfo, Record, []);
-do_to_json(TypeInfo, {record_ref, RecordName, TypeArgs}, Record)
+do_to_json(TypeInfo, #ed_rec_ref{name = RecordName, fields = TypeArgs}, Record)
     when is_atom(RecordName) ->
     record_to_json(TypeInfo, RecordName, Record, TypeArgs);
 do_to_json(TypeInfo, {user_type_ref, TypeName, TypeArgs}, Data) when is_atom(TypeName) ->
@@ -451,7 +451,8 @@ from_json(_TypeInfo, #remote_type{mfargs = {Module, TypeName, TypeArgs}}, Json) 
         {error, _} = Err ->
             Err
     end;
-from_json(TypeInfo, {record_ref, RecordName, TypeArgs}, Json) when is_atom(RecordName) ->
+from_json(TypeInfo, #ed_rec_ref{name = RecordName, fields = TypeArgs}, Json)
+    when is_atom(RecordName) ->
     record_from_json(TypeInfo, RecordName, Json, TypeArgs);
 from_json(TypeInfo, #a_map{fields = Fields}, Json) ->
     map_from_json(TypeInfo, Fields, Json);
@@ -741,7 +742,7 @@ type_replace_vars(TypeInfo, #type_with_arguments{type = Type}, NamedTypes) ->
                                           type_replace_vars(TypeInfo, ValueType, NamedTypes)}
                                  end,
                                  Fields)};
-        {record_ref, RecordName, TypeArgs} ->
+        #ed_rec_ref{name = RecordName, fields = TypeArgs} ->
             case TypeInfo of
                 #{{record, RecordName} := #a_rec{fields = Fields} = Rec} ->
                     NewFields = apply_record_arg_types(Fields, TypeArgs),

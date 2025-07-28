@@ -34,7 +34,8 @@ simple_test() ->
                         fields = [{id, {type, integer}}, {data, {type, term}}],
                         arity = 3},
                  maps:get({record, my_rec}, Types)),
-    ?assertEqual({record_ref, my_rec, [{data, {user_type_ref, person, []}}]},
+    ?assertEqual(#ed_rec_ref{name = my_rec,
+                             fields = [{data, {user_type_ref, person, []}}]},
                  maps:get({type, my_rec_t, 0}, Types)),
 
     ?assertEqual({ok, #{id => 1, data => #{name => <<"John">>, age => 42}}},
