@@ -974,7 +974,7 @@ can_be_undefined(TypeInfo, Type) ->
             lists:member(#ed_literal{value = undefined}, Types);
         #ed_literal{value = undefined} ->
             true;
-        {user_type_ref, TypeName, TypeArgs} ->
+        #ed_user_type_ref{type_name = TypeName, variables = TypeArgs} ->
             TypeArity = length(TypeArgs),
             case TypeInfo of
                 #{{type, TypeName, TypeArity} := Type2} ->
