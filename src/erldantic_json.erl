@@ -117,7 +117,8 @@ do_to_json(TypeInfo,
            Record)
     when is_atom(RecordName) ->
     record_to_json(TypeInfo, RecordName, Record, TypeArgs);
-do_to_json(TypeInfo, {user_type_ref, TypeName, TypeArgs}, Data) when is_atom(TypeName) ->
+do_to_json(TypeInfo, #ed_user_type_ref{type_name = TypeName, variables = TypeArgs}, Data)
+    when is_atom(TypeName) ->
     TypeArity = length(TypeArgs),
     case TypeInfo of
         #{{type, TypeName, TypeArity} := Type} ->
@@ -132,7 +133,11 @@ do_to_json(_TypeInfo, {type, Type} = T, Value)
          orelse Type =:= iodata
          orelse Type =:= iolist ->
     prim_type_to_json(T, Value);
-do_to_json(_TypeInfo, {range, integer, Min, Max}, Value)
+do_to_json(_TypeInfo,
+           #ed_range{type = integer,
+                     lower_bound = Min,
+                     upper_bound = Max},
+           Value)
     when is_integer(Value) andalso Min =< Value, Value =< Max ->
     {ok, Value};
 do_to_json(_TypeInfo, #ed_literal{value = undefined}, undefined) ->
@@ -141,9 +146,9 @@ do_to_json(_TypeInfo, #ed_literal{value = Value}, Value) ->
     {ok, Value};
 do_to_json(TypeInfo, #ed_union{} = T, Data) ->
     union(fun do_to_json/3, TypeInfo, T, Data);
-do_to_json(TypeInfo, {nonempty_list, Type}, Data) ->
+do_to_json(TypeInfo, #ed_nonempty_list{type = Type}, Data) ->
     nonempty_list_to_json(TypeInfo, Type, Data);
-do_to_json(TypeInfo, {list, Type}, Data) when is_list(Data) ->
+do_to_json(TypeInfo, #ed_list{type = Type}, Data) when is_list(Data) ->
     list_to_json(TypeInfo, Type, Data);
 do_to_json(TypeInfo, {type, TypeName, TypeArity}, Data) when is_atom(TypeName) ->
     %% FIXME: For simple types without arity, default to 0
@@ -164,12 +169,12 @@ do_to_json(_TypeInfo, #remote_type{mfargs = {Module, TypeName, Args}}, Data) ->
         {error, _} = Err ->
             Err
     end;
-do_to_json(_TypeInfo, #maybe_improper_list{} = T, Data) ->
+do_to_json(_TypeInfo, #ed_maybe_improper_list{} = T, Data) ->
     {error,
      [#ed_error{type = not_implemented,
                 location = [],
                 ctx = #{type => T, value => Data}}]};
-do_to_json(_TypeInfo, #nonempty_improper_list{} = T, Data) ->
+do_to_json(_TypeInfo, #ed_nonempty_improper_list{} = T, Data) ->
     {error,
      [#ed_error{type = not_implemented,
                 location = [],
@@ -458,11 +463,12 @@ from_json(TypeInfo, #ed_rec_ref{record_name = RecordName, field_types = TypeArgs
     record_from_json(TypeInfo, RecordName, Json, TypeArgs);
 from_json(TypeInfo, #a_map{fields = Fields}, Json) ->
     map_from_json(TypeInfo, Fields, Json);
-from_json(TypeInfo, {user_type_ref, TypeName, TypeArgs}, Json) when is_atom(TypeName) ->
+from_json(TypeInfo, #ed_user_type_ref{type_name = TypeName, variables = TypeArgs}, Json)
+    when is_atom(TypeName) ->
     type_from_json(TypeInfo, TypeName, length(TypeArgs), TypeArgs, Json);
-from_json(TypeInfo, {nonempty_list, Type}, Data) ->
+from_json(TypeInfo, #ed_nonempty_list{type = Type}, Data) ->
     nonempty_list_from_json(TypeInfo, Type, Data);
-from_json(TypeInfo, {list, Type}, Data) ->
+from_json(TypeInfo, #ed_list{type = Type}, Data) ->
     list_from_json(TypeInfo, Type, Data);
 from_json(_TypeInfo, {type, PrimaryType} = T, Json)
     when ?is_primary_type(PrimaryType)
@@ -494,20 +500,31 @@ from_json(TypeInfo, {type, TypeName, TypeArity}, Json) when is_atom(TypeName) ->
     type_from_json(TypeInfo, TypeName, TypeArity, [], Json);
 from_json(TypeInfo, #ed_union{} = T, Json) ->
     union(fun from_json/3, TypeInfo, T, Json);
-from_json(_TypeInfo, {range, integer, Min, Max}, Value) when Min =< Value, Value =< Max ->
+from_json(_TypeInfo,
+          #ed_range{type = integer,
+                    lower_bound = Min,
+                    upper_bound = Max},
+          Value)
+    when Min =< Value, Value =< Max ->
     {ok, Value};
-from_json(_TypeInfo, {range, integer, Min, Max}, Value) when is_integer(Value) ->
+from_json(_TypeInfo,
+          #ed_range{type = integer,
+                    lower_bound = _Min,
+                    upper_bound = _Max} =
+              Range,
+          Value)
+    when is_integer(Value) ->
     {error,
      [#ed_error{type = type_mismatch,
                 location = [],
-                ctx = #{type => {range, integer, Min, Max}, value => Value}}]};
-from_json(_TypeInfo, #maybe_improper_list{} = T, Value) ->
+                ctx = #{type => Range, value => Value}}]};
+from_json(_TypeInfo, #ed_maybe_improper_list{} = T, Value) ->
     %% erlang:error(...) for not impolemented or supported stuff? It is not an error that should be handled by the user?
     {error,
      [#ed_error{type = not_implemented,
                 location = [],
                 ctx = #{type => T, value => Value}}]};
-from_json(_TypeInfo, #nonempty_improper_list{} = T, Value) ->
+from_json(_TypeInfo, #ed_nonempty_improper_list{} = T, Value) ->
     %% erlang:error(...) for not impolemented or supported stuff? It is not an error that should be handled by the user?
     {error,
      [#ed_error{type = not_implemented,
@@ -714,7 +731,7 @@ arg_names(_) ->
                         Type :: erldantic:a_type(),
                         NamedTypes :: #{atom() => erldantic:a_type()}) ->
                            erldantic:a_type().
-type_replace_vars(_TypeInfo, {var, Name}, NamedTypes) ->
+type_replace_vars(_TypeInfo, #ed_var{name = Name}, NamedTypes) ->
     maps:get(Name, NamedTypes, {type, term});
 type_replace_vars(TypeInfo, #type_with_arguments{type = Type}, NamedTypes) ->
     case Type of
@@ -766,8 +783,8 @@ type_replace_vars(TypeInfo, #type_with_arguments{type = Type}, NamedTypes) ->
                 {error, _} = Err ->
                     erlang:error(Err)
             end;
-        {list, ListType} ->
-            {list, type_replace_vars(TypeInfo, ListType, NamedTypes)}
+        #ed_list{type = ListType} ->
+            #ed_list{type = type_replace_vars(TypeInfo, ListType, NamedTypes)}
     end;
 type_replace_vars(_TypeInfo, #a_rec{fields = Fields} = Rec, NamedTypes) ->
     Rec#a_rec{fields =

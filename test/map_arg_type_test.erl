@@ -11,17 +11,17 @@
 
 type_in_form_test() ->
     {ok, Types} = erldantic_abstract_code:types_in_module(?MODULE),
-    ?assertEqual({user_type_ref, result, [{type, integer}]},
+    ?assertEqual({ed_user_type_ref, result, [{type, integer}]},
                  maps:get({type, int_result, 0}, Types)),
 
     ?assertEqual(#type_with_arguments{type =
                                           #a_map{fields =
                                                      [{map_field_assoc,
                                                        result,
-                                                       {var, 'ResultType'}},
+                                                       {ed_var, 'ResultType'}},
                                                       {map_field_assoc,
                                                        errors,
-                                                       {list, {type, atom}}}]},
+                                                       {ed_list, {type, atom}}}]},
                                       vars = ['ResultType']},
                  maps:get({type, result, 1}, Types)).
 

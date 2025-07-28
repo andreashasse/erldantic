@@ -82,7 +82,7 @@ validate_integer_literal_test() ->
                             ctx =
                                 #{type :=
                                       #ed_union{types =
-                                                    [{user_type_ref, one, []},
+                                                    [{ed_user_type_ref, one, []},
                                                      #ed_literal{value = 2},
                                                      #ed_literal{value = 5}]},
                                   value := 3}}],
@@ -99,7 +99,7 @@ validate_integer_literal_test() ->
     {error, LivesErrors} = to_json_game(InvalidLivesGame),
     ?assertMatch([#ed_error{location = [lives],
                             type = type_mismatch,
-                            ctx = #{type := {range, integer, 1, 3}, value := 4}}],
+                            ctx = #{type := {ed_range, integer, 1, 3}, value := 4}}],
                  LivesErrors),
 
     % Test with invalid level in game_state()
@@ -109,7 +109,7 @@ validate_integer_literal_test() ->
                             ctx =
                                 #{type :=
                                       #ed_union{types =
-                                                    [{user_type_ref, one, []},
+                                                    [{ed_user_type_ref, one, []},
                                                      #ed_literal{value = 2},
                                                      #ed_literal{value = 5}]},
                                   value := 4}}],

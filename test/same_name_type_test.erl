@@ -14,10 +14,10 @@ type_in_form_test() ->
                                           #a_map{fields =
                                                      [{map_field_assoc,
                                                        result,
-                                                       {var, 'ResultType'}},
+                                                       {ed_var, 'ResultType'}},
                                                       {map_field_assoc,
                                                        errors,
-                                                       {list, {type, atom}}}]},
+                                                       {ed_list, {type, atom}}}]},
                                       vars = ['ResultType']},
                  maps:get({type, result, 1}, Types)).
 

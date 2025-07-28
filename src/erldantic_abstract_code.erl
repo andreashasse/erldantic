@@ -101,7 +101,7 @@ field_info_to_type(Op) when element(1, Op) =:= op ->
     Value = integer_value(Op),
     [#ed_literal{value = Value}];
 field_info_to_type({var, _, VarName}) when is_atom(VarName) ->
-    [{var, VarName}];
+    [#ed_var{name = VarName}];
 field_info_to_type({remote_type, _, [{atom, _, Module}, {atom, _, Type}, Args]})
     when is_atom(Module) andalso is_atom(Type) andalso is_list(Args) ->
     MyArgs =
@@ -118,7 +118,7 @@ field_info_to_type({Type, _, tuple, any}) when Type =:= type orelse Type =:= opa
 field_info_to_type({user_type, _, Type, TypeAttrs})
     when is_atom(Type) andalso is_list(TypeAttrs) ->
     TAttrs = lists:flatmap(fun field_info_to_type/1, TypeAttrs),
-    [{user_type_ref, Type, TAttrs}];
+    [#ed_user_type_ref{type_name = Type, variables = TAttrs}];
 field_info_to_type({TypeOrOpaque, _, Type, TypeAttrs})
     when is_list(TypeAttrs) andalso (TypeOrOpaque =:= type orelse TypeOrOpaque =:= opaque) ->
     case Type of
@@ -148,13 +148,24 @@ field_info_to_type({TypeOrOpaque, _, Type, TypeAttrs})
                     [#a_function{args = AFunArgTypes, return = AReturnType}]
             end;
         arity ->
-            [{range, integer, 0, 255}];
+            [#ed_range{type = integer,
+                       lower_bound = 0,
+                       upper_bound = 255}];
         byte ->
-            [{range, integer, 0, 255}];
+            [#ed_range{type = integer,
+                       lower_bound = 0,
+                       upper_bound = 255}];
         char ->
-            [{range, integer, 0, 16#10ffff}];
+            [#ed_range{type = integer,
+                       lower_bound = 0,
+                       upper_bound = 16#10ffff}];
         mfa ->
-            [#a_tuple{fields = [{type, atom}, {type, atom}, {range, integer, 0, 255}]}];
+            [#a_tuple{fields =
+                          [{type, atom},
+                           {type, atom},
+                           #ed_range{type = integer,
+                                     lower_bound = 0,
+                                     upper_bound = 255}]}];
         any ->
             [{type, term}];
         timeout ->
@@ -177,31 +188,33 @@ field_info_to_type({TypeOrOpaque, _, Type, TypeAttrs})
             [MinValue, MaxValue] = TypeAttrs,
             Min = integer_value(MinValue),
             Max = integer_value(MaxValue),
-            [{range, integer, Min, Max}];
+            [#ed_range{type = integer,
+                       lower_bound = Min,
+                       upper_bound = Max}];
         list ->
             case lists:flatmap(fun field_info_to_type/1, TypeAttrs) of
                 [ListType] ->
-                    [{list, ListType}];
+                    [#ed_list{type = ListType}];
                 [] ->
-                    [{list, {type, term}}]
+                    [#ed_list{type = {type, term}}]
             end;
         nonempty_list ->
             case lists:flatmap(fun field_info_to_type/1, TypeAttrs) of
                 [ListType] ->
-                    [{nonempty_list, ListType}];
+                    [#ed_nonempty_list{type = ListType}];
                 [] ->
-                    [{nonempty_list, {type, term}}]
+                    [#ed_nonempty_list{type = {type, term}}]
             end;
         maybe_improper_list ->
             case lists:flatmap(fun field_info_to_type/1, TypeAttrs) of
                 [A, B] ->
-                    [#maybe_improper_list{elements = A, tail = B}];
+                    [#ed_maybe_improper_list{elements = A, tail = B}];
                 [] ->
-                    [#maybe_improper_list{elements = {type, term}, tail = {type, term}}]
+                    [#ed_maybe_improper_list{elements = {type, term}, tail = {type, term}}]
             end;
         nonempty_improper_list ->
             [A, B] = lists:flatmap(fun field_info_to_type/1, TypeAttrs),
-            [#nonempty_improper_list{elements = A, tail = B}];
+            [#ed_nonempty_improper_list{elements = A, tail = B}];
         module ->
             [{type, atom}];
         PrimaryType when ?is_primary_type(PrimaryType) ->

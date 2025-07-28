@@ -33,8 +33,8 @@
      iodata |
      none} |
     record_ref() |
-    {user_type_ref, user_type_name(), [a_type()]} |
-    {var, atom()} |
+    #ed_user_type_ref{} |
+    #ed_var{} |
     #a_map{} |
     #a_rec{} |
     #a_tuple{} |
@@ -42,10 +42,11 @@
     #a_function{} |
     #ed_union{} |
     #ed_literal{} |
-    {range, integer, integer(), integer()} |
-    {list | nonempty_list, a_type()} |
-    #maybe_improper_list{} |
-    #nonempty_improper_list{} |
+    #ed_range{} |
+    #ed_list{} |
+    #ed_nonempty_list{} |
+    #ed_maybe_improper_list{} |
+    #ed_nonempty_improper_list{} |
     #remote_type{}.
 -type map_field() ::
     {map_field_assoc | map_field_exact, Name :: atom(), erldantic:a_type()} |
