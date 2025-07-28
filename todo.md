@@ -22,7 +22,7 @@
 - [ ] How should I get example values into the mix? Some macro ?spec(example = 2, type = integer) that I write to integer and keep the example separate? Can that be done without IDEs going bananas?
   - [ ] An alternative is to add an example value to the router in the PoC
 - [ ] Get types from function specs.
-- [ ] Declerative router for Elli/Cowboy
+- [ ] Declarative router for Elli/Cowboy
 - [ ] OpenAPI spec
 
 ## For completeness
