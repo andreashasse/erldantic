@@ -377,7 +377,7 @@ map_field_type(TypeInfo, KeyType, ValueType, Data) ->
     erldantic_util:fold_until_error(Fun, {[], Data}, maps:to_list(Data)).
 
 -spec record_to_json(TypeInfo :: map(),
-                     RecordName :: atom() | #ed_rec{},
+                     RecordName :: atom() | erldantic:ed_rec(),
                      Record :: term(),
                      TypeArgs :: [{atom(), erldantic:ed_type()}]) ->
                         {ok, #{atom() => json:encode_value()}} | {error, [erldantic:error()]}.
@@ -793,7 +793,8 @@ type_replace_vars(_TypeInfo, Type, _NamedTypes) ->
 -spec map_from_json(erldantic:type_info(),
                     [erldantic:map_field()],
                     json:decode_value()) ->
-                       {ok, #{json:encode_value() => json:encode_value()}} | {error, [#ed_error{}]}.
+                       {ok, #{json:encode_value() => json:encode_value()}} |
+                       {error, [erldantic:error()]}.
 map_from_json(TypeInfo, MapFieldType, Json) when is_map(Json) ->
     Fun = fun ({map_field_assoc, FieldName, FieldType}, {FieldsAcc, JsonAcc}) ->
                   case maps:take(atom_to_binary(FieldName), JsonAcc) of
@@ -909,7 +910,7 @@ map_field_type_from_json(TypeInfo, KeyType, ValueType, Json) ->
                                     maps:to_list(Json)).
 
 -spec record_from_json(TypeInfo :: map(),
-                       RecordName :: atom() | #ed_rec{},
+                       RecordName :: atom() | erldantic:ed_rec(),
                        Json :: json:decode_value(),
                        TypeArgs :: [erldantic:record_field()]) ->
                           {ok, term()} | {error, list()}.
