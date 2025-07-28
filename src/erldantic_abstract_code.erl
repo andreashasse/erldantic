@@ -5,6 +5,20 @@
 
 -export([types_in_module/1]).
 
+-define(is_primary_type(PrimaryType),
+        PrimaryType =:= string
+        orelse PrimaryType =:= nonempty_string
+        orelse PrimaryType =:= integer
+        orelse PrimaryType =:= boolean
+        orelse PrimaryType =:= atom
+        orelse PrimaryType =:= float
+        orelse PrimaryType =:= binary
+        orelse PrimaryType =:= nonempty_binary
+        orelse PrimaryType =:= number
+        orelse PrimaryType =:= term).
+-define(is_predefined_int_range(_Type),
+        _Type =:= non_neg_integer orelse _Type =:= neg_integer orelse _Type =:= pos_integer).
+
 %% Due to erl_parse:af_wild_attribute() I can't use some of the types.
 -type erl_parse__af_field_decl() :: term().
 
@@ -84,8 +98,8 @@ record_field_types(Attrs) ->
     FieldTypes =
         lists:map(fun({type, _, field_type, [{atom, _, FieldName}, RowFieldInfo]})
                          when is_atom(FieldName) ->
-                     [A] = field_info_to_type(RowFieldInfo),
-                     {FieldName, A}
+                     [FieldType] = field_info_to_type(RowFieldInfo),
+                     {FieldName, FieldType}
                   end,
                   FieldInfo),
     {RecordName, FieldTypes}.
@@ -106,8 +120,8 @@ field_info_to_type({remote_type, _, [{atom, _, Module}, {atom, _, Type}, Args]})
     when is_atom(Module) andalso is_atom(Type) andalso is_list(Args) ->
     MyArgs =
         lists:map(fun(Arg) ->
-                     [A] = field_info_to_type(Arg),
-                     A
+                     [ArgType] = field_info_to_type(Arg),
+                     ArgType
                   end,
                   Args),
     [#ed_remote_type{mfargs = {Module, Type, MyArgs}}];
@@ -215,15 +229,15 @@ field_info_to_type({TypeOrOpaque, _, Type, TypeAttrs})
             end;
         maybe_improper_list ->
             case lists:flatmap(fun field_info_to_type/1, TypeAttrs) of
-                [A, B] ->
-                    [#ed_maybe_improper_list{elements = A, tail = B}];
+                [Elements, Tail] ->
+                    [#ed_maybe_improper_list{elements = Elements, tail = Tail}];
                 [] ->
                     [#ed_maybe_improper_list{elements = #ed_simple_type{type = term},
                                              tail = #ed_simple_type{type = term}}]
             end;
         nonempty_improper_list ->
-            [A, B] = lists:flatmap(fun field_info_to_type/1, TypeAttrs),
-            [#ed_nonempty_improper_list{elements = A, tail = B}];
+            [Elements, Tail] = lists:flatmap(fun field_info_to_type/1, TypeAttrs),
+            [#ed_nonempty_improper_list{elements = Elements, tail = Tail}];
         module ->
             [#ed_simple_type{type = atom}];
         PrimaryType when ?is_primary_type(PrimaryType) ->

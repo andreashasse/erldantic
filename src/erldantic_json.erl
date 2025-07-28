@@ -127,12 +127,19 @@ do_to_json(TypeInfo, #ed_user_type_ref{type_name = TypeName, variables = TypeArg
         #{} ->
             {error, [#ed_error{type = missing_type, location = []}]}
     end;
-do_to_json(_TypeInfo, #ed_simple_type{type = Type} = T, Value)
-    when ?is_primary_type(Type)
-         orelse ?is_predefined_int_range(Type)
-         orelse Type =:= iodata
-         orelse Type =:= iolist ->
-    prim_type_to_json(T, Value);
+do_to_json(_TypeInfo, #ed_simple_type{type = NotSupported} = Type, _Data)
+    when NotSupported =:= pid
+         orelse NotSupported =:= port
+         orelse NotSupported =:= reference
+         orelse NotSupported =:= bitstring
+         orelse NotSupported =:= nonempty_bitstring
+         orelse NotSupported =:= none ->
+    {error,
+     [#ed_error{type = type_not_supported,
+                location = [],
+                ctx = #{type => Type}}]};
+do_to_json(_TypeInfo, #ed_simple_type{} = Type, Value) ->
+    prim_type_to_json(Type, Value);
 do_to_json(_TypeInfo,
            #ed_range{type = integer,
                      lower_bound = Min,
@@ -144,8 +151,8 @@ do_to_json(_TypeInfo, #ed_literal{value = undefined}, undefined) ->
     skip;
 do_to_json(_TypeInfo, #ed_literal{value = Value}, Value) ->
     {ok, Value};
-do_to_json(TypeInfo, #ed_union{} = T, Data) ->
-    union(fun do_to_json/3, TypeInfo, T, Data);
+do_to_json(TypeInfo, #ed_union{} = Type, Data) ->
+    union(fun do_to_json/3, TypeInfo, Type, Data);
 do_to_json(TypeInfo, #ed_nonempty_list{type = Type}, Data) ->
     nonempty_list_to_json(TypeInfo, Type, Data);
 do_to_json(TypeInfo, #ed_list{type = Type}, Data) when is_list(Data) ->
@@ -169,43 +176,32 @@ do_to_json(_TypeInfo, #ed_remote_type{mfargs = {Module, TypeName, Args}}, Data) 
         {error, _} = Err ->
             Err
     end;
-do_to_json(_TypeInfo, #ed_maybe_improper_list{} = T, Data) ->
+do_to_json(_TypeInfo, #ed_maybe_improper_list{} = Type, Data) ->
     {error,
      [#ed_error{type = not_implemented,
                 location = [],
-                ctx = #{type => T, value => Data}}]};
-do_to_json(_TypeInfo, #ed_nonempty_improper_list{} = T, Data) ->
+                ctx = #{type => Type, value => Data}}]};
+do_to_json(_TypeInfo, #ed_nonempty_improper_list{} = Type, Data) ->
     {error,
      [#ed_error{type = not_implemented,
                 location = [],
-                ctx = #{type => T, value => Data}}]};
+                ctx = #{type => Type, value => Data}}]};
 %% Not supported types
-do_to_json(_TypeInfo, #ed_tuple{} = T, _Data) ->
+do_to_json(_TypeInfo, #ed_tuple{} = Type, _Data) ->
     {error,
      [#ed_error{type = type_not_supported,
                 location = [],
-                ctx = #{type => T}}]};
-do_to_json(_TypeInfo, #ed_function{} = T, _Data) ->
+                ctx = #{type => Type}}]};
+do_to_json(_TypeInfo, #ed_function{} = Type, _Data) ->
     {error,
      [#ed_error{type = type_not_supported,
                 location = [],
-                ctx = #{type => T}}]};
-do_to_json(_TypeInfo, #ed_simple_type{type = NotSupported} = T, _Data)
-    when NotSupported =:= pid
-         orelse NotSupported =:= port
-         orelse NotSupported =:= reference
-         orelse NotSupported =:= bitstring
-         orelse NotSupported =:= nonempty_bitstring
-         orelse NotSupported =:= none ->
-    {error,
-     [#ed_error{type = type_not_supported,
-                location = [],
-                ctx = #{type => T}}]};
-do_to_json(_TypeInfo, T, OtherValue) ->
+                ctx = #{type => Type}}]};
+do_to_json(_TypeInfo, Type, OtherValue) ->
     {error,
      [#ed_error{type = type_mismatch,
                 location = [],
-                ctx = #{type => T, value => OtherValue}}]}.
+                ctx = #{type => Type, value => OtherValue}}]}.
 
 -spec prim_type_to_json(Type :: erldantic:ed_type(), Value :: term()) ->
                            {ok, json:encode_value()} | {error, [erldantic:error()]}.
@@ -398,9 +394,9 @@ record_to_json(TypeInfo,
          andalso element(1, Record) =:= RecordName
          andalso tuple_size(Record) =:= Arity ->
     [RecordName | FieldsData] = tuple_to_list(Record),
-    RecordInfoWithVars = apply_record_arg_types(Fields, TypeArgs),
-    Mojs = lists:zip(RecordInfoWithVars, FieldsData),
-    do_record_to_json(TypeInfo, Mojs);
+    RecFieldTypes = apply_record_arg_types(Fields, TypeArgs),
+    RecFieldTypesWithData = lists:zip(RecFieldTypes, FieldsData),
+    do_record_to_json(TypeInfo, RecFieldTypesWithData);
 record_to_json(_TypeInfo, RecordName, Record, TypeArgs) ->
     {error,
      [#ed_error{type = type_mismatch,
@@ -417,9 +413,10 @@ apply_record_arg_types(RecordInfo, TypeArgs) ->
                 RecordInfo,
                 TypeArgs).
 
--spec do_record_to_json(erldantic:type_info(), [{atom(), erldantic:ed_type()}]) ->
+-spec do_record_to_json(erldantic:type_info(),
+                        [{{atom(), erldantic:ed_type()}, term()}]) ->
                            {ok, #{atom() => json}} | {error, [erldantic:error()]}.
-do_record_to_json(TypeInfo, Mojs) ->
+do_record_to_json(TypeInfo, RecFieldTypesWithData) ->
     Fun = fun({{FieldName, FieldType}, RecordFieldData}, FieldsAcc) when is_atom(FieldName) ->
              case do_to_json(TypeInfo, FieldType, RecordFieldData) of
                  {ok, FieldJson} ->
@@ -432,7 +429,7 @@ do_record_to_json(TypeInfo, Mojs) ->
              end
           end,
 
-    case erldantic_util:fold_until_error(Fun, [], Mojs) of
+    case erldantic_util:fold_until_error(Fun, [], RecFieldTypesWithData) of
         {ok, Fields} ->
             {ok, maps:from_list(Fields)};
         {error, _} = Err ->
@@ -470,11 +467,18 @@ from_json(TypeInfo, #ed_nonempty_list{type = Type}, Data) ->
     nonempty_list_from_json(TypeInfo, Type, Data);
 from_json(TypeInfo, #ed_list{type = Type}, Data) ->
     list_from_json(TypeInfo, Type, Data);
-from_json(_TypeInfo, #ed_simple_type{type = PrimaryType} = T, Json)
-    when ?is_primary_type(PrimaryType)
-         orelse ?is_predefined_int_range(PrimaryType)
-         orelse PrimaryType =:= iodata
-         orelse PrimaryType =:= iolist ->
+from_json(_TypeInfo, #ed_simple_type{type = NotSupported} = T, Value)
+    when NotSupported =:= pid
+         orelse NotSupported =:= port
+         orelse NotSupported =:= reference
+         orelse NotSupported =:= bitstring
+         orelse NotSupported =:= nonempty_bitstring
+         orelse NotSupported =:= none ->
+    {error,
+     [#ed_error{type = type_not_supported,
+                location = [],
+                ctx = #{type => T, value => Value}}]};
+from_json(_TypeInfo, #ed_simple_type{type = PrimaryType} = T, Json) ->
     case check_type_from_json(PrimaryType, Json) of
         {true, NewValue} ->
             {ok, NewValue};
@@ -486,7 +490,7 @@ from_json(_TypeInfo, #ed_simple_type{type = PrimaryType} = T, Json)
     end;
 from_json(_TypeInfo, #ed_literal{value = Literal}, Literal) ->
     {ok, Literal};
-from_json(_TypeInfo, #ed_literal{value = Literal} = T, Value) ->
+from_json(_TypeInfo, #ed_literal{value = Literal} = Type, Value) ->
     case try_convert_to_literal(Literal, Value) of
         {ok, Literal} ->
             {ok, Literal};
@@ -494,12 +498,12 @@ from_json(_TypeInfo, #ed_literal{value = Literal} = T, Value) ->
             {error,
              [#ed_error{type = type_mismatch,
                         location = [],
-                        ctx = #{type => T, value => Value}}]}
+                        ctx = #{type => Type, value => Value}}]}
     end;
 from_json(TypeInfo, {type, TypeName, TypeArity}, Json) when is_atom(TypeName) ->
     type_from_json(TypeInfo, TypeName, TypeArity, [], Json);
-from_json(TypeInfo, #ed_union{} = T, Json) ->
-    union(fun from_json/3, TypeInfo, T, Json);
+from_json(TypeInfo, #ed_union{} = Type, Json) ->
+    union(fun from_json/3, TypeInfo, Type, Json);
 from_json(_TypeInfo,
           #ed_range{type = integer,
                     lower_bound = Min,
@@ -518,44 +522,33 @@ from_json(_TypeInfo,
      [#ed_error{type = type_mismatch,
                 location = [],
                 ctx = #{type => Range, value => Value}}]};
-from_json(_TypeInfo, #ed_maybe_improper_list{} = T, Value) ->
+from_json(_TypeInfo, #ed_maybe_improper_list{} = Type, Value) ->
     %% erlang:error(...) for not impolemented or supported stuff? It is not an error that should be handled by the user?
     {error,
      [#ed_error{type = not_implemented,
                 location = [],
-                ctx = #{type => T, value => Value}}]};
-from_json(_TypeInfo, #ed_nonempty_improper_list{} = T, Value) ->
+                ctx = #{type => Type, value => Value}}]};
+from_json(_TypeInfo, #ed_nonempty_improper_list{} = Type, Value) ->
     %% erlang:error(...) for not impolemented or supported stuff? It is not an error that should be handled by the user?
     {error,
      [#ed_error{type = not_implemented,
                 location = [],
-                ctx = #{type => T, value => Value}}]};
-from_json(_TypeInfo, #ed_function{} = T, Value) ->
+                ctx = #{type => Type, value => Value}}]};
+from_json(_TypeInfo, #ed_function{} = Type, Value) ->
     {error,
      [#ed_error{type = type_not_supported,
                 location = [],
-                ctx = #{type => T, value => Value}}]};
-from_json(_TypeInfo, #ed_tuple{} = T, Value) ->
+                ctx = #{type => Type, value => Value}}]};
+from_json(_TypeInfo, #ed_tuple{} = Type, Value) ->
     {error,
      [#ed_error{type = type_not_supported,
                 location = [],
-                ctx = #{type => T, value => Value}}]};
-from_json(_TypeInfo, #ed_simple_type{type = NotSupported} = T, Value)
-    when NotSupported =:= pid
-         orelse NotSupported =:= port
-         orelse NotSupported =:= reference
-         orelse NotSupported =:= bitstring
-         orelse NotSupported =:= nonempty_bitstring
-         orelse NotSupported =:= none ->
-    {error,
-     [#ed_error{type = type_not_supported,
-                location = [],
-                ctx = #{type => T, value => Value}}]};
-from_json(_TypeInfo, T, Value) ->
+                ctx = #{type => Type, value => Value}}]};
+from_json(_TypeInfo, Type, Value) ->
     {error,
      [#ed_error{type = type_mismatch,
                 location = [],
-                ctx = #{type => T, value => Value}}]}.
+                ctx = #{type => Type, value => Value}}]}.
 
 try_convert_to_literal(Literal, Value) when is_atom(Literal) andalso is_binary(Value) ->
     try binary_to_existing_atom(Value, utf8) of
@@ -677,8 +670,8 @@ check_type(term, Json) ->
 check_type(_Type, _Json) ->
     false.
 
-union(F, TypeInfo, #ed_union{types = Types} = T, Json) ->
-    case do_first(F, TypeInfo, Types, Json) of
+union(Fun, TypeInfo, #ed_union{types = Types} = T, Json) ->
+    case do_first(Fun, TypeInfo, Types, Json) of
         {error, no_match} ->
             {error,
              [#ed_error{type = no_match,
@@ -688,16 +681,16 @@ union(F, TypeInfo, #ed_union{types = Types} = T, Json) ->
             Result
     end.
 
-do_first(_F, _TypeInfo, [], _Json) ->
+do_first(_Fun, _TypeInfo, [], _Json) ->
     {error, no_match};
-do_first(F, TypeInfo, [Type | Rest], Json) ->
-    case F(TypeInfo, Type, Json) of
+do_first(Fun, TypeInfo, [Type | Rest], Json) ->
+    case Fun(TypeInfo, Type, Json) of
         skip ->
             skip;
         {ok, Result} ->
             {ok, Result};
         {error, _} ->
-            do_first(F, TypeInfo, Rest, Json)
+            do_first(Fun, TypeInfo, Rest, Json)
     end.
 
 -spec type_from_json(TypeInfo :: erldantic:type_info(),
@@ -735,10 +728,12 @@ type_replace_vars(_TypeInfo, #ed_var{name = Name}, NamedTypes) ->
     maps:get(Name, NamedTypes, #ed_simple_type{type = term});
 type_replace_vars(TypeInfo, #ed_type_with_variables{type = Type}, NamedTypes) ->
     case Type of
-        #ed_union{types = Types} ->
+        #ed_union{types = UnionTypes} ->
             #ed_union{types =
-                          lists:map(fun(T) -> type_replace_vars(TypeInfo, T, NamedTypes) end,
-                                    Types)};
+                          lists:map(fun(UnionType) ->
+                                       type_replace_vars(TypeInfo, UnionType, NamedTypes)
+                                    end,
+                                    UnionTypes)};
         #ed_map{fields = Fields} ->
             #ed_map{fields =
                         lists:map(fun ({map_field_assoc, FieldName, FieldType}) ->

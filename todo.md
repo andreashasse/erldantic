@@ -1,11 +1,6 @@
-## TODO PoC
-- [ ] Better README
-
-## TODO Release
-- [ ] Run the thing on lots of modules to see if the abstract code can handle all type attributes.
-- [ ] Cleanup erldantic internal types. Use records instead of tagged tuples.
-- [ ] #a_type can not have any type in type field.
-- [ ] Test error message path with Adams library for nested access
+## TODO minor fixes
+- [ ] #ed_type_with_variables can not have any type in type field.
+- [ ] Test error message path better
 - [ ] Support otp 28
   - [ ] -nominal my_nominal_type() :: Type.
 - [ ] remove the no_pt everywhere.
