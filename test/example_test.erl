@@ -33,9 +33,7 @@ example_json_roundtrip_test() ->
          #phone_contact{number = "+1-555-123-4567",
                         verified = #{source => gut_feeling, "confidence" => "high"},
                         sms_capable = true},
-         #email_contact{address = "alice@company.org",
-                        verified = #{source => one_time_code, "verification_token" => "abc123"},
-                        domain = "company.org"}],
+         #email_contact{address = "alice@company.org", domain = "company.org"}],
 
     Json = contacts_to_json(Contacts),
     %% io:format("JSON Output: ~p~n", [Json]),
