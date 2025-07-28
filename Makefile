@@ -8,6 +8,9 @@ compile:
 format:
 	rebar3 format
 
+hank:
+	rebar3 hank
+
 format_verify:
 	rebar3 format --verify
 

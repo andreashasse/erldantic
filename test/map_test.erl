@@ -3,6 +3,7 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -include("../include/erldantic.hrl").
+-include("../include/erldantic_internal.hrl").
 
 -type atom_map() :: #{a1 := integer(), atom() => atom()}.
 -type atom_map2() :: #{a1 => 1, atom() => atom()}.
@@ -22,7 +23,7 @@ map1_bad_test() ->
     ?assertEqual({error,
                   [#ed_error{location = [a1],
                              type = type_mismatch,
-                             ctx = #{type => {type, integer}, value => hej}}]},
+                             ctx = #{type => #ed_simple_type{type = integer}, value => hej}}]},
                  to_json_atom_map(#{a1 => hej})),
     ?assertMatch({error, [#ed_error{type = type_mismatch}]},
                  to_json_atom_map(<<"not_a_map">>)).
@@ -35,7 +36,7 @@ map2_bad_test() ->
     ?assertEqual({error,
                   [#ed_error{location = [a1],
                              type = type_mismatch,
-                             ctx = #{type => {literal, 1}, value => should_not_work}}]},
+                             ctx = #{type => #ed_literal{value = 1}, value => should_not_work}}]},
                  to_json_atom_map2(#{a1 => should_not_work, other => value2})),
     ?assertMatch({error,
                   [#ed_error{location = [a1],
@@ -58,7 +59,7 @@ type_shaddow_literal_map_bad_test() ->
     ?assertEqual({error,
                   [#ed_error{location = [a1],
                              type = type_mismatch,
-                             ctx = #{type => {type, atom}, value => 1}}]},
+                             ctx = #{type => #ed_simple_type{type = atom}, value => 1}}]},
                  to_json_type_shaddow_literal_map(#{a1 => 1, some_atom => some_value})).
 
 mandatory_type_map_test() ->
@@ -71,12 +72,16 @@ mandatory_type_map_bad_test() ->
     ?assertEqual({error,
                   [#ed_error{location = [a1],
                              type = type_mismatch,
-                             ctx = #{type => {type, atom}, value => 1}}]},
+                             ctx = #{type => #ed_simple_type{type = atom}, value => 1}}]},
                  to_json_mandatory_type_map(#{a1 => 1})),
     ?assertEqual({error,
                   [#ed_error{location = [],
                              type = not_matched_fields,
-                             ctx = #{type => {map_field_type_exact, {type, atom}, {type, atom}}}}]},
+                             ctx =
+                                 #{type =>
+                                       {map_field_type_exact,
+                                        #ed_simple_type{type = atom},
+                                        #ed_simple_type{type = atom}}}}]},
                  to_json_mandatory_type_map(#{})).
 
 from_json_map1_test() ->
@@ -86,7 +91,9 @@ from_json_map1_bad_test() ->
     ?assertEqual({error,
                   [#ed_error{location = [a1],
                              type = type_mismatch,
-                             ctx = #{type => {type, integer}, value => <<"not_an_integer">>}}]},
+                             ctx =
+                                 #{type => #ed_simple_type{type = integer},
+                                   value => <<"not_an_integer">>}}]},
                  from_json_atom_map(#{<<"a1">> => <<"not_an_integer">>})),
     ?assertMatch({error, [#ed_error{type = type_mismatch}]},
                  from_json_atom_map(<<"not_a_map">>)).
@@ -99,7 +106,7 @@ from_json_map2_bad_test() ->
     ?assertEqual({error,
                   [#ed_error{location = [a1],
                              type = type_mismatch,
-                             ctx = #{type => {literal, 1}, value => 2}}]},
+                             ctx = #{type => #ed_literal{value = 1}, value => 2}}]},
                  from_json_atom_map2(#{<<"a1">> => 2, <<"other">> => <<"value2">>})).
 
 from_json_map3_test() ->
@@ -118,7 +125,7 @@ from_json_type_shaddow_literal_map_bad_test() ->
     ?assertEqual({error,
                   [#ed_error{location = [],
                              type = type_mismatch,
-                             ctx = #{type => {type, map}, value => not_a_map}}]},
+                             ctx = #{type => #ed_simple_type{type = map}, value => not_a_map}}]},
                  from_json_type_shaddow_literal_map(not_a_map)).
 
 from_json_mandatory_type_map_test() ->
@@ -133,7 +140,7 @@ from_json_mandatory_type_map_bad_test() ->
     ?assertEqual({error,
                   [#ed_error{location = [],
                              type = type_mismatch,
-                             ctx = #{type => {type, map}, value => []}}]},
+                             ctx = #{type => #ed_simple_type{type = map}, value => []}}]},
                  from_json_mandatory_type_map([])).
 
 empty_map_test() ->
@@ -148,12 +155,12 @@ empty_map_bad_test() ->
     ?assertEqual({error,
                   [#ed_error{location = [],
                              type = type_mismatch,
-                             ctx = #{type => {type, map}, value => not_a_map}}]},
+                             ctx = #{type => #ed_simple_type{type = map}, value => not_a_map}}]},
                  to_json_empty_map(not_a_map)),
     ?assertEqual({error,
                   [#ed_error{location = [],
                              type = type_mismatch,
-                             ctx = #{type => {type, map}, value => []}}]},
+                             ctx = #{type => #ed_simple_type{type = map}, value => []}}]},
                  to_json_empty_map([])).
 
 from_json_empty_map_test() ->
@@ -170,12 +177,12 @@ from_json_empty_map_bad_test() ->
     ?assertEqual({error,
                   [#ed_error{location = [],
                              type = type_mismatch,
-                             ctx = #{type => {type, map}, value => not_a_map}}]},
+                             ctx = #{type => #ed_simple_type{type = map}, value => not_a_map}}]},
                  from_json_empty_map(not_a_map)),
     ?assertEqual({error,
                   [#ed_error{location = [],
                              type = type_mismatch,
-                             ctx = #{type => {type, map}, value => []}}]},
+                             ctx = #{type => #ed_simple_type{type = map}, value => []}}]},
                  from_json_empty_map([])).
 
 map_with_tuple_value_test() ->

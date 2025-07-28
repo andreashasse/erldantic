@@ -14,9 +14,11 @@
 missing_test() ->
     {ok, Types} = erldantic_abstract_code:types_in_module(?MODULE),
     %% arity
-    ?assertEqual(#a_rec{name = person,
-                        fields = [{name, {type, string}}, {age, {type, pos_integer}}],
-                        arity = 3},
+    ?assertEqual(#ed_rec{name = person,
+                         fields =
+                             [{name, #ed_simple_type{type = string}},
+                              {age, #ed_simple_type{type = pos_integer}}],
+                         arity = 3},
                  maps:get({record, person}, Types)),
     ?assertEqual({ok, #{name => <<"John">>, age => 1}},
                  erldantic_json:record_to_json(?MODULE, person, #person{name = "John"}),

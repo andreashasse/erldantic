@@ -10,15 +10,17 @@
 
 type_in_form_test() ->
     {ok, Types} = erldantic_abstract_code:types_in_module(?MODULE),
-    ?assertEqual(#type_with_arguments{type =
-                                          #a_map{fields =
-                                                     [{map_field_assoc,
-                                                       result,
-                                                       {var, 'ResultType'}},
-                                                      {map_field_assoc,
-                                                       errors,
-                                                       {list, {type, atom}}}]},
-                                      vars = ['ResultType']},
+    ?assertEqual(#ed_type_with_variables{type =
+                                             #ed_map{fields =
+                                                         [{map_field_assoc,
+                                                           result,
+                                                           #ed_var{name = 'ResultType'}},
+                                                          {map_field_assoc,
+                                                           errors,
+                                                           #ed_list{type =
+                                                                        #ed_simple_type{type =
+                                                                                            atom}}}]},
+                                         vars = ['ResultType']},
                  maps:get({type, result, 1}, Types)).
 
 result_0_to_json_test() ->
@@ -27,7 +29,7 @@ result_0_to_json_test() ->
     ?assertEqual({error,
                   [#ed_error{location = [result],
                              type = type_mismatch,
-                             ctx = #{type => {type, integer}, value => pelle}}]},
+                             ctx = #{type => #ed_simple_type{type = integer}, value => pelle}}]},
                  to_json_result_0(#{result => pelle, errors => []})).
 
 result_0_from_json_test() ->
@@ -36,7 +38,8 @@ result_0_from_json_test() ->
     ?assertEqual({error,
                   [#ed_error{location = [result],
                              type = type_mismatch,
-                             ctx = #{type => {type, integer}, value => <<"hej">>}}]},
+                             ctx =
+                                 #{type => #ed_simple_type{type = integer}, value => <<"hej">>}}]},
                  from_json_result_0(#{<<"result">> => <<"hej">>, <<"errors">> => []})).
 
 -spec from_json_result_0(term()) -> result().

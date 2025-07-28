@@ -11,18 +11,21 @@
 
 type_in_form_test() ->
     {ok, Types} = erldantic_abstract_code:types_in_module(?MODULE),
-    ?assertEqual({user_type_ref, result, [{type, integer}]},
+    ?assertEqual(#ed_user_type_ref{type_name = result,
+                                   variables = [#ed_simple_type{type = integer}]},
                  maps:get({type, int_result, 0}, Types)),
 
-    ?assertEqual(#type_with_arguments{type =
-                                          #a_map{fields =
-                                                     [{map_field_assoc,
-                                                       result,
-                                                       {var, 'ResultType'}},
-                                                      {map_field_assoc,
-                                                       errors,
-                                                       {list, {type, atom}}}]},
-                                      vars = ['ResultType']},
+    ?assertEqual(#ed_type_with_variables{type =
+                                             #ed_map{fields =
+                                                         [{map_field_assoc,
+                                                           result,
+                                                           #ed_var{name = 'ResultType'}},
+                                                          {map_field_assoc,
+                                                           errors,
+                                                           #ed_list{type =
+                                                                        #ed_simple_type{type =
+                                                                                            atom}}}]},
+                                         vars = ['ResultType']},
                  maps:get({type, result, 1}, Types)).
 
 map_to_json_test() ->
@@ -31,7 +34,7 @@ map_to_json_test() ->
     ?assertEqual({error,
                   [#ed_error{location = [result],
                              type = type_mismatch,
-                             ctx = #{type => {type, integer}, value => pelle}}]},
+                             ctx = #{type => #ed_simple_type{type = integer}, value => pelle}}]},
                  to_json_result_1(#{result => pelle, errors => []})).
 
 map_from_json_test() ->
@@ -40,7 +43,8 @@ map_from_json_test() ->
     ?assertEqual({error,
                   [#ed_error{location = [result],
                              type = type_mismatch,
-                             ctx = #{type => {type, integer}, value => <<"hej">>}}]},
+                             ctx =
+                                 #{type => #ed_simple_type{type = integer}, value => <<"hej">>}}]},
                  from_json_result_1(#{<<"result">> => <<"hej">>, <<"errors">> => []})).
 
 -spec from_json_result_1(term()) -> int_result().

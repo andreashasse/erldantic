@@ -3,6 +3,7 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -include("../include/erldantic.hrl").
+-include("../include/erldantic_internal.hrl").
 
 -type item() :: integer().
 -type nonempty_items() :: [item(), ...].
@@ -20,7 +21,9 @@ validate_nonempty_list_test() ->
     ?assertEqual([#ed_error{location = [items],
                             type = type_mismatch,
                             ctx =
-                                #{type => {nonempty_list, {user_type_ref, item, []}},
+                                #{type =>
+                                      {nonempty_list,
+                                       #ed_user_type_ref{type_name = item, variables = []}},
                                   value => []}}],
                  Errors),
 
@@ -35,7 +38,9 @@ validate_nonempty_list_test() ->
     ?assertEqual([#ed_error{location = [items],
                             type = type_mismatch,
                             ctx =
-                                #{type => {nonempty_list, {user_type_ref, item, []}},
+                                #{type =>
+                                      {nonempty_list,
+                                       #ed_user_type_ref{type_name = item, variables = []}},
                                   value => []}}],
                  FromErrors).
 
