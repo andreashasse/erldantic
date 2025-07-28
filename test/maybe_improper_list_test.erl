@@ -17,25 +17,38 @@
 
 erl_abstract_code_parses_maybe_improper_list_types_test() ->
     {ok, TypeInfo} = erldantic_abstract_code:types_in_module(?MODULE),
-    ?assertEqual(#ed_maybe_improper_list{elements = {type, term}, tail = {type, term}},
+    ?assertEqual(#ed_maybe_improper_list{elements = #ed_simple_type{type = term},
+                                         tail = #ed_simple_type{type = term}},
                  maps:get({type, empty_improper, 0}, TypeInfo)),
-    ?assertEqual(#ed_maybe_improper_list{elements = {type, string}, tail = {type, binary}},
+    ?assertEqual(#ed_maybe_improper_list{elements = #ed_simple_type{type = string},
+                                         tail = #ed_simple_type{type = binary}},
                  maps:get({type, iolist1, 0}, TypeInfo)),
-    ?assertEqual(#ed_maybe_improper_list{elements = {type, string}, tail = {type, string}},
+    ?assertEqual(#ed_maybe_improper_list{elements = #ed_simple_type{type = string},
+                                         tail = #ed_simple_type{type = string}},
                  maps:get({type, iolist2, 0}, TypeInfo)),
-    ?assertEqual(#ed_maybe_improper_list{elements = {type, string},
+    ?assertEqual(#ed_maybe_improper_list{elements = #ed_simple_type{type = string},
                                          tail =
-                                             #ed_maybe_improper_list{elements = {type, binary},
-                                                                     tail = {type, string}}},
+                                             #ed_maybe_improper_list{elements =
+                                                                         #ed_simple_type{type =
+                                                                                             binary},
+                                                                     tail =
+                                                                         #ed_simple_type{type =
+                                                                                             string}}},
                  maps:get({type, iolist3, 0}, TypeInfo)),
-    ?assertEqual(#ed_maybe_improper_list{elements = {type, binary}, tail = {type, binary}},
+    ?assertEqual(#ed_maybe_improper_list{elements = #ed_simple_type{type = binary},
+                                         tail = #ed_simple_type{type = binary}},
                  maps:get({type, iolist4, 0}, TypeInfo)),
-    ?assertEqual(#ed_maybe_improper_list{elements = {type, binary},
+    ?assertEqual(#ed_maybe_improper_list{elements = #ed_simple_type{type = binary},
                                          tail =
-                                             #ed_maybe_improper_list{elements = {type, string},
-                                                                     tail = {type, binary}}},
+                                             #ed_maybe_improper_list{elements =
+                                                                         #ed_simple_type{type =
+                                                                                             string},
+                                                                     tail =
+                                                                         #ed_simple_type{type =
+                                                                                             binary}}},
                  maps:get({type, iolist5, 0}, TypeInfo)),
-    ?assertEqual(#ed_nonempty_improper_list{elements = {type, string}, tail = {type, binary}},
+    ?assertEqual(#ed_nonempty_improper_list{elements = #ed_simple_type{type = string},
+                                            tail = #ed_simple_type{type = binary}},
                  maps:get({type, non_empty_iolist1, 0}, TypeInfo)),
     ok.
 

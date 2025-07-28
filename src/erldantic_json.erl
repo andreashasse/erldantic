@@ -127,7 +127,7 @@ do_to_json(TypeInfo, #ed_user_type_ref{type_name = TypeName, variables = TypeArg
         #{} ->
             {error, [#ed_error{type = missing_type, location = []}]}
     end;
-do_to_json(_TypeInfo, {type, Type} = T, Value)
+do_to_json(_TypeInfo, #ed_simple_type{type = Type} = T, Value)
     when ?is_primary_type(Type)
          orelse ?is_predefined_int_range(Type)
          orelse Type =:= iodata
@@ -190,7 +190,7 @@ do_to_json(_TypeInfo, #ed_function{} = T, _Data) ->
      [#ed_error{type = type_not_supported,
                 location = [],
                 ctx = #{type => T}}]};
-do_to_json(_TypeInfo, {type, NotSupported} = T, _Data)
+do_to_json(_TypeInfo, #ed_simple_type{type = NotSupported} = T, _Data)
     when NotSupported =:= pid
          orelse NotSupported =:= port
          orelse NotSupported =:= reference
@@ -209,7 +209,7 @@ do_to_json(_TypeInfo, T, OtherValue) ->
 
 -spec prim_type_to_json(Type :: erldantic:ed_type(), Value :: term()) ->
                            {ok, json:encode_value()} | {error, [erldantic:error()]}.
-prim_type_to_json({type, Type} = T, Value) ->
+prim_type_to_json(#ed_simple_type{type = Type} = T, Value) ->
     case check_type_to_json(Type, Value) of
         {true, NewValue} ->
             {ok, NewValue};
@@ -270,7 +270,7 @@ map_to_json(_TypeInfo, _MapFieldTypes, Data) ->
     {error,
      [#ed_error{type = type_mismatch,
                 location = [],
-                ctx = #{type => {type, map}, value => Data}}]}.
+                ctx = #{type => #ed_simple_type{type = map}, value => Data}}]}.
 
 map_fields_to_json(TypeInfo, MapFieldTypes, Data) ->
     Fun = fun ({map_field_assoc, FieldName, FieldType}, {FieldsAcc, DataAcc}) ->
@@ -470,7 +470,7 @@ from_json(TypeInfo, #ed_nonempty_list{type = Type}, Data) ->
     nonempty_list_from_json(TypeInfo, Type, Data);
 from_json(TypeInfo, #ed_list{type = Type}, Data) ->
     list_from_json(TypeInfo, Type, Data);
-from_json(_TypeInfo, {type, PrimaryType} = T, Json)
+from_json(_TypeInfo, #ed_simple_type{type = PrimaryType} = T, Json)
     when ?is_primary_type(PrimaryType)
          orelse ?is_predefined_int_range(PrimaryType)
          orelse PrimaryType =:= iodata
@@ -540,7 +540,7 @@ from_json(_TypeInfo, #ed_tuple{} = T, Value) ->
      [#ed_error{type = type_not_supported,
                 location = [],
                 ctx = #{type => T, value => Value}}]};
-from_json(_TypeInfo, {type, NotSupported} = T, Value)
+from_json(_TypeInfo, #ed_simple_type{type = NotSupported} = T, Value)
     when NotSupported =:= pid
          orelse NotSupported =:= port
          orelse NotSupported =:= reference
@@ -630,7 +630,7 @@ check_type_to_json(nonempty_string, Json) when is_list(Json), Json =/= [] ->
              [#ed_error{type = type_mismatch,
                         location = [],
                         ctx =
-                            #{type => {type, string},
+                            #{type => #ed_simple_type{type = string},
                               value => Json,
                               comment => "non printable"}}]}
     end;
@@ -650,7 +650,7 @@ check_type(string, Json) when is_list(Json) ->
              [#ed_error{type = type_mismatch,
                         location = [],
                         ctx =
-                            #{type => {type, string},
+                            #{type => #ed_simple_type{type = string},
                               value => Json,
                               comment => "non printable"}}]}
     end;
@@ -732,7 +732,7 @@ arg_names(_) ->
                         NamedTypes :: #{atom() => erldantic:ed_type()}) ->
                            erldantic:ed_type().
 type_replace_vars(_TypeInfo, #ed_var{name = Name}, NamedTypes) ->
-    maps:get(Name, NamedTypes, {type, term});
+    maps:get(Name, NamedTypes, #ed_simple_type{type = term});
 type_replace_vars(TypeInfo, #ed_type_with_variables{type = Type}, NamedTypes) ->
     case Type of
         #ed_union{types = Types} ->
@@ -778,7 +778,7 @@ type_replace_vars(TypeInfo, #ed_type_with_variables{type = Type}, NamedTypes) ->
                         #{{type, TypeName, TypeArity} := Type} ->
                             type_replace_vars(TypeInfo, Type, NamedTypes);
                         #{} ->
-                            erlang:error({missing_type, {type, TypeName}})
+                            erlang:error({missing_type, TypeName})
                     end;
                 {error, _} = Err ->
                     erlang:error(Err)
@@ -886,7 +886,7 @@ map_from_json(_TypeInfo, _MapFieldType, Json) ->
     {error,
      [#ed_error{type = type_mismatch,
                 location = [],
-                ctx = #{type => {type, map}, value => Json}}]}.
+                ctx = #{type => #ed_simple_type{type = map}, value => Json}}]}.
 
 map_field_type_from_json(TypeInfo, KeyType, ValueType, Json) ->
     erldantic_util:fold_until_error(fun({Key, Value}, {FieldsAcc, JsonAcc}) ->

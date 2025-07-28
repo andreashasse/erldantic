@@ -10,7 +10,8 @@
 
 type_in_form_test() ->
     {ok, Types} = erldantic_abstract_code:types_in_module(?MODULE),
-    ?assertEqual(#ed_remote_type{mfargs = {external_type, result_t, [{type, integer}]}},
+    ?assertEqual(#ed_remote_type{mfargs =
+                                     {external_type, result_t, [#ed_simple_type{type = integer}]}},
                  maps:get({type, int_result, 0}, Types)).
 
 map1_to_json_test() ->
@@ -19,7 +20,7 @@ map1_to_json_test() ->
     ?assertEqual({error,
                   [#ed_error{location = [value],
                              type = type_mismatch,
-                             ctx = #{type => {type, integer}, value => pelle}}]},
+                             ctx = #{type => #ed_simple_type{type = integer}, value => pelle}}]},
                  to_json_result_1(#result{value = pelle, errors = []})).
 
 map1_from_json_test() ->
@@ -28,7 +29,8 @@ map1_from_json_test() ->
     ?assertEqual({error,
                   [#ed_error{location = [value],
                              type = type_mismatch,
-                             ctx = #{type => {type, integer}, value => <<"hej">>}}]},
+                             ctx =
+                                 #{type => #ed_simple_type{type = integer}, value => <<"hej">>}}]},
                  from_json_result_1(#{<<"value">> => <<"hej">>, <<"errors">> => []})).
 
 -spec from_json_result_1(term()) -> int_result().

@@ -3,6 +3,7 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -include("../include/erldantic.hrl").
+-include("../include/erldantic_internal.hrl").
 
 -type number_data() :: #{name := string(), value := number()}.
 
@@ -22,7 +23,9 @@ validate_number_test() ->
     % Test with invalid data
     {error, Errors} = to_json(InvalidData),
     ?assertMatch([#ed_error{type = type_mismatch,
-                            ctx = #{type := {type, number}, value := "not a number"}}],
+                            ctx =
+                                #{type := #ed_simple_type{type = number},
+                                  value := "not a number"}}],
                  Errors),
 
     % Test JSON conversion using from_json
@@ -39,7 +42,9 @@ validate_number_test() ->
     % Test from_json with invalid data
     {error, FromErrors} = from_json(InvalidJson),
     ?assertMatch([#ed_error{type = type_mismatch,
-                            ctx = #{type := {type, number}, value := <<"not a number">>}}],
+                            ctx =
+                                #{type := #ed_simple_type{type = number},
+                                  value := <<"not a number">>}}],
                  FromErrors).
 
 -spec to_json(number_data()) -> {ok, json:encode_value()} | {error, [erldantic:error()]}.

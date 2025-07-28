@@ -17,8 +17,8 @@ type_in_form_test() ->
                                    variables =
                                        [#ed_map{fields =
                                                     [{map_field_type_assoc,
-                                                      {type, atom},
-                                                      {type, integer}}]}]},
+                                                      #ed_simple_type{type = atom},
+                                                      #ed_simple_type{type = integer}}]}]},
                  maps:get({type, map_result, 0}, Types)),
     ?assertEqual(#ed_type_with_variables{type =
                                              #ed_union{types =
@@ -44,8 +44,9 @@ map1_to_json_bad_test() ->
                                        #ed_union{types =
                                                      [#ed_map{fields =
                                                                   [{map_field_type_assoc,
-                                                                    {type, atom},
-                                                                    {type, integer}}]},
+                                                                    #ed_simple_type{type = atom},
+                                                                    #ed_simple_type{type =
+                                                                                        integer}}]},
                                                       #ed_literal{value = error}]},
                                    value => #{a1 => hej}}}]},
                  to_json_result_1(#{a1 => hej})),
@@ -57,8 +58,9 @@ map1_to_json_bad_test() ->
                                        #ed_union{types =
                                                      [#ed_map{fields =
                                                                   [{map_field_type_assoc,
-                                                                    {type, atom},
-                                                                    {type, integer}}]},
+                                                                    #ed_simple_type{type = atom},
+                                                                    #ed_simple_type{type =
+                                                                                        integer}}]},
                                                       #ed_literal{value = error}]},
                                    value => pelle}}]},
                  to_json_result_1(pelle)).
@@ -72,8 +74,9 @@ map1_from_json_bad_test() ->
                                        #ed_union{types =
                                                      [#ed_map{fields =
                                                                   [{map_field_type_assoc,
-                                                                    {type, atom},
-                                                                    {type, integer}}]},
+                                                                    #ed_simple_type{type = atom},
+                                                                    #ed_simple_type{type =
+                                                                                        integer}}]},
                                                       #ed_literal{value = error}]},
                                    value => #{a1 => hej}}}]},
                  from_json_result_1(#{a1 => hej})),
@@ -85,8 +88,9 @@ map1_from_json_bad_test() ->
                                        #ed_union{types =
                                                      [#ed_map{fields =
                                                                   [{map_field_type_assoc,
-                                                                    {type, atom},
-                                                                    {type, integer}}]},
+                                                                    #ed_simple_type{type = atom},
+                                                                    #ed_simple_type{type =
+                                                                                        integer}}]},
                                                       #ed_literal{value = error}]},
                                    value => pelle}}]},
                  from_json_result_1(pelle)).

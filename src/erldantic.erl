@@ -10,28 +10,28 @@
 %% FIXME: Add doc here.
 %% iolist and iodata are aliases, but are so complex, so it is easier to handle them as separate types
 -type ed_type() ::
-    {type,
-     string |
-     nonempty_string |
-     integer |
-     non_neg_integer |
-     neg_integer |
-     pos_integer |
-     float |
-     number |
-     boolean |
-     binary |
-     nonempty_binary |
-     bitstring |
-     nonempty_bitstring |
-     atom |
-     term |
-     reference |
-     pid |
-     port |
-     iolist |
-     iodata |
-     none} |
+    #ed_simple_type{type ::
+                        string |
+                        nonempty_string |
+                        integer |
+                        non_neg_integer |
+                        neg_integer |
+                        pos_integer |
+                        float |
+                        number |
+                        boolean |
+                        binary |
+                        nonempty_binary |
+                        bitstring |
+                        nonempty_bitstring |
+                        atom |
+                        term |
+                        reference |
+                        pid |
+                        port |
+                        iolist |
+                        iodata |
+                        none} |
     ed_record_ref() |
     ed_user_type_ref() |
     ed_var() |
@@ -56,6 +56,29 @@
 -type error() :: #ed_error{}.
 -type ed_type_or_ref() :: ed_type() | ed_type_reference().
 %% Internal type definitions moved from erldantic_internal.hrl
+-type ed_simple_type() ::
+    #ed_simple_type{type ::
+                        string |
+                        nonempty_string |
+                        integer |
+                        non_neg_integer |
+                        neg_integer |
+                        pos_integer |
+                        float |
+                        number |
+                        boolean |
+                        binary |
+                        nonempty_binary |
+                        bitstring |
+                        nonempty_bitstring |
+                        atom |
+                        term |
+                        reference |
+                        pid |
+                        port |
+                        iolist |
+                        iodata |
+                        none}.
 -type ed_tuple() :: #ed_tuple{fields :: any | [ed_type()]}.
 -type ed_map() :: #ed_map{fields :: [map_field()]}.
 -type ed_rec() ::
@@ -85,7 +108,8 @@
 -type ed_nonempty_list() :: #ed_nonempty_list{type :: ed_type()}.
 
 -export_type([ed_type/0, ed_type_reference/0, ed_type_or_ref/0, var_type/0, type_info/0,
-              record_field/0, error/0, map_field/0, ed_tuple/0, ed_map/0, ed_rec/0,
-              ed_type_with_variables/0, ed_function/0, ed_union/0, ed_literal/0, ed_record_ref/0,
-              ed_remote_type/0, ed_maybe_improper_list/0, ed_nonempty_improper_list/0,
-              ed_user_type_ref/0, ed_var/0, ed_range/0, ed_list/0, ed_nonempty_list/0]).
+              record_field/0, error/0, map_field/0, ed_simple_type/0, ed_tuple/0, ed_map/0,
+              ed_rec/0, ed_type_with_variables/0, ed_function/0, ed_union/0, ed_literal/0,
+              ed_record_ref/0, ed_remote_type/0, ed_maybe_improper_list/0,
+              ed_nonempty_improper_list/0, ed_user_type_ref/0, ed_var/0, ed_range/0, ed_list/0,
+              ed_nonempty_list/0]).

@@ -61,8 +61,8 @@ missing_test() ->
 
     %% mfa
     ?assertEqual(#ed_tuple{fields =
-                               [{type, atom},
-                                {type, atom},
+                               [#ed_simple_type{type = atom},
+                                #ed_simple_type{type = atom},
                                 #ed_range{type = integer,
                                           lower_bound = 0,
                                           upper_bound = 255}]},
@@ -73,12 +73,14 @@ missing_test() ->
                  erldantic_json:type_from_json(?MODULE, my_mfa, {module, function, 42})),
 
     %% any
-    ?assertEqual({type, term}, maps:get({type, my_term, 0}, Types)),
+    ?assertEqual(#ed_simple_type{type = term}, maps:get({type, my_term, 0}, Types)),
     ?assertEqual({ok, 42}, erldantic_json:type_to_json(?MODULE, my_term, 42)),
     ?assertEqual({ok, 42}, erldantic_json:type_from_json(?MODULE, my_term, 42)),
 
     %% timeout
-    ?assertEqual(#ed_union{types = [{type, non_neg_integer}, #ed_literal{value = infinity}]},
+    ?assertEqual(#ed_union{types =
+                               [#ed_simple_type{type = non_neg_integer},
+                                #ed_literal{value = infinity}]},
                  maps:get({type, my_timeout, 0}, Types)),
     ?assertMatch({error, [#ed_error{type = no_match}]},
                  erldantic_json:type_to_json(?MODULE, my_timeout, <<"infinity">>)),
@@ -89,7 +91,7 @@ missing_test() ->
     ?assertEqual({ok, 1000}, erldantic_json:type_from_json(?MODULE, my_timeout, 1000)),
 
     %% pid
-    ?assertEqual({type, pid}, maps:get({type, my_pid, 0}, Types)),
+    ?assertEqual(#ed_simple_type{type = pid}, maps:get({type, my_pid, 0}, Types)),
     ?assertMatch({error, [#ed_error{type = type_not_supported}]},
                  erldantic_json:type_to_json(?MODULE, my_pid, self())),
     ?assertMatch({error, [#ed_error{type = type_not_supported}]},
@@ -100,7 +102,7 @@ missing_test() ->
     IoList2 = [<<"hello">> | <<"world">>],
     IoList3 = [104, <<"ello">>, [<<"wo">>, 114 | <<"l">>] | <<"d">>],
 
-    ?assertEqual({type, iodata}, maps:get({type, my_iodata, 0}, Types)),
+    ?assertEqual(#ed_simple_type{type = iodata}, maps:get({type, my_iodata, 0}, Types)),
     ?assertEqual({ok, <<"helloworld">>},
                  erldantic_json:type_to_json(?MODULE, my_iodata, IoList1)),
     ?assertEqual({ok, <<"helloworld">>},
@@ -112,7 +114,7 @@ missing_test() ->
     ?assertEqual({ok, <<"helloworld">>},
                  erldantic_json:type_from_json(?MODULE, my_iodata, <<"helloworld">>)),
 
-    ?assertEqual({type, iolist}, maps:get({type, my_iolist, 0}, Types)),
+    ?assertEqual(#ed_simple_type{type = iolist}, maps:get({type, my_iolist, 0}, Types)),
     ?assertEqual({ok, <<"helloworld">>},
                  erldantic_json:type_to_json(?MODULE, my_iolist, IoList1)),
     ?assertEqual({ok, <<"helloworld">>},
@@ -125,28 +127,31 @@ missing_test() ->
                  erldantic_json:type_from_json(?MODULE, my_iolist, <<"helloworld">>)),
 
     %% port
-    ?assertEqual({type, port}, maps:get({type, my_port, 0}, Types)),
+    ?assertEqual(#ed_simple_type{type = port}, maps:get({type, my_port, 0}, Types)),
     ?assertMatch({error, [#ed_error{type = type_not_supported}]},
                  erldantic_json:type_to_json(?MODULE, my_port, not_a_port)),
     ?assertMatch({error, [#ed_error{type = type_not_supported}]},
                  erldantic_json:type_from_json(?MODULE, my_port, <<"not_a_port">>)),
 
     %% reference
-    ?assertEqual({type, reference}, maps:get({type, my_reference, 0}, Types)),
+    ?assertEqual(#ed_simple_type{type = reference}, maps:get({type, my_reference, 0}, Types)),
     ?assertMatch({error, [#ed_error{type = type_not_supported}]},
                  erldantic_json:type_to_json(?MODULE, my_reference, make_ref())),
     ?assertMatch({error, [#ed_error{type = type_not_supported}]},
                  erldantic_json:type_from_json(?MODULE, my_reference, <<"not_a_reference">>)),
 
     %% node
-    ?assertEqual({type, atom}, maps:get({type, my_node, 0}, Types)),
+    ?assertEqual(#ed_simple_type{type = atom}, maps:get({type, my_node, 0}, Types)),
     ?assertEqual({ok, nonode@nohost},
                  erldantic_json:type_to_json(?MODULE, my_node, nonode@nohost)),
     ?assertEqual({ok, nonode@nohost},
                  erldantic_json:type_from_json(?MODULE, my_node, <<"nonode@nohost">>)),
 
     %% identifier
-    ?assertEqual(#ed_union{types = [{type, pid}, {type, port}, {type, reference}]},
+    ?assertEqual(#ed_union{types =
+                               [#ed_simple_type{type = pid},
+                                #ed_simple_type{type = port},
+                                #ed_simple_type{type = reference}]},
                  maps:get({type, my_identifier, 0}, Types)),
     ?assertMatch({error, [#ed_error{type = no_match}]},
                  erldantic_json:type_to_json(?MODULE, my_identifier, my_identifier)),
@@ -159,17 +164,18 @@ missing_test() ->
     ?assertEqual({ok, 1}, erldantic_json:type_from_json(?MODULE, my_literal, 1)),
 
     %% list
-    ?assertEqual(#ed_list{type = {type, term}}, maps:get({type, my_list, 0}, Types)),
+    ?assertEqual(#ed_list{type = #ed_simple_type{type = term}},
+                 maps:get({type, my_list, 0}, Types)),
     ?assertEqual({ok, [1, 2, 3]}, erldantic_json:type_to_json(?MODULE, my_list, [1, 2, 3])),
     ?assertEqual({ok, [1, 2, 3]}, erldantic_json:type_from_json(?MODULE, my_list, [1, 2, 3])),
 
     %% term
-    ?assertEqual({type, term}, maps:get({type, my_term, 0}, Types)),
+    ?assertEqual(#ed_simple_type{type = term}, maps:get({type, my_term, 0}, Types)),
     ?assertEqual({ok, 42}, erldantic_json:type_to_json(?MODULE, my_term, 42)),
     ?assertEqual({ok, 42}, erldantic_json:type_from_json(?MODULE, my_term, 42)),
 
     %% nonempty_list
-    ?assertEqual(#ed_nonempty_list{type = {type, term}},
+    ?assertEqual(#ed_nonempty_list{type = #ed_simple_type{type = term}},
                  maps:get({type, my_nonempty_list, 0}, Types)),
     ?assertEqual({ok, [1, 2, 3]},
                  erldantic_json:type_to_json(?MODULE, my_nonempty_list, [1, 2, 3])),
@@ -186,12 +192,13 @@ missing_test() ->
     ?assertEqual({ok, []}, erldantic_json:type_from_json(?MODULE, my_nil, [])),
 
     %% dynamic
-    ?assertEqual({type, term}, maps:get({type, my_dynamic, 0}, Types)),
+    ?assertEqual(#ed_simple_type{type = term}, maps:get({type, my_dynamic, 0}, Types)),
     ?assertEqual({ok, 42}, erldantic_json:type_to_json(?MODULE, my_dynamic, 42)),
     ?assertEqual({ok, 42}, erldantic_json:type_from_json(?MODULE, my_dynamic, 42)),
 
     %% nonempty_binary
-    ?assertEqual({type, nonempty_binary}, maps:get({type, my_nonempty_binary, 0}, Types)),
+    ?assertEqual(#ed_simple_type{type = nonempty_binary},
+                 maps:get({type, my_nonempty_binary, 0}, Types)),
     ?assertEqual({ok, <<"hello">>},
                  erldantic_json:type_to_json(?MODULE, my_nonempty_binary, <<"hello">>)),
     ?assertMatch({error, [#ed_error{type = type_mismatch}]},
@@ -202,14 +209,14 @@ missing_test() ->
                  erldantic_json:type_from_json(?MODULE, my_nonempty_binary, <<>>)),
 
     %% bitstring
-    ?assertEqual({type, bitstring}, maps:get({type, my_bitstring, 0}, Types)),
+    ?assertEqual(#ed_simple_type{type = bitstring}, maps:get({type, my_bitstring, 0}, Types)),
     ?assertMatch({error, [#ed_error{type = type_not_supported}]},
                  erldantic_json:type_to_json(?MODULE, my_bitstring, <<1, 2, 3>>)),
     ?assertMatch({error, [#ed_error{type = type_not_supported}]},
                  erldantic_json:type_from_json(?MODULE, my_bitstring, <<1, 2, 3>>)),
 
     %% nonempty_bitstring
-    ?assertEqual({type, nonempty_bitstring},
+    ?assertEqual(#ed_simple_type{type = nonempty_bitstring},
                  maps:get({type, my_nonempty_bitstring, 0}, Types)),
     ?assertMatch({error, [#ed_error{type = type_not_supported}]},
                  erldantic_json:type_to_json(?MODULE, my_nonempty_bitstring, <<1, 2, 3>>)),
@@ -217,14 +224,14 @@ missing_test() ->
                  erldantic_json:type_from_json(?MODULE, my_nonempty_bitstring, <<1, 2, 3>>)),
 
     %% no_return
-    ?assertEqual({type, none}, maps:get({type, my_no_return, 0}, Types)),
+    ?assertEqual(#ed_simple_type{type = none}, maps:get({type, my_no_return, 0}, Types)),
     ?assertMatch({error, [#ed_error{type = type_not_supported}]},
                  erldantic_json:type_to_json(?MODULE, my_no_return, a)),
     ?assertMatch({error, [#ed_error{type = type_not_supported}]},
                  erldantic_json:type_from_json(?MODULE, my_no_return, <<"not_a_no_return">>)),
 
     %% none
-    ?assertEqual({type, none}, maps:get({type, my_none, 0}, Types)),
+    ?assertEqual(#ed_simple_type{type = none}, maps:get({type, my_none, 0}, Types)),
     ?assertMatch({error, [#ed_error{type = type_not_supported}]},
                  erldantic_json:type_to_json(?MODULE, my_none, a)),
     ?assertMatch({error, [#ed_error{type = type_not_supported}]},

@@ -1,3 +1,4 @@
+-record(ed_simple_type, {type}).
 -record(ed_tuple, {fields}).
 -record(ed_map, {fields}).
 %% FIXME: | [] does not work

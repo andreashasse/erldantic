@@ -112,7 +112,10 @@ field_info_to_type({remote_type, _, [{atom, _, Module}, {atom, _, Type}, Args]})
                   Args),
     [#ed_remote_type{mfargs = {Module, Type, MyArgs}}];
 field_info_to_type({Type, _, map, any}) when Type =:= type orelse Type =:= opaque ->
-    [#ed_map{fields = [{map_field_type_assoc, {type, term}, {type, term}}]}];
+    [#ed_map{fields =
+                 [{map_field_type_assoc,
+                   #ed_simple_type{type = term},
+                   #ed_simple_type{type = term}}]}];
 field_info_to_type({Type, _, tuple, any}) when Type =:= type orelse Type =:= opaque ->
     [#ed_tuple{fields = any}];
 field_info_to_type({user_type, _, Type, TypeAttrs})
@@ -137,7 +140,7 @@ field_info_to_type({TypeOrOpaque, _, Type, TypeAttrs})
         Fun when Fun =:= 'fun' orelse Fun =:= function ->
             case TypeAttrs of
                 [] ->
-                    [#ed_function{args = any, return = {type, term}}];
+                    [#ed_function{args = any, return = #ed_simple_type{type = term}}];
                 [{type, _, any}, ReturnType] ->
                     [AReturnType] = field_info_to_type(ReturnType),
                     [#ed_function{args = any, return = AReturnType}];
@@ -161,29 +164,34 @@ field_info_to_type({TypeOrOpaque, _, Type, TypeAttrs})
                        upper_bound = 16#10ffff}];
         mfa ->
             [#ed_tuple{fields =
-                           [{type, atom},
-                            {type, atom},
+                           [#ed_simple_type{type = atom},
+                            #ed_simple_type{type = atom},
                             #ed_range{type = integer,
                                       lower_bound = 0,
                                       upper_bound = 255}]}];
         any ->
-            [{type, term}];
+            [#ed_simple_type{type = term}];
         timeout ->
-            [#ed_union{types = [{type, non_neg_integer}, #ed_literal{value = infinity}]}];
+            [#ed_union{types =
+                           [#ed_simple_type{type = non_neg_integer},
+                            #ed_literal{value = infinity}]}];
         pid ->
-            [{type, pid}];
+            [#ed_simple_type{type = pid}];
         iodata ->
-            [{type, iodata}];
+            [#ed_simple_type{type = iodata}];
         iolist ->
-            [{type, iolist}];
+            [#ed_simple_type{type = iolist}];
         port ->
-            [{type, port}];
+            [#ed_simple_type{type = port}];
         reference ->
-            [{type, reference}];
+            [#ed_simple_type{type = reference}];
         node ->
-            [{type, atom}];
+            [#ed_simple_type{type = atom}];
         identifier ->
-            [#ed_union{types = [{type, pid}, {type, port}, {type, reference}]}];
+            [#ed_union{types =
+                           [#ed_simple_type{type = pid},
+                            #ed_simple_type{type = port},
+                            #ed_simple_type{type = reference}]}];
         range ->
             [MinValue, MaxValue] = TypeAttrs,
             Min = integer_value(MinValue),
@@ -196,43 +204,44 @@ field_info_to_type({TypeOrOpaque, _, Type, TypeAttrs})
                 [ListType] ->
                     [#ed_list{type = ListType}];
                 [] ->
-                    [#ed_list{type = {type, term}}]
+                    [#ed_list{type = #ed_simple_type{type = term}}]
             end;
         nonempty_list ->
             case lists:flatmap(fun field_info_to_type/1, TypeAttrs) of
                 [ListType] ->
                     [#ed_nonempty_list{type = ListType}];
                 [] ->
-                    [#ed_nonempty_list{type = {type, term}}]
+                    [#ed_nonempty_list{type = #ed_simple_type{type = term}}]
             end;
         maybe_improper_list ->
             case lists:flatmap(fun field_info_to_type/1, TypeAttrs) of
                 [A, B] ->
                     [#ed_maybe_improper_list{elements = A, tail = B}];
                 [] ->
-                    [#ed_maybe_improper_list{elements = {type, term}, tail = {type, term}}]
+                    [#ed_maybe_improper_list{elements = #ed_simple_type{type = term},
+                                             tail = #ed_simple_type{type = term}}]
             end;
         nonempty_improper_list ->
             [A, B] = lists:flatmap(fun field_info_to_type/1, TypeAttrs),
             [#ed_nonempty_improper_list{elements = A, tail = B}];
         module ->
-            [{type, atom}];
+            [#ed_simple_type{type = atom}];
         PrimaryType when ?is_primary_type(PrimaryType) ->
-            [{type, PrimaryType}];
+            [#ed_simple_type{type = PrimaryType}];
         PartailRangeInteger when ?is_predefined_int_range(PartailRangeInteger) ->
-            [{type, PartailRangeInteger}];
+            [#ed_simple_type{type = PartailRangeInteger}];
         bitstring ->
-            [{type, bitstring}];
+            [#ed_simple_type{type = bitstring}];
         nonempty_bitstring ->
-            [{type, nonempty_bitstring}];
+            [#ed_simple_type{type = nonempty_bitstring}];
         dynamic ->
-            [{type, term}];
+            [#ed_simple_type{type = term}];
         nil ->
             [#ed_literal{value = []}];
         none ->
-            [{type, none}];
+            [#ed_simple_type{type = none}];
         no_return ->
-            [{type, none}]
+            [#ed_simple_type{type = none}]
     end.
 
 integer_value({integer, _, Value}) when is_integer(Value) ->
@@ -305,9 +314,9 @@ map_field_info({TypeOfType, _, Type, TypeAttrs}) ->
 record_field_info({record_field, _, {atom, _, FieldName}, _Type})
     when is_atom(FieldName) ->
     %% FIXME: Handle default values in record fields. Also handle default values in typed_record_field?
-    {FieldName, {type, term}};
+    {FieldName, #ed_simple_type{type = term}};
 record_field_info({record_field, _, {atom, _, FieldName}}) when is_atom(FieldName) ->
-    {FieldName, {type, term}};
+    {FieldName, #ed_simple_type{type = term}};
 record_field_info({typed_record_field, {record_field, _, {atom, _, FieldName}}, Type})
     when is_atom(FieldName) ->
     [TypeInfo] = field_info_to_type(Type),

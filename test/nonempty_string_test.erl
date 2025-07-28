@@ -3,6 +3,7 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -include("../include/erldantic.hrl").
+-include("../include/erldantic_internal.hrl").
 
 -type nonempty_user() :: #{name := nonempty_string(), email := nonempty_string()}.
 
@@ -27,7 +28,8 @@ validate_nonempty_string_test() ->
 
     {error, FromErrors} = from_json(InvalidJson),
     ?assertMatch([#ed_error{type = type_mismatch,
-                            ctx = #{type := {type, nonempty_string}, value := <<>>}}],
+                            ctx =
+                                #{type := #ed_simple_type{type = nonempty_string}, value := <<>>}}],
                  FromErrors).
 
 -spec to_json(nonempty_user()) ->
