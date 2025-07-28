@@ -36,22 +36,36 @@ missing_test() ->
     {ok, Types} = erldantic_abstract_code:types_in_module(?MODULE),
 
     %% arity
-    ?assertEqual({ed_range, integer, 0, 255}, maps:get({type, my_arity, 0}, Types)),
+    ?assertEqual(#ed_range{type = integer,
+                           lower_bound = 0,
+                           upper_bound = 255},
+                 maps:get({type, my_arity, 0}, Types)),
     ?assertEqual({ok, 42}, erldantic_json:type_to_json(?MODULE, my_arity, 42)),
     ?assertEqual({ok, 42}, erldantic_json:type_from_json(?MODULE, my_arity, 42)),
 
     %% byte
-    ?assertEqual({ed_range, integer, 0, 255}, maps:get({type, my_byte, 0}, Types)),
+    ?assertEqual(#ed_range{type = integer,
+                           lower_bound = 0,
+                           upper_bound = 255},
+                 maps:get({type, my_byte, 0}, Types)),
     ?assertEqual({ok, 42}, erldantic_json:type_to_json(?MODULE, my_byte, 42)),
     ?assertEqual({ok, 42}, erldantic_json:type_from_json(?MODULE, my_byte, 42)),
 
     %% char
-    ?assertEqual({ed_range, integer, 0, 1114111}, maps:get({type, my_char, 0}, Types)),
+    ?assertEqual(#ed_range{type = integer,
+                           lower_bound = 0,
+                           upper_bound = 1114111},
+                 maps:get({type, my_char, 0}, Types)),
     ?assertEqual({ok, 42}, erldantic_json:type_to_json(?MODULE, my_char, 42)),
     ?assertEqual({ok, 42}, erldantic_json:type_from_json(?MODULE, my_char, 42)),
 
     %% mfa
-    ?assertEqual(#a_tuple{fields = [{type, atom}, {type, atom}, {ed_range, integer, 0, 255}]},
+    ?assertEqual(#ed_tuple{fields =
+                               [{type, atom},
+                                {type, atom},
+                                #ed_range{type = integer,
+                                          lower_bound = 0,
+                                          upper_bound = 255}]},
                  maps:get({type, my_mfa, 0}, Types)),
     ?assertMatch({error, [#ed_error{type = type_not_supported}]},
                  erldantic_json:type_to_json(?MODULE, my_mfa, {module, function, 42})),
@@ -145,7 +159,7 @@ missing_test() ->
     ?assertEqual({ok, 1}, erldantic_json:type_from_json(?MODULE, my_literal, 1)),
 
     %% list
-    ?assertEqual({ed_list, {type, term}}, maps:get({type, my_list, 0}, Types)),
+    ?assertEqual(#ed_list{type = {type, term}}, maps:get({type, my_list, 0}, Types)),
     ?assertEqual({ok, [1, 2, 3]}, erldantic_json:type_to_json(?MODULE, my_list, [1, 2, 3])),
     ?assertEqual({ok, [1, 2, 3]}, erldantic_json:type_from_json(?MODULE, my_list, [1, 2, 3])),
 
@@ -155,7 +169,7 @@ missing_test() ->
     ?assertEqual({ok, 42}, erldantic_json:type_from_json(?MODULE, my_term, 42)),
 
     %% nonempty_list
-    ?assertEqual({ed_nonempty_list, {type, term}},
+    ?assertEqual(#ed_nonempty_list{type = {type, term}},
                  maps:get({type, my_nonempty_list, 0}, Types)),
     ?assertEqual({ok, [1, 2, 3]},
                  erldantic_json:type_to_json(?MODULE, my_nonempty_list, [1, 2, 3])),

@@ -18,9 +18,9 @@ simple_test() ->
     {ok, Types} = erldantic_abstract_code:types_in_module(?MODULE),
 
     %% Normal opaque type
-    ?assertEqual(#a_map{fields =
-                            [{map_field_assoc, name, {type, binary}},
-                             {map_field_assoc, age, {type, pos_integer}}]},
+    ?assertEqual(#ed_map{fields =
+                             [{map_field_assoc, name, {type, binary}},
+                              {map_field_assoc, age, {type, pos_integer}}]},
                  maps:get({type, person, 0}, Types)),
     Person = #{name => <<"John">>, age => 42},
     ?assertEqual({ok, Person}, erldantic_json:type_to_json(?MODULE, person, Person)),
@@ -30,12 +30,13 @@ simple_test() ->
                                                #{<<"name">> => <<"John">>, <<"age">> => 42})),
 
     %% Opaque record type
-    ?assertEqual(#a_rec{name = my_rec,
-                        fields = [{id, {type, integer}}, {data, {type, term}}],
-                        arity = 3},
+    ?assertEqual(#ed_rec{name = my_rec,
+                         fields = [{id, {type, integer}}, {data, {type, term}}],
+                         arity = 3},
                  maps:get({record, my_rec}, Types)),
     ?assertEqual(#ed_rec_ref{record_name = my_rec,
-                             field_types = [{data, {ed_user_type_ref, person, []}}]},
+                             field_types =
+                                 [{data, #ed_user_type_ref{type_name = person, variables = []}}]},
                  maps:get({type, my_rec_t, 0}, Types)),
 
     ?assertEqual({ok, #{id => 1, data => #{name => <<"John">>, age => 42}}},

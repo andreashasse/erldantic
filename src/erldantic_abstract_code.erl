@@ -40,15 +40,15 @@ types_in_module(Module) ->
     end.
 
 -spec type_in_form(erl_parse:abstract_form() | erl_parse:form_info()) ->
-                      false | {true, {erldantic:a_type_reference(), erldantic:a_type()}}.
+                      false | {true, {erldantic:ed_type_reference(), erldantic:ed_type()}}.
 type_in_form({attribute, _, record, {RecordName, Fields}})
     when is_list(Fields) andalso is_atom(RecordName) ->
     FieldInfos = lists:map(fun record_field_info/1, Fields),
     {true,
      {{record, RecordName},
-      #a_rec{name = RecordName,
-             fields = FieldInfos,
-             arity = length(FieldInfos) + 1}}};
+      #ed_rec{name = RecordName,
+              fields = FieldInfos,
+              arity = length(FieldInfos) + 1}}};
 type_in_form({attribute, _, TypeOrOpaque, {TypeName, {_, _, record, Attrs}, [] = Args}})
     when is_atom(TypeName) andalso (TypeOrOpaque =:= type orelse TypeOrOpaque =:= opaque) ->
     %% FIXME: Sort out why this function clause differs from all others.
@@ -69,7 +69,7 @@ type_in_form({attribute, _, TypeOrOpaque, {TypeName, Type, Args}})
             {true, {{type, TypeName, TypeArity}, FieldInfo}};
         _ ->
             {true,
-             {{type, TypeName, TypeArity}, #type_with_arguments{type = FieldInfo, vars = Vars}}}
+             {{type, TypeName, TypeArity}, #ed_type_with_variables{type = FieldInfo, vars = Vars}}}
     end;
 type_in_form({attribute, _, TypeOrOpaque, _} = T)
     when TypeOrOpaque =:= opaque orelse TypeOrOpaque =:= type ->
@@ -77,7 +77,7 @@ type_in_form({attribute, _, TypeOrOpaque, _} = T)
 type_in_form(_) ->
     false.
 
--spec record_field_types(list()) -> {atom(), [{atom(), erldantic:a_type()}]}.
+-spec record_field_types(list()) -> {atom(), [{atom(), erldantic:ed_type()}]}.
 record_field_types(Attrs) ->
     [{atom, _, RecordName} | FieldInfo] = Attrs,
     true = is_atom(RecordName),
@@ -90,7 +90,7 @@ record_field_types(Attrs) ->
                   FieldInfo),
     {RecordName, FieldTypes}.
 
--spec field_info_to_type(term()) -> [erldantic:a_type()].
+-spec field_info_to_type(term()) -> [erldantic:ed_type()].
 field_info_to_type({ann_type, _, [{var, _, _VarName}, Type]}) ->
     field_info_to_type(Type);
 field_info_to_type({atom, _, Value}) when is_atom(Value) ->
@@ -110,11 +110,11 @@ field_info_to_type({remote_type, _, [{atom, _, Module}, {atom, _, Type}, Args]})
                      A
                   end,
                   Args),
-    [#remote_type{mfargs = {Module, Type, MyArgs}}];
+    [#ed_remote_type{mfargs = {Module, Type, MyArgs}}];
 field_info_to_type({Type, _, map, any}) when Type =:= type orelse Type =:= opaque ->
-    [#a_map{fields = [{map_field_type_assoc, {type, term}, {type, term}}]}];
+    [#ed_map{fields = [{map_field_type_assoc, {type, term}, {type, term}}]}];
 field_info_to_type({Type, _, tuple, any}) when Type =:= type orelse Type =:= opaque ->
-    [#a_tuple{fields = any}];
+    [#ed_tuple{fields = any}];
 field_info_to_type({user_type, _, Type, TypeAttrs})
     when is_atom(Type) andalso is_list(TypeAttrs) ->
     TAttrs = lists:flatmap(fun field_info_to_type/1, TypeAttrs),
@@ -127,25 +127,25 @@ field_info_to_type({TypeOrOpaque, _, Type, TypeAttrs})
             [#ed_rec_ref{record_name = SubTypeRecordName, field_types = FieldTypes}];
         map ->
             MapFields = lists:flatmap(fun map_field_info/1, TypeAttrs),
-            [#a_map{fields = MapFields}];
+            [#ed_map{fields = MapFields}];
         tuple ->
             TupleFields = lists:flatmap(fun field_info_to_type/1, TypeAttrs),
-            [#a_tuple{fields = TupleFields}];
+            [#ed_tuple{fields = TupleFields}];
         union ->
             UnionFields = lists:flatmap(fun field_info_to_type/1, TypeAttrs),
             [#ed_union{types = UnionFields}];
         Fun when Fun =:= 'fun' orelse Fun =:= function ->
             case TypeAttrs of
                 [] ->
-                    [#a_function{args = any, return = {type, term}}];
+                    [#ed_function{args = any, return = {type, term}}];
                 [{type, _, any}, ReturnType] ->
                     [AReturnType] = field_info_to_type(ReturnType),
-                    [#a_function{args = any, return = AReturnType}];
+                    [#ed_function{args = any, return = AReturnType}];
                 [{type, _, product, FunArgTypes}, ReturnType] ->
                     true = is_list(FunArgTypes),
                     AFunArgTypes = lists:flatmap(fun field_info_to_type/1, FunArgTypes),
                     [AReturnType] = field_info_to_type(ReturnType),
-                    [#a_function{args = AFunArgTypes, return = AReturnType}]
+                    [#ed_function{args = AFunArgTypes, return = AReturnType}]
             end;
         arity ->
             [#ed_range{type = integer,
@@ -160,12 +160,12 @@ field_info_to_type({TypeOrOpaque, _, Type, TypeAttrs})
                        lower_bound = 0,
                        upper_bound = 16#10ffff}];
         mfa ->
-            [#a_tuple{fields =
-                          [{type, atom},
-                           {type, atom},
-                           #ed_range{type = integer,
-                                     lower_bound = 0,
-                                     upper_bound = 255}]}];
+            [#ed_tuple{fields =
+                           [{type, atom},
+                            {type, atom},
+                            #ed_range{type = integer,
+                                      lower_bound = 0,
+                                      upper_bound = 255}]}];
         any ->
             [{type, term}];
         timeout ->
@@ -271,10 +271,10 @@ integer_value({op, _, Operator, Unary}) ->
     end.
 
 -spec map_field_info(term()) ->
-                        [{map_field_assoc | map_field_exact, atom(), erldantic:a_type()} |
+                        [{map_field_assoc | map_field_exact, atom(), erldantic:ed_type()} |
                          {map_field_type_assoc | map_field_type_exact,
-                          erldantic:a_type(),
-                          erldantic:a_type()}].
+                          erldantic:ed_type(),
+                          erldantic:ed_type()}].
 map_field_info({TypeOfType, _, Type, TypeAttrs}) ->
     case {TypeOfType, Type} of
         {type, map_field_assoc} ->
@@ -301,7 +301,7 @@ map_field_info({TypeOfType, _, Type, TypeAttrs}) ->
             end
     end.
 
--spec record_field_info(erl_parse__af_field_decl()) -> {atom(), erldantic:a_type()}.
+-spec record_field_info(erl_parse__af_field_decl()) -> {atom(), erldantic:ed_type()}.
 record_field_info({record_field, _, {atom, _, FieldName}, _Type})
     when is_atom(FieldName) ->
     %% FIXME: Handle default values in record fields. Also handle default values in typed_record_field?

@@ -18,27 +18,27 @@
 
 erl_abstract_code_parses_fun_types_test() ->
     {ok, TypeInfo} = erldantic_abstract_code:types_in_module(?MODULE),
-    ?assertEqual(#a_function{args = any, return = {type, term}},
+    ?assertEqual(#ed_function{args = any, return = {type, term}},
                  maps:get({type, fun1, 0}, TypeInfo)),
-    ?assertEqual(#a_function{args = any, return = {type, integer}},
+    ?assertEqual(#ed_function{args = any, return = {type, integer}},
                  maps:get({type, fun2, 0}, TypeInfo)),
-    ?assertEqual(#a_function{args = [], return = {type, integer}},
+    ?assertEqual(#ed_function{args = [], return = {type, integer}},
                  maps:get({type, fun3, 0}, TypeInfo)),
-    ?assertEqual(#a_function{args = [{type, integer}, {type, atom}],
-                             return = {type, integer}},
+    ?assertEqual(#ed_function{args = [{type, integer}, {type, atom}],
+                              return = {type, integer}},
                  maps:get({type, fun4, 0}, TypeInfo)),
-    ?assertEqual(#a_function{args = [{type, integer}, {type, atom}],
-                             return = #a_function{args = any, return = {type, term}}},
+    ?assertEqual(#ed_function{args = [{type, integer}, {type, atom}],
+                              return = #ed_function{args = any, return = {type, term}}},
                  maps:get({type, fun5, 0}, TypeInfo)),
-    ?assertEqual(#a_function{args = [{type, integer}, {type, atom}],
-                             return =
-                                 #a_function{args = [{type, integer}], return = {type, integer}}},
+    ?assertEqual(#ed_function{args = [{type, integer}, {type, atom}],
+                              return =
+                                  #ed_function{args = [{type, integer}], return = {type, integer}}},
                  maps:get({type, fun6, 0}, TypeInfo)),
-    ?assertEqual(#a_rec{name = with_fun,
-                        fields =
-                            [{id, {type, integer}},
-                             {handler, #a_function{args = any, return = {type, term}}}],
-                        arity = 3},
+    ?assertEqual(#ed_rec{name = with_fun,
+                         fields =
+                             [{id, {type, integer}},
+                              {handler, #ed_function{args = any, return = {type, term}}}],
+                         arity = 3},
                  maps:get({record, with_fun}, TypeInfo)).
 
 erldantic_json_rejects_fun_data_test() ->

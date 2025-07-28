@@ -12,15 +12,17 @@
 
 type_in_form_test() ->
     {ok, Types} = erldantic_abstract_code:types_in_module(?MODULE),
-    ?assertEqual({ed_user_type_ref, result_t, [{type, atom}]},
+    ?assertEqual(#ed_user_type_ref{type_name = result_t, variables = [{type, atom}]},
                  maps:get({type, int_result, 0}, Types)),
-    ?assertEqual(#type_with_arguments{type =
-                                          #ed_rec_ref{record_name = result,
-                                                      field_types =
-                                                          [{value, {type, integer}},
-                                                           {errors,
-                                                            {ed_list, {ed_var, 'ResultType'}}}]},
-                                      vars = ['ResultType']},
+    ?assertEqual(#ed_type_with_variables{type =
+                                             #ed_rec_ref{record_name = result,
+                                                         field_types =
+                                                             [{value, {type, integer}},
+                                                              {errors,
+                                                               #ed_list{type =
+                                                                            #ed_var{name =
+                                                                                        'ResultType'}}}]},
+                                         vars = ['ResultType']},
                  maps:get({type, result_t, 1}, Types)).
 
 map1_to_json_test() ->
