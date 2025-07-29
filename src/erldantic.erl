@@ -32,10 +32,7 @@
     {map_field_type_assoc | map_field_type_exact, ed_type(), ed_type()}.
 -type ed_type_reference() ::
     {record, atom()} | {type, Name :: atom(), Arity :: non_neg_integer()}.
--type error() ::
-    #ed_error{location :: [string() | atom()],
-              type :: type_mismatch | no_match | missing_data | not_matched_fields,
-              ctx :: term()}.
+-type error() :: #ed_error{}.
 -type ed_type_or_ref() :: ed_type() | ed_type_reference().
 
 %% Internal type definitions moved from erldantic_internal.hrl

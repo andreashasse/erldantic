@@ -16,7 +16,7 @@
 -type non_empty_iolist1() :: nonempty_improper_list(string(), binary()).
 
 erl_abstract_code_parses_maybe_improper_list_types_test() ->
-    {ok, TypeInfo} = erldantic_abstract_code:types_in_module(?MODULE),
+    TypeInfo = erldantic_abstract_code:types_in_module(?MODULE),
     ?assertEqual(#ed_maybe_improper_list{elements = #ed_simple_type{type = term},
                                          tail = #ed_simple_type{type = term}},
                  maps:get({type, empty_improper, 0}, TypeInfo)),

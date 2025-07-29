@@ -22,18 +22,14 @@
 %% Due to erl_parse:af_wild_attribute() I can't use some of the types.
 -type erl_parse__af_field_decl() :: term().
 
--spec types_in_module(atom()) ->
-                         {ok, erldantic:type_info()} | {error, [erldantic:error()]}.
+-spec types_in_module(atom()) -> erldantic:type_info().
 types_in_module(Module) ->
     case code:which(Module) of
         Error
             when Error =:= non_existing
                  orelse Error =:= cover_compiled
                  orelse Error =:= preloaded ->
-            {error,
-             [#ed_error{type = module_types_not_found,
-                        location = [],
-                        ctx = #{module => Module, error => Error}}]};
+            erlang:error({module_types_not_found, Module, Error});
         FilePath ->
             case beam_lib:chunks(FilePath, [abstract_code]) of
                 {ok, {Module, [{abstract_code, {_, Forms}}]}} ->
@@ -43,13 +39,9 @@ types_in_module(Module) ->
                                            type_in_form(F)
                                         end,
                                         Forms),
-                    TypeInfo = maps:from_list(NamedTypes),
-                    {ok, TypeInfo};
+                    maps:from_list(NamedTypes);
                 {error, beam_lib, Reason} ->
-                    {error,
-                     [#ed_error{type = beam_lib_error,
-                                location = [],
-                                ctx = #{module => Module, reason => Reason}}]}
+                    erlang:error({beam_lib_error, Module, Reason})
             end
     end.
 

@@ -14,7 +14,7 @@
 -record(with_tuple, {id :: integer(), data :: tuple()}).
 
 erl_abstract_code_parses_tuple_types_test() ->
-    {ok, TypeInfo} = erldantic_abstract_code:types_in_module(?MODULE),
+    TypeInfo = erldantic_abstract_code:types_in_module(?MODULE),
     ?assertEqual(#ed_tuple{fields = []}, maps:get({type, empty_tuple, 0}, TypeInfo)),
     ?assertEqual(#ed_tuple{fields =
                                [#ed_simple_type{type = integer}, #ed_simple_type{type = atom}]},

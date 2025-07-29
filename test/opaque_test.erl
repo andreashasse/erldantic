@@ -15,7 +15,7 @@
 -export_type([person/0, my_rec_t/0]).
 
 simple_test() ->
-    {ok, Types} = erldantic_abstract_code:types_in_module(?MODULE),
+    Types = erldantic_abstract_code:types_in_module(?MODULE),
 
     %% Normal opaque type
     ?assertEqual(#ed_map{fields =

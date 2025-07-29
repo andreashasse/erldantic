@@ -33,7 +33,7 @@
 -type my_none() :: none().
 
 missing_test() ->
-    {ok, Types} = erldantic_abstract_code:types_in_module(?MODULE),
+    Types = erldantic_abstract_code:types_in_module(?MODULE),
 
     %% arity
     ?assertEqual(#ed_range{type = integer,

@@ -10,21 +10,16 @@
 -include("../include/erldantic.hrl").
 
 %% API
--spec get(Module :: module()) ->
-             {ok, erldantic:type_info()} | {error, [erldantic:error()]}.
+-spec get(Module :: module()) -> erldantic:type_info().
 get(Module) ->
     {ok, Vsn} = module_vsn(Module),
     case pers_type(Module) of
         {Vsn, TypeInfo} when is_map(TypeInfo) ->
-            {ok, TypeInfo};
+            TypeInfo;
         _ ->
-            case erldantic_abstract_code:types_in_module(Module) of
-                {ok, TypeInfo} ->
-                    pers_types_set(Module, Vsn, TypeInfo),
-                    {ok, TypeInfo};
-                {error, _} = Err ->
-                    Err
-            end
+            TypeInfo = erldantic_abstract_code:types_in_module(Module),
+            pers_types_set(Module, Vsn, TypeInfo),
+            TypeInfo
     end.
 
 -spec clear(Module :: module()) -> ok.

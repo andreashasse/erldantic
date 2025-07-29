@@ -14,7 +14,7 @@
 -type person_t() :: #person{}.
 
 type_in_form_test() ->
-    {ok, Types} = erldantic_abstract_code:types_in_module(?MODULE),
+    Types = erldantic_abstract_code:types_in_module(?MODULE),
 
     ?assertMatch(#ed_rec_ref{record_name = person,
                              field_types =

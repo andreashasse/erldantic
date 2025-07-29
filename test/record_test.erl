@@ -12,7 +12,7 @@
 -type person_alias() :: #person{name :: string(), age :: pos_integer()}.
 
 missing_test() ->
-    {ok, Types} = erldantic_abstract_code:types_in_module(?MODULE),
+    Types = erldantic_abstract_code:types_in_module(?MODULE),
     %% arity
     ?assertEqual(#ed_rec{name = person,
                          fields =
