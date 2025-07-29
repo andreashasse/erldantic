@@ -181,6 +181,10 @@ do_to_json(_TypeInfo, Type, OtherValue) ->
                 location = [],
                 ctx = #{type => Type, value => OtherValue}}]}.
 
+-spec type_info_get_type(TypeInfo :: erldantic:type_info(),
+                         TypeName :: atom(),
+                         TypeArity :: non_neg_integer()) ->
+                            erldantic:ed_type().
 type_info_get_type(TypeInfo, TypeName, TypeArity) ->
     maps:get({type, TypeName, TypeArity}, TypeInfo).
 
