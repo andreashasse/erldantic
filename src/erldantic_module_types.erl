@@ -64,8 +64,5 @@ module_vsn(Module) ->
                     {ok, Vsn}
             end;
         false ->
-            {error,
-             [#ed_error{type = module_types_not_found,
-                        location = [],
-                        ctx = #{error => non_existing, module => Module}}]}
+            erlang:error({module_types_not_found, Module})
     end.
