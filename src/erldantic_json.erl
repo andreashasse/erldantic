@@ -352,7 +352,7 @@ map_field_type(TypeInfo, KeyType, ValueType, Data) ->
     erldantic_util:fold_until_error(Fun, {[], Data}, maps:to_list(Data)).
 
 -spec record_to_json(TypeInfo :: map(),
-                     RecordName :: atom() | erldantic:ed_rec(),
+                     RecordName :: atom() | #ed_rec{},
                      Record :: term(),
                      TypeArgs :: [{atom(), erldantic:ed_type()}]) ->
                         {ok, #{atom() => json:encode_value()}} | {error, [erldantic:error()]}.
@@ -863,7 +863,7 @@ map_field_type_from_json(TypeInfo, KeyType, ValueType, Json) ->
                                     maps:to_list(Json)).
 
 -spec record_from_json(TypeInfo :: map(),
-                       RecordName :: atom() | erldantic:ed_rec(),
+                       RecordName :: atom() | #ed_rec{},
                        Json :: json:decode_value(),
                        TypeArgs :: [erldantic:record_field()]) ->
                           {ok, term()} | {error, list()}.
