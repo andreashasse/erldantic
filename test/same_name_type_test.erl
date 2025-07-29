@@ -9,7 +9,7 @@
 -type result(ResultType) :: #{result => ResultType, errors => [atom()]}.
 
 type_in_form_test() ->
-    {ok, Types} = erldantic_abstract_code:types_in_module(?MODULE),
+    Types = erldantic_abstract_code:types_in_module(?MODULE),
     ?assertEqual(#ed_type_with_variables{type =
                                              #ed_map{fields =
                                                          [{map_field_assoc,

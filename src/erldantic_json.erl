@@ -73,12 +73,8 @@ record_from_json(Module, RecordName, Json)
                     Data :: dynamic()) ->
                        {ok, json:encode_value()} | {error, [erldantic:error()]}.
 to_json_no_pt(Module, TypeRef, Data) ->
-    case erldantic_module_types:get(Module) of
-        {ok, TypeInfo} ->
-            to_json(TypeInfo, TypeRef, Data);
-        {error, _} = Err ->
-            Err
-    end.
+    TypeInfo = erldantic_module_types:get(Module),
+    to_json(TypeInfo, TypeRef, Data).
 
 -spec to_json(erldantic:type_info(), erldantic:ed_type_or_ref(), Data :: dynamic()) ->
                  {ok, json:encode_value()} | {error, [erldantic:error()]}.
@@ -97,12 +93,8 @@ to_json(TypeInfo, Type, Data) ->
                       Json :: json:decode_value()) ->
                          {ok, dynamic()} | {error, [erldantic:error()]}.
 from_json_no_pt(Module, TypeRef, Json) ->
-    case erldantic_module_types:get(Module) of
-        {ok, TypeInfo} ->
-            from_json(TypeInfo, TypeRef, Json);
-        {error, _} = Err ->
-            Err
-    end.
+    TypeInfo = erldantic_module_types:get(Module),
+    from_json(TypeInfo, TypeRef, Json).
 
 -spec do_to_json(TypeInfo :: erldantic:type_info(),
                  Type :: erldantic:ed_type_or_ref(),
@@ -157,15 +149,11 @@ do_to_json(TypeInfo, {type, TypeName, TypeArity}, Data) when is_atom(TypeName) -
 do_to_json(TypeInfo, #ed_map{} = Map, Data) ->
     map_to_json(TypeInfo, Map, Data);
 do_to_json(_TypeInfo, #ed_remote_type{mfargs = {Module, TypeName, Args}}, Data) ->
-    case erldantic_module_types:get(Module) of
-        {ok, TypeInfo} ->
-            TypeArity = length(Args),
-            Type = type_info_get_type(TypeInfo, TypeName, TypeArity),
-            TypeWithoutVars = apply_args(TypeInfo, Type, Args),
-            do_to_json(TypeInfo, TypeWithoutVars, Data);
-        {error, _} = Err ->
-            Err
-    end;
+    TypeInfo = erldantic_module_types:get(Module),
+    TypeArity = length(Args),
+    Type = type_info_get_type(TypeInfo, TypeName, TypeArity),
+    TypeWithoutVars = apply_args(TypeInfo, Type, Args),
+    do_to_json(TypeInfo, TypeWithoutVars, Data);
 do_to_json(_TypeInfo, #ed_maybe_improper_list{} = Type, _Data) ->
     erlang:error({type_not_implemented, Type});
 do_to_json(_TypeInfo, #ed_nonempty_improper_list{} = Type, _Data) ->
@@ -352,7 +340,7 @@ map_field_type(TypeInfo, KeyType, ValueType, Data) ->
     erldantic_util:fold_until_error(Fun, {[], Data}, maps:to_list(Data)).
 
 -spec record_to_json(TypeInfo :: map(),
-                     RecordName :: atom() | erldantic:ed_rec(),
+                     RecordName :: atom() | #ed_rec{},
                      Record :: term(),
                      TypeArgs :: [{atom(), erldantic:ed_type()}]) ->
                         {ok, #{atom() => json:encode_value()}} | {error, [erldantic:error()]}.
@@ -423,13 +411,9 @@ from_json(TypeInfo, {record, RecordName}, Json) when is_atom(RecordName) ->
 from_json(TypeInfo, #ed_rec{} = Rec, Json) ->
     record_from_json(TypeInfo, Rec, Json, []);
 from_json(_TypeInfo, #ed_remote_type{mfargs = {Module, TypeName, TypeArgs}}, Json) ->
-    case erldantic_module_types:get(Module) of
-        {ok, TypeInfo} ->
-            TypeArity = length(TypeArgs),
-            type_from_json(TypeInfo, TypeName, TypeArity, TypeArgs, Json);
-        {error, _} = Err ->
-            Err
-    end;
+    TypeInfo = erldantic_module_types:get(Module),
+    TypeArity = length(TypeArgs),
+    type_from_json(TypeInfo, TypeName, TypeArity, TypeArgs, Json);
 from_json(TypeInfo, #ed_rec_ref{record_name = RecordName, field_types = TypeArgs}, Json)
     when is_atom(RecordName) ->
     record_from_json(TypeInfo, RecordName, Json, TypeArgs);
@@ -863,7 +847,7 @@ map_field_type_from_json(TypeInfo, KeyType, ValueType, Json) ->
                                     maps:to_list(Json)).
 
 -spec record_from_json(TypeInfo :: map(),
-                       RecordName :: atom() | erldantic:ed_rec(),
+                       RecordName :: atom() | #ed_rec{},
                        Json :: json:decode_value(),
                        TypeArgs :: [erldantic:record_field()]) ->
                           {ok, term()} | {error, list()}.

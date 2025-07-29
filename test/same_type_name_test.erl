@@ -12,7 +12,7 @@
 %-type result(OkType, ErrorType) :: OkType | ErrorType.
 
 type_in_form_test() ->
-    {ok, Types} = erldantic_abstract_code:types_in_module(?MODULE),
+    Types = erldantic_abstract_code:types_in_module(?MODULE),
     ?assertEqual(#ed_user_type_ref{type_name = result,
                                    variables =
                                        [#ed_map{fields =

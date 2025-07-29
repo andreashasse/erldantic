@@ -11,7 +11,7 @@
 -type result_t(ResultType) :: #result{value :: integer(), errors :: [ResultType]}.
 
 type_in_form_test() ->
-    {ok, Types} = erldantic_abstract_code:types_in_module(?MODULE),
+    Types = erldantic_abstract_code:types_in_module(?MODULE),
     ?assertEqual(#ed_user_type_ref{type_name = result_t,
                                    variables = [#ed_simple_type{type = atom}]},
                  maps:get({type, int_result, 0}, Types)),

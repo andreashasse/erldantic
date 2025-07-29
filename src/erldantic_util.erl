@@ -22,12 +22,10 @@ not_handled_modules() ->
                     Modules).
 
 -spec test_abs_code(module()) ->
-                       {ok, erldantic:type_info()} |
-                       {error, {atom(), term(), erlang:stacktrace()}} |
-                       {error, [erldantic:error()]}.
+                       {ok, erldantic:type_info()} | {error, {atom(), term(), erlang:stacktrace()}}.
 test_abs_code(Module) ->
     try
-        erldantic_abstract_code:types_in_module(Module)
+        {ok, erldantic_abstract_code:types_in_module(Module)}
     catch
         Class:Reason:Stacktrace ->
             {error, {Class, Reason, Stacktrace}}

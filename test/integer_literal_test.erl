@@ -14,7 +14,7 @@
       level := courses()}.
 
 bor_t_abstract_code_test() ->
-    {ok, Types} = erldantic_abstract_code:types_in_module(?MODULE),
+    Types = erldantic_abstract_code:types_in_module(?MODULE),
     ?assertEqual(#ed_literal{value = 2 bor 5}, maps:get({type, bor_t, 0}, Types)).
 
 bor_t_to_json_test() ->

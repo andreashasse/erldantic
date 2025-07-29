@@ -10,7 +10,7 @@
 -type result(ResultType) :: #{result => ResultType, errors => [atom()]}.
 
 type_in_form_test() ->
-    {ok, Types} = erldantic_abstract_code:types_in_module(?MODULE),
+    Types = erldantic_abstract_code:types_in_module(?MODULE),
     ?assertEqual(#ed_user_type_ref{type_name = result,
                                    variables = [#ed_simple_type{type = integer}]},
                  maps:get({type, int_result, 0}, Types)),
