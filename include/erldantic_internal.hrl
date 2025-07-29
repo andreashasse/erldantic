@@ -29,7 +29,7 @@
 -record(ed_type_with_variables, {type :: erldantic:ed_type(), vars :: [atom()]}).
 -record(ed_function,
         {args :: any | [erldantic:ed_type()], return :: erldantic:ed_type()}).
--record(ed_union, {types = [] :: [erldantic:ed_type()]}).
+-record(ed_union, {types = [erldantic:ed_type()]}).
 -record(ed_literal, {value :: term()}).
 -record(ed_rec_ref,
         {record_name :: erldantic:user_type_name(), field_types :: [erldantic:record_field()]}).
