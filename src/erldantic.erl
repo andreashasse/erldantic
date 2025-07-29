@@ -10,28 +10,7 @@
 %% FIXME: Add doc here.
 %% iolist and iodata are aliases, but are so complex, so it is easier to handle them as separate types
 -type ed_type() ::
-    #ed_simple_type{type ::
-                        string |
-                        nonempty_string |
-                        integer |
-                        non_neg_integer |
-                        neg_integer |
-                        pos_integer |
-                        float |
-                        number |
-                        boolean |
-                        binary |
-                        nonempty_binary |
-                        bitstring |
-                        nonempty_bitstring |
-                        atom |
-                        term |
-                        reference |
-                        pid |
-                        port |
-                        iolist |
-                        iodata |
-                        none} |
+    ed_simple_type() |
     ed_record_ref() |
     ed_user_type_ref() |
     ed_var() |
@@ -53,7 +32,10 @@
     {map_field_type_assoc | map_field_type_exact, ed_type(), ed_type()}.
 -type ed_type_reference() ::
     {record, atom()} | {type, Name :: atom(), Arity :: non_neg_integer()}.
--type error() :: #ed_error{}.
+-type error() ::
+    #ed_error{location :: [string() | atom()],
+              type :: type_mismatch | no_match | missing_data | not_matched_fields,
+              ctx :: term()}.
 -type ed_type_or_ref() :: ed_type() | ed_type_reference().
 %% Internal type definitions moved from erldantic_internal.hrl
 -type ed_simple_type() ::

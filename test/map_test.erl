@@ -186,52 +186,42 @@ from_json_empty_map_bad_test() ->
                  from_json_empty_map([])).
 
 map_with_tuple_value_test() ->
-    Result1 = to_json_map_with_tuple_value(#{a => {a}}),
-    ?assertMatch({error, [#ed_error{type = type_not_supported} | _]}, Result1),
-
-    Result2 = to_json_map_with_tuple_value(#{b => {1, 2, 3}}),
-    ?assertMatch({error, [#ed_error{type = type_not_supported} | _]}, Result2).
+    ?assertError({type_not_supported, _}, to_json_map_with_tuple_value(#{a => {a}})),
+    ?assertError({type_not_supported, _}, to_json_map_with_tuple_value(#{b => {1, 2, 3}})).
 
 map_with_tuple_key_test() ->
-    Result1 = to_json_map_with_tuple_key(#{{a, b} => value}),
-    ?assertMatch({error, [#ed_error{type = not_matched_fields} | _]}, Result1),
-
-    Result2 = to_json_map_with_tuple_key(#{{1, 2} => atom}),
-    ?assertMatch({error, [#ed_error{type = not_matched_fields} | _]}, Result2).
+    ?assertError({type_not_supported, _}, to_json_map_with_tuple_key(#{{a, b} => value})),
+    ?assertError({type_not_supported, _}, to_json_map_with_tuple_key(#{{1, 2} => atom})).
 
 map_with_fun_value_test() ->
-    Result1 = to_json_map_with_fun_value(#{a => fun() -> ok end}),
-    ?assertMatch({error, [#ed_error{type = type_not_supported} | _]}, Result1),
-
-    Result2 = to_json_map_with_fun_value(#{handler => fun(X) -> X + 1 end}),
-    ?assertMatch({error, [#ed_error{type = type_not_supported} | _]}, Result2).
+    ?assertError({type_not_supported, _},
+                 to_json_map_with_fun_value(#{a => fun() -> ok end})),
+    ?assertError({type_not_supported, _},
+                 to_json_map_with_fun_value(#{handler => fun(X) -> X + 1 end})).
 
 map_with_fun_key_test() ->
     Fun = fun() -> ok end,
-    Result = to_json_map_with_fun_key(#{Fun => value}),
-    ?assertMatch({error, [#ed_error{type = not_matched_fields} | _]}, Result).
+    ?assertError({type_not_supported, _}, to_json_map_with_fun_key(#{Fun => value})).
 
 from_json_map_with_tuple_value_test() ->
-    Result1 = from_json_map_with_tuple_value(#{<<"a">> => [1, 2]}),
-    ?assertMatch({error, [#ed_error{type = type_not_supported} | _]}, Result1),
-
-    Result2 = from_json_map_with_tuple_value(#{<<"b">> => [1, 2, 3]}),
-    ?assertMatch({error, [#ed_error{type = type_not_supported} | _]}, Result2).
+    ?assertError({type_not_supported, _},
+                 from_json_map_with_tuple_value(#{<<"a">> => [1, 2]})),
+    ?assertError({type_not_supported, _},
+                 from_json_map_with_tuple_value(#{<<"b">> => [1, 2, 3]})).
 
 from_json_map_with_tuple_key_test() ->
-    Result = from_json_map_with_tuple_key(#{<<"key">> => <<"value">>}),
-    ?assertMatch({error, [#ed_error{type = not_matched_fields} | _]}, Result).
+    ?assertError({type_not_supported, _},
+                 from_json_map_with_tuple_key(#{<<"key">> => <<"value">>})).
 
 from_json_map_with_fun_value_test() ->
-    Result1 = from_json_map_with_fun_value(#{<<"a">> => <<"function">>}),
-    ?assertMatch({error, [#ed_error{type = type_not_supported} | _]}, Result1),
-
-    Result2 = from_json_map_with_fun_value(#{<<"handler">> => <<"callback">>}),
-    ?assertMatch({error, [#ed_error{type = type_not_supported} | _]}, Result2).
+    ?assertError({type_not_supported, _},
+                 from_json_map_with_fun_value(#{<<"a">> => <<"function">>})),
+    ?assertError({type_not_supported, _},
+                 from_json_map_with_fun_value(#{<<"handler">> => <<"callback">>})).
 
 from_json_map_with_fun_key_test() ->
-    Result = from_json_map_with_fun_key(#{<<"key">> => <<"value">>}),
-    ?assertMatch({error, [#ed_error{type = not_matched_fields} | _]}, Result).
+    ?assertError({type_not_supported, _},
+                 from_json_map_with_fun_key(#{<<"key">> => <<"value">>})).
 
 -spec to_json_mandatory_type_map(term()) ->
                                     {ok, mandatory_type_map()} | {error, [erldantic:error()]}.

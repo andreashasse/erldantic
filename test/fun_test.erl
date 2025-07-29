@@ -54,38 +54,28 @@ erldantic_json_rejects_fun_data_test() ->
     Fun4 = fun(I, A) when is_integer(I), is_atom(A) -> 1 end,
     Fun5 = fun(I, A) when is_integer(I), is_atom(A) -> fun() -> ok end end,
     Fun6 = fun(I, A) when is_integer(I), is_atom(A) -> fun(X) when is_integer(X) -> X end end,
-    ?assertMatch({error, [#ed_error{type = type_not_supported}]},
-                 erldantic_json:type_to_json(?MODULE, fun1, Fun1)),
-    ?assertMatch({error, [#ed_error{type = type_not_supported}]},
-                 erldantic_json:type_to_json(?MODULE, fun2, Fun2)),
-    ?assertMatch({error, [#ed_error{type = type_not_supported}]},
-                 erldantic_json:type_to_json(?MODULE, fun3, Fun3)),
-    ?assertMatch({error, [#ed_error{type = type_not_supported}]},
-                 erldantic_json:type_to_json(?MODULE, fun4, Fun4)),
-    ?assertMatch({error, [#ed_error{type = type_not_supported}]},
-                 erldantic_json:type_to_json(?MODULE, fun5, Fun5)),
-    ?assertMatch({error, [#ed_error{type = type_not_supported}]},
-                 erldantic_json:type_to_json(?MODULE, fun6, Fun6)).
+    ?assertError({type_not_supported, _}, erldantic_json:type_to_json(?MODULE, fun1, Fun1)),
+    ?assertError({type_not_supported, _}, erldantic_json:type_to_json(?MODULE, fun2, Fun2)),
+    ?assertError({type_not_supported, _}, erldantic_json:type_to_json(?MODULE, fun3, Fun3)),
+    ?assertError({type_not_supported, _}, erldantic_json:type_to_json(?MODULE, fun4, Fun4)),
+    ?assertError({type_not_supported, _}, erldantic_json:type_to_json(?MODULE, fun5, Fun5)),
+    ?assertError({type_not_supported, _}, erldantic_json:type_to_json(?MODULE, fun6, Fun6)).
 
 erldantic_json_rejects_fun_data_from_json_test() ->
     Data = <<"any">>,
-    ?assertMatch({error, [#ed_error{type = type_not_supported}]},
-                 erldantic_json:type_from_json(?MODULE, fun1, Data)),
-    ?assertMatch({error, [#ed_error{type = type_not_supported}]},
-                 erldantic_json:type_from_json(?MODULE, fun2, Data)),
-    ?assertMatch({error, [#ed_error{type = type_not_supported}]},
-                 erldantic_json:type_from_json(?MODULE, fun3, Data)),
-    ?assertMatch({error, [#ed_error{type = type_not_supported}]},
-                 erldantic_json:type_from_json(?MODULE, fun4, Data)),
-    ?assertMatch({error, [#ed_error{type = type_not_supported}]},
-                 erldantic_json:type_from_json(?MODULE, fun5, Data)),
-    ?assertMatch({error, [#ed_error{type = type_not_supported}]},
-                 erldantic_json:type_from_json(?MODULE, fun6, Data)).
+    ?assertError({type_not_supported, _}, erldantic_json:type_from_json(?MODULE, fun1, Data)),
+    ?assertError({type_not_supported, _}, erldantic_json:type_from_json(?MODULE, fun2, Data)),
+    ?assertError({type_not_supported, _}, erldantic_json:type_from_json(?MODULE, fun3, Data)),
+    ?assertError({type_not_supported, _}, erldantic_json:type_from_json(?MODULE, fun4, Data)),
+    ?assertError({type_not_supported, _}, erldantic_json:type_from_json(?MODULE, fun5, Data)),
+    ?assertError({type_not_supported, _}, erldantic_json:type_from_json(?MODULE, fun6, Data)).
 
 erldantic_json_rejects_record_with_fun_field_test() ->
     Record = #with_fun{id = 1, handler = fun() -> ok end},
-    ?assertMatch({error, _}, erldantic_json:record_to_json(?MODULE, with_fun, Record)).
+    ?assertError({type_not_supported, _},
+                 erldantic_json:record_to_json(?MODULE, with_fun, Record)).
 
 erldantic_json_rejects_data_containing_fun_test() ->
     DataWithFun = {ok, fun() -> ok end},
-    ?assertMatch({error, _}, erldantic_json:type_to_json(?MODULE, fun1, DataWithFun)).
+    ?assertError({type_not_supported, _},
+                 erldantic_json:type_to_json(?MODULE, fun1, DataWithFun)).

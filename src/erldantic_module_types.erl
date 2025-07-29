@@ -13,22 +13,18 @@
 -spec get(Module :: module()) ->
              {ok, erldantic:type_info()} | {error, [erldantic:error()]}.
 get(Module) ->
-    case module_vsn(Module) of
-        {ok, Vsn} ->
-            case pers_type(Module) of
-                {Vsn, TypeInfo} when is_map(TypeInfo) ->
+    {ok, Vsn} = module_vsn(Module),
+    case pers_type(Module) of
+        {Vsn, TypeInfo} when is_map(TypeInfo) ->
+            {ok, TypeInfo};
+        _ ->
+            case erldantic_abstract_code:types_in_module(Module) of
+                {ok, TypeInfo} ->
+                    pers_types_set(Module, Vsn, TypeInfo),
                     {ok, TypeInfo};
-                _ ->
-                    case erldantic_abstract_code:types_in_module(Module) of
-                        {ok, TypeInfo} ->
-                            pers_types_set(Module, Vsn, TypeInfo),
-                            {ok, TypeInfo};
-                        {error, _} = Err ->
-                            Err
-                    end
-            end;
-        {error, _} = Err ->
-            Err
+                {error, _} = Err ->
+                    Err
+            end
     end.
 
 -spec clear(Module :: module()) -> ok.
@@ -64,8 +60,5 @@ module_vsn(Module) ->
                     {ok, Vsn}
             end;
         false ->
-            {error,
-             [#ed_error{type = module_types_not_found,
-                        location = [],
-                        ctx = #{error => non_existing, module => Module}}]}
+            erlang:error({module_types_not_found, Module})
     end.

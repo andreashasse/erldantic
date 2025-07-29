@@ -120,13 +120,9 @@ do_to_json(TypeInfo,
 do_to_json(TypeInfo, #ed_user_type_ref{type_name = TypeName, variables = TypeArgs}, Data)
     when is_atom(TypeName) ->
     TypeArity = length(TypeArgs),
-    case TypeInfo of
-        #{{type, TypeName, TypeArity} := Type} ->
-            TypeWithoutVars = apply_args(TypeInfo, Type, TypeArgs),
-            do_to_json(TypeInfo, TypeWithoutVars, Data);
-        #{} ->
-            {error, [#ed_error{type = missing_type, location = []}]}
-    end;
+    Type = type_info_get_type(TypeInfo, TypeName, TypeArity),
+    TypeWithoutVars = apply_args(TypeInfo, Type, TypeArgs),
+    do_to_json(TypeInfo, TypeWithoutVars, Data);
 do_to_json(_TypeInfo, #ed_simple_type{type = NotSupported} = Type, _Data)
     when NotSupported =:= pid
          orelse NotSupported =:= port
@@ -134,10 +130,7 @@ do_to_json(_TypeInfo, #ed_simple_type{type = NotSupported} = Type, _Data)
          orelse NotSupported =:= bitstring
          orelse NotSupported =:= nonempty_bitstring
          orelse NotSupported =:= none ->
-    {error,
-     [#ed_error{type = type_not_supported,
-                location = [],
-                ctx = #{type => Type}}]};
+    erlang:error({type_not_supported, Type});
 do_to_json(_TypeInfo, #ed_simple_type{} = Type, Value) ->
     prim_type_to_json(Type, Value);
 do_to_json(_TypeInfo,
@@ -159,49 +152,41 @@ do_to_json(TypeInfo, #ed_list{type = Type}, Data) when is_list(Data) ->
     list_to_json(TypeInfo, Type, Data);
 do_to_json(TypeInfo, {type, TypeName, TypeArity}, Data) when is_atom(TypeName) ->
     %% FIXME: For simple types without arity, default to 0
-    data_to_json(TypeInfo, TypeName, TypeArity, Data);
+    Type = type_info_get_type(TypeInfo, TypeName, TypeArity),
+    do_to_json(TypeInfo, Type, Data);
 do_to_json(TypeInfo, #ed_map{} = Map, Data) ->
     map_to_json(TypeInfo, Map, Data);
 do_to_json(_TypeInfo, #ed_remote_type{mfargs = {Module, TypeName, Args}}, Data) ->
     case erldantic_module_types:get(Module) of
         {ok, TypeInfo} ->
             TypeArity = length(Args),
-            case TypeInfo of
-                #{{type, TypeName, TypeArity} := Type} ->
-                    TypeWithoutVars = apply_args(TypeInfo, Type, Args),
-                    do_to_json(TypeInfo, TypeWithoutVars, Data);
-                #{} ->
-                    {error, [#ed_error{type = missing_type, location = []}]}
-            end;
+            Type = type_info_get_type(TypeInfo, TypeName, TypeArity),
+            TypeWithoutVars = apply_args(TypeInfo, Type, Args),
+            do_to_json(TypeInfo, TypeWithoutVars, Data);
         {error, _} = Err ->
             Err
     end;
-do_to_json(_TypeInfo, #ed_maybe_improper_list{} = Type, Data) ->
-    {error,
-     [#ed_error{type = not_implemented,
-                location = [],
-                ctx = #{type => Type, value => Data}}]};
-do_to_json(_TypeInfo, #ed_nonempty_improper_list{} = Type, Data) ->
-    {error,
-     [#ed_error{type = not_implemented,
-                location = [],
-                ctx = #{type => Type, value => Data}}]};
+do_to_json(_TypeInfo, #ed_maybe_improper_list{} = Type, _Data) ->
+    erlang:error({type_not_implemented, Type});
+do_to_json(_TypeInfo, #ed_nonempty_improper_list{} = Type, _Data) ->
+    erlang:error({type_not_implemented, Type});
 %% Not supported types
 do_to_json(_TypeInfo, #ed_tuple{} = Type, _Data) ->
-    {error,
-     [#ed_error{type = type_not_supported,
-                location = [],
-                ctx = #{type => Type}}]};
+    erlang:error({type_not_supported, Type});
 do_to_json(_TypeInfo, #ed_function{} = Type, _Data) ->
-    {error,
-     [#ed_error{type = type_not_supported,
-                location = [],
-                ctx = #{type => Type}}]};
+    erlang:error({type_not_supported, Type});
 do_to_json(_TypeInfo, Type, OtherValue) ->
     {error,
      [#ed_error{type = type_mismatch,
                 location = [],
                 ctx = #{type => Type, value => OtherValue}}]}.
+
+-spec type_info_get_type(TypeInfo :: erldantic:type_info(),
+                         TypeName :: atom(),
+                         TypeArity :: non_neg_integer()) ->
+                            erldantic:ed_type().
+type_info_get_type(TypeInfo, TypeName, TypeArity) ->
+    maps:get({type, TypeName, TypeArity}, TypeInfo).
 
 -spec prim_type_to_json(Type :: erldantic:ed_type(), Value :: term()) ->
                            {ok, json:encode_value()} | {error, [erldantic:error()]}.
@@ -244,16 +229,6 @@ list_to_json(TypeInfo, Type, Data) when is_list(Data) ->
                                       end
                                    end,
                                    lists:enumerate(Data)).
-
--spec data_to_json(erldantic:type_info(), atom(), arity(), Data :: dynamic()) ->
-                      {ok, json:encode_value()} | {error, [erldantic:error()]} | skip.
-data_to_json(TypeInfo, TypeName, TypeArity, Data) ->
-    case TypeInfo of
-        #{{type, TypeName, TypeArity} := Type} ->
-            do_to_json(TypeInfo, Type, Data);
-        #{} ->
-            {error, [#ed_error{type = missing_type, location = [TypeName]}]}
-    end.
 
 map_to_json(TypeInfo, #ed_map{fields = Fields}, Data) when is_map(Data) ->
     case map_fields_to_json(TypeInfo, Fields, Data) of
@@ -394,7 +369,7 @@ record_to_json(TypeInfo,
          andalso element(1, Record) =:= RecordName
          andalso tuple_size(Record) =:= Arity ->
     [RecordName | FieldsData] = tuple_to_list(Record),
-    RecFieldTypes = apply_record_arg_types(Fields, TypeArgs),
+    RecFieldTypes = record_replace_vars(Fields, TypeArgs),
     RecFieldTypesWithData = lists:zip(RecFieldTypes, FieldsData),
     do_record_to_json(TypeInfo, RecFieldTypesWithData);
 record_to_json(_TypeInfo, RecordName, Record, TypeArgs) ->
@@ -406,7 +381,7 @@ record_to_json(_TypeInfo, RecordName, Record, TypeArgs) ->
                       record => Record,
                       type_args => TypeArgs}}]}.
 
-apply_record_arg_types(RecordInfo, TypeArgs) ->
+record_replace_vars(RecordInfo, TypeArgs) ->
     lists:foldl(fun({Field, Type}, Fields) ->
                    lists:keyreplace(Field, 1, Fields, {Field, Type})
                 end,
@@ -467,17 +442,14 @@ from_json(TypeInfo, #ed_nonempty_list{type = Type}, Data) ->
     nonempty_list_from_json(TypeInfo, Type, Data);
 from_json(TypeInfo, #ed_list{type = Type}, Data) ->
     list_from_json(TypeInfo, Type, Data);
-from_json(_TypeInfo, #ed_simple_type{type = NotSupported} = T, Value)
+from_json(_TypeInfo, #ed_simple_type{type = NotSupported} = T, _Value)
     when NotSupported =:= pid
          orelse NotSupported =:= port
          orelse NotSupported =:= reference
          orelse NotSupported =:= bitstring
          orelse NotSupported =:= nonempty_bitstring
          orelse NotSupported =:= none ->
-    {error,
-     [#ed_error{type = type_not_supported,
-                location = [],
-                ctx = #{type => T, value => Value}}]};
+    erlang:error({type_not_supported, T});
 from_json(_TypeInfo, #ed_simple_type{type = PrimaryType} = T, Json) ->
     case check_type_from_json(PrimaryType, Json) of
         {true, NewValue} ->
@@ -522,28 +494,14 @@ from_json(_TypeInfo,
      [#ed_error{type = type_mismatch,
                 location = [],
                 ctx = #{type => Range, value => Value}}]};
-from_json(_TypeInfo, #ed_maybe_improper_list{} = Type, Value) ->
-    %% erlang:error(...) for not impolemented or supported stuff? It is not an error that should be handled by the user?
-    {error,
-     [#ed_error{type = not_implemented,
-                location = [],
-                ctx = #{type => Type, value => Value}}]};
-from_json(_TypeInfo, #ed_nonempty_improper_list{} = Type, Value) ->
-    %% erlang:error(...) for not impolemented or supported stuff? It is not an error that should be handled by the user?
-    {error,
-     [#ed_error{type = not_implemented,
-                location = [],
-                ctx = #{type => Type, value => Value}}]};
-from_json(_TypeInfo, #ed_function{} = Type, Value) ->
-    {error,
-     [#ed_error{type = type_not_supported,
-                location = [],
-                ctx = #{type => Type, value => Value}}]};
-from_json(_TypeInfo, #ed_tuple{} = Type, Value) ->
-    {error,
-     [#ed_error{type = type_not_supported,
-                location = [],
-                ctx = #{type => Type, value => Value}}]};
+from_json(_TypeInfo, #ed_maybe_improper_list{} = Type, _Value) ->
+    erlang:error({type_not_implemented, Type});
+from_json(_TypeInfo, #ed_nonempty_improper_list{} = Type, _Value) ->
+    erlang:error({type_not_implemented, Type});
+from_json(_TypeInfo, #ed_function{} = Type, _Value) ->
+    erlang:error({type_not_supported, Type});
+from_json(_TypeInfo, #ed_tuple{} = Type, _Value) ->
+    erlang:error({type_not_supported, Type});
 from_json(_TypeInfo, Type, Value) ->
     {error,
      [#ed_error{type = type_mismatch,
@@ -700,13 +658,9 @@ do_first(Fun, TypeInfo, [Type | Rest], Json) ->
                      Json :: json:decode_value()) ->
                         {ok, term()} | {error, [erldantic:error()]}.
 type_from_json(TypeInfo, TypeName, TypeArity, TypeArgs, Json) ->
-    case TypeInfo of
-        #{{type, TypeName, TypeArity} := Type} ->
-            TypeWithoutVars = apply_args(TypeInfo, Type, TypeArgs),
-            from_json(TypeInfo, TypeWithoutVars, Json);
-        #{} ->
-            {error, [#ed_error{type = missing_type, location = [TypeName]}]}
-    end.
+    Type = type_info_get_type(TypeInfo, TypeName, TypeArity),
+    TypeWithoutVars = apply_args(TypeInfo, Type, TypeArgs),
+    from_json(TypeInfo, TypeWithoutVars, Json).
 
 apply_args(TypeInfo, Type, TypeArgs) when is_list(TypeArgs) ->
     ArgNames = arg_names(Type),
@@ -756,11 +710,10 @@ type_replace_vars(TypeInfo, #ed_type_with_variables{type = Type}, NamedTypes) ->
                                            type_replace_vars(TypeInfo, ValueType, NamedTypes)}
                                   end,
                                   Fields)};
-        #ed_rec_ref{record_name = RecordName, field_types = TypeArgs} ->
+        #ed_rec_ref{record_name = RecordName, field_types = RefFieldTypes} ->
             case TypeInfo of
                 #{{record, RecordName} := #ed_rec{fields = Fields} = Rec} ->
-                    NewFields = apply_record_arg_types(Fields, TypeArgs),
-                    NewRec = Rec#ed_rec{fields = NewFields},
+                    NewRec = Rec#ed_rec{fields = record_replace_vars(Fields, RefFieldTypes)},
                     type_replace_vars(TypeInfo, NewRec, NamedTypes);
                 #{} ->
                     erlang:error({missing_type, {record, RecordName}})
@@ -915,10 +868,10 @@ map_field_type_from_json(TypeInfo, KeyType, ValueType, Json) ->
                        TypeArgs :: [erldantic:record_field()]) ->
                           {ok, term()} | {error, list()}.
 record_from_json(TypeInfo, RecordName, Json, TypeArgs) when is_atom(RecordName) ->
-    ARec = maps:get({record, RecordName}, TypeInfo),
-    record_from_json(TypeInfo, ARec, Json, TypeArgs);
+    Record = maps:get({record, RecordName}, TypeInfo),
+    record_from_json(TypeInfo, Record, Json, TypeArgs);
 record_from_json(TypeInfo, #ed_rec{name = RecordName} = ARec, Json, TypeArgs) ->
-    RecordInfo = apply_record_arg_types(ARec#ed_rec.fields, TypeArgs),
+    RecordInfo = record_replace_vars(ARec#ed_rec.fields, TypeArgs),
     do_record_from_json(TypeInfo, RecordName, RecordInfo, Json).
 
 -spec do_record_from_json(TypeInfo :: map(),
