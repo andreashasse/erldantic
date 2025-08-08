@@ -126,18 +126,16 @@ do_to_schema(TypeInfo, #ed_nonempty_list{type = ItemType}) ->
     end;
 %% Union types
 do_to_schema(TypeInfo, #ed_union{types = Types}) ->
-    case lists:foldl(fun (T, {ok, Acc}) ->
-                             case do_to_schema(TypeInfo, T) of
-                                 {ok, Schema} ->
-                                     {ok, [Schema | Acc]};
-                                 {error, _} = Err ->
-                                     Err
-                             end;
-                         (_, {error, _} = Err) ->
-                             Err
-                     end,
-                     {ok, []},
-                     Types)
+    case erldantic_util:fold_until_error(fun(T, Acc) ->
+                                            case do_to_schema(TypeInfo, T) of
+                                                {ok, Schema} ->
+                                                    {ok, [Schema | Acc]};
+                                                {error, _} = Err ->
+                                                    Err
+                                            end
+                                         end,
+                                         [],
+                                         Types)
     of
         {ok, Schemas} ->
             {ok, #{oneOf => lists:reverse(Schemas)}};
@@ -157,15 +155,9 @@ do_to_schema(TypeInfo, #ed_rec_ref{record_name = RecordName}) ->
     record_to_schema_internal(TypeInfo, RecordName);
 %% Type references
 do_to_schema(TypeInfo, {type, TypeName, TypeArity}) when is_atom(TypeName) ->
-    case maps:get({type, TypeName, TypeArity}, TypeInfo, undefined) of
-        undefined ->
-            {error,
-             [#ed_error{type = no_match,
-                        location = [TypeName],
-                        ctx = #{type => TypeName, arity => TypeArity}}]};
-        Type ->
-            do_to_schema(TypeInfo, Type)
-    end;
+    Type = type_info_get_type(TypeInfo, TypeName, TypeArity),
+    TypeWithoutVars = apply_args(TypeInfo, Type, []),
+    do_to_schema(TypeInfo, TypeWithoutVars);
 %% User type references
 do_to_schema(TypeInfo, #ed_user_type_ref{type_name = TypeName, variables = TypeArgs}) ->
     TypeArity = length(TypeArgs),
@@ -180,20 +172,11 @@ do_to_schema(TypeInfo, #ed_user_type_ref{type_name = TypeName, variables = TypeA
     end;
 %% Remote types
 do_to_schema(_TypeInfo, #ed_remote_type{mfargs = {Module, TypeName, Args}}) ->
-    RemoteTypeInfo = erldantic_module_types:get(Module),
+    TypeInfo = erldantic_module_types:get(Module),
     TypeArity = length(Args),
-    case maps:get({type, TypeName, TypeArity}, RemoteTypeInfo, undefined) of
-        undefined ->
-            {error,
-             [#ed_error{type = no_match,
-                        location = [Module, TypeName],
-                        ctx =
-                            #{module => Module,
-                              type => TypeName,
-                              arity => TypeArity}}]};
-        Type ->
-            do_to_schema(RemoteTypeInfo, Type)
-    end;
+    Type = type_info_get_type(TypeInfo, TypeName, TypeArity),
+    TypeWithoutVars = apply_args(TypeInfo, Type, Args),
+    do_to_schema(TypeInfo, TypeWithoutVars);
 %% Unsupported types
 do_to_schema(_TypeInfo, #ed_simple_type{type = NotSupported} = Type)
     when NotSupported =:= pid
@@ -215,6 +198,106 @@ do_to_schema(_TypeInfo, Type) ->
                 ctx = #{type => Type}}]}.
 
 %% Helper functions
+
+%% copy-pasted from erldantic_json.erl
+record_replace_vars(RecordInfo, TypeArgs) ->
+    lists:foldl(fun({Field, Type}, Fields) ->
+                   lists:keyreplace(Field, 1, Fields, {Field, Type})
+                end,
+                RecordInfo,
+                TypeArgs).
+
+%% copy-pasted from erldantic_json.erl
+-spec type_replace_vars(TypeInfo :: erldantic:type_info(),
+                        Type :: erldantic:ed_type(),
+                        NamedTypes :: #{atom() => erldantic:ed_type()}) ->
+                           erldantic:ed_type().
+type_replace_vars(_TypeInfo, #ed_var{name = Name}, NamedTypes) ->
+    maps:get(Name, NamedTypes, #ed_simple_type{type = term});
+type_replace_vars(TypeInfo, #ed_type_with_variables{type = Type}, NamedTypes) ->
+    case Type of
+        #ed_union{types = UnionTypes} ->
+            #ed_union{types =
+                          lists:map(fun(UnionType) ->
+                                       type_replace_vars(TypeInfo, UnionType, NamedTypes)
+                                    end,
+                                    UnionTypes)};
+        #ed_map{fields = Fields} ->
+            #ed_map{fields =
+                        lists:map(fun ({map_field_assoc, FieldName, FieldType}) ->
+                                          {map_field_assoc,
+                                           FieldName,
+                                           type_replace_vars(TypeInfo, FieldType, NamedTypes)};
+                                      ({map_field_exact, FieldName, FieldType}) ->
+                                          {map_field_exact,
+                                           FieldName,
+                                           type_replace_vars(TypeInfo, FieldType, NamedTypes)};
+                                      ({map_field_type_assoc, KeyType, ValueType}) ->
+                                          %% ADD TESTS
+                                          {map_field_type_assoc,
+                                           type_replace_vars(TypeInfo, KeyType, NamedTypes),
+                                           type_replace_vars(TypeInfo, ValueType, NamedTypes)};
+                                      ({map_field_type_exact, KeyType, ValueType}) ->
+                                          %% ADD TESTS
+                                          {map_field_type_exact,
+                                           type_replace_vars(TypeInfo, KeyType, NamedTypes),
+                                           type_replace_vars(TypeInfo, ValueType, NamedTypes)}
+                                  end,
+                                  Fields)};
+        #ed_rec_ref{record_name = RecordName, field_types = RefFieldTypes} ->
+            case TypeInfo of
+                #{{record, RecordName} := #ed_rec{fields = Fields} = Rec} ->
+                    NewRec = Rec#ed_rec{fields = record_replace_vars(Fields, RefFieldTypes)},
+                    type_replace_vars(TypeInfo, NewRec, NamedTypes);
+                #{} ->
+                    erlang:error({missing_type, {record, RecordName}})
+            end;
+        #ed_remote_type{mfargs = {Module, TypeName, Args}} ->
+            case erldantic_module_types:get(Module) of
+                {ok, TypeInfo} ->
+                    TypeArity = length(Args),
+                    case TypeInfo of
+                        #{{type, TypeName, TypeArity} := Type} ->
+                            type_replace_vars(TypeInfo, Type, NamedTypes);
+                        #{} ->
+                            erlang:error({missing_type, TypeName})
+                    end;
+                {error, _} = Err ->
+                    erlang:error(Err)
+            end;
+        #ed_list{type = ListType} ->
+            #ed_list{type = type_replace_vars(TypeInfo, ListType, NamedTypes)}
+    end;
+type_replace_vars(_TypeInfo, #ed_rec{fields = Fields} = Rec, NamedTypes) ->
+    Rec#ed_rec{fields =
+                   lists:map(fun({Name, NType}) ->
+                                {Name, type_replace_vars(_TypeInfo, NType, NamedTypes)}
+                             end,
+                             Fields)};
+type_replace_vars(_TypeInfo, Type, _NamedTypes) ->
+    Type.
+
+%% copy-pasted from erldantic_json.erl
+arg_names(#ed_type_with_variables{vars = Args}) ->
+    Args;
+arg_names(_) ->
+    [].
+
+%% copy-pasted from erldantic_json.erl
+apply_args(TypeInfo, Type, TypeArgs) when is_list(TypeArgs) ->
+    ArgNames = arg_names(Type),
+    NamedTypes =
+        maps:from_list(
+            lists:zip(ArgNames, TypeArgs)),
+    type_replace_vars(TypeInfo, Type, NamedTypes).
+
+%% copy-pasted from erldantic_json.erl
+-spec type_info_get_type(TypeInfo :: erldantic:type_info(),
+                         TypeName :: atom(),
+                         TypeArity :: non_neg_integer()) ->
+                            erldantic:ed_type().
+type_info_get_type(TypeInfo, TypeName, TypeArity) ->
+    maps:get({type, TypeName, TypeArity}, TypeInfo).
 
 -spec map_fields_to_schema(erldantic:type_info(), [erldantic:map_field()]) ->
                               {ok, map()} | {error, [erldantic:error()]}.
@@ -284,42 +367,28 @@ process_map_fields(TypeInfo,
             process_map_fields(TypeInfo, Rest, Properties, Required, true);
         {error, _} = Err ->
             Err
-    end;
-process_map_fields(TypeInfo, [_Field | Rest], Properties, Required, HasAdditional) ->
-    process_map_fields(TypeInfo, Rest, Properties, Required, HasAdditional).
+    end.
 
 -spec record_to_schema_internal(erldantic:type_info(), atom() | #ed_rec{}) ->
                                    {ok, map()} | {error, [erldantic:error()]}.
 record_to_schema_internal(TypeInfo, RecordName) when is_atom(RecordName) ->
-    case maps:get({record, RecordName}, TypeInfo, undefined) of
-        undefined ->
-            {error,
-             [#ed_error{type = no_match,
-                        location = [RecordName],
-                        ctx = #{record => RecordName}}]};
-        #ed_rec{} = RecordInfo ->
-            record_to_schema_internal(TypeInfo, RecordInfo);
-        _Other ->
-            {error,
-             [#ed_error{type = type_mismatch,
-                        location = [RecordName],
-                        ctx = #{record => RecordName, error => invalid_record_type}}]}
-    end;
+    RecordInfo = type_info_get_record(TypeInfo, RecordName),
+    record_to_schema_internal(TypeInfo, RecordInfo);
 record_to_schema_internal(TypeInfo, #ed_rec{fields = Fields}) ->
     case process_record_fields(TypeInfo, Fields, #{}, []) of
         {ok, Properties, Required} ->
-            Schema = #{type => object, properties => Properties},
-            FinalSchema =
-                case Required of
-                    [] ->
-                        Schema;
-                    _ ->
-                        Schema#{required => Required}
-                end,
-            {ok, FinalSchema};
+            Schema =
+                #{type => object,
+                  properties => Properties,
+                  required => Required},
+            {ok, Schema};
         {error, _} = Err ->
             Err
     end.
+
+%% FIXME: Figure out type for this.
+type_info_get_record(TypeInfo, RecordName) ->
+    maps:get({record, RecordName}, TypeInfo).
 
 -spec process_record_fields(erldantic:type_info(),
                             [{atom(), erldantic:ed_type()}],
@@ -332,6 +401,7 @@ process_record_fields(TypeInfo, [{FieldName, FieldType} | Rest], Properties, Req
     case do_to_schema(TypeInfo, FieldType) of
         {ok, FieldSchema} ->
             NewProperties = maps:put(FieldName, FieldSchema, Properties),
+            %% FIXME: Are all fields required?
             NewRequired = [FieldName | Required],
             process_record_fields(TypeInfo, Rest, NewProperties, NewRequired);
         {error, _} = Err ->
@@ -604,19 +674,18 @@ collect_parameter_refs(Parameters) ->
 -spec generate_components([{module(), atom()}]) ->
                              {ok, map()} | {error, [erldantic:error()]}.
 generate_components(SchemaRefs) ->
-    case lists:foldl(fun ({Module, TypeName}, {ok, Acc}) ->
-                             case type_to_schema(Module, TypeName) of
-                                 {error, Errors} ->
-                                     {error, Errors};  % Propagate errors
-                                 {ok, Schema} when is_map(Schema) ->
-                                     SchemaName = schema_ref_to_name({Module, TypeName}),
-                                     {ok, maps:put(SchemaName, Schema, Acc)}
-                             end;
-                         (_, {error, _} = Error) ->
-                             Error  % Propagate existing error
-                     end,
-                     {ok, #{}},
-                     SchemaRefs)
+    case erldantic_util:fold_until_error(fun({Module, TypeName}, Acc) ->
+                                            case type_to_schema(Module, TypeName) of
+                                                {error, Errors} ->
+                                                    {error, Errors};
+                                                {ok, Schema} when is_map(Schema) ->
+                                                    SchemaName =
+                                                        schema_ref_to_name({Module, TypeName}),
+                                                    {ok, maps:put(SchemaName, Schema, Acc)}
+                                            end
+                                         end,
+                                         #{},
+                                         SchemaRefs)
     of
         {ok, Schemas} ->
             ComponentsMap =

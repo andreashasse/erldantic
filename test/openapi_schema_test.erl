@@ -172,9 +172,9 @@ error_handling_test() ->
     %% Non-existent type
     {error, [Error1]} = erldantic_openapi:type_to_schema(?MODULE, non_existent_type),
     ?assertEqual(no_match, Error1#ed_error.type),
-    ?assertEqual([non_existent_type], Error1#ed_error.location),
+    ?assertEqual([openapi_schema_test], Error1#ed_error.location),
 
     %% Non-existent record
     {error, [Error2]} = erldantic_openapi:record_to_schema(?MODULE, non_existent_record),
     ?assertEqual(no_match, Error2#ed_error.type),
-    ?assertEqual([non_existent_record], Error2#ed_error.location).
+    ?assertEqual([openapi_schema_test], Error2#ed_error.location).
