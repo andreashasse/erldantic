@@ -57,12 +57,7 @@ to_schema_no_pt(Module, TypeRef) ->
 -spec to_schema(erldantic:type_info(), erldantic:ed_type_or_ref()) ->
                    {ok, Schema :: map()} | {error, [erldantic:error()]}.
 to_schema(TypeInfo, Type) ->
-    case do_to_schema(TypeInfo, Type) of
-        {ok, Schema} ->
-            {ok, Schema};
-        {error, Errs} ->
-            {error, Errs}
-    end.
+    do_to_schema(TypeInfo, Type).
 
 -spec do_to_schema(TypeInfo :: erldantic:type_info(),
                    Type :: erldantic:ed_type_or_ref()) ->
@@ -207,20 +202,11 @@ do_to_schema(_TypeInfo, #ed_simple_type{type = NotSupported} = Type)
          orelse NotSupported =:= bitstring
          orelse NotSupported =:= nonempty_bitstring
          orelse NotSupported =:= none ->
-    {error,
-     [#ed_error{type = no_match,
-                location = [],
-                ctx = #{type => Type}}]};
+    erlang:error({type_not_supported, Type});
 do_to_schema(_TypeInfo, #ed_tuple{} = Type) ->
-    {error,
-     [#ed_error{type = no_match,
-                location = [],
-                ctx = #{type => Type}}]};
+    erlang:error({type_not_supported, Type});
 do_to_schema(_TypeInfo, #ed_function{} = Type) ->
-    {error,
-     [#ed_error{type = no_match,
-                location = [],
-                ctx = #{type => Type}}]};
+    erlang:error({type_not_supported, Type});
 %% Fallback
 do_to_schema(_TypeInfo, Type) ->
     {error,
