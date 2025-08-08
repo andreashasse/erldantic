@@ -44,84 +44,92 @@
 %% Test simple type mappings
 simple_types_test() ->
     %% integer
-    ?assertEqual(#{type => integer}, erldantic_openapi:type_to_schema(?MODULE, my_integer)),
+    ?assertEqual({ok, #{type => integer}},
+                 erldantic_openapi:type_to_schema(?MODULE, my_integer)),
 
     %% string
-    ?assertEqual(#{type => string}, erldantic_openapi:type_to_schema(?MODULE, my_string)),
+    ?assertEqual({ok, #{type => string}},
+                 erldantic_openapi:type_to_schema(?MODULE, my_string)),
 
     %% boolean
-    ?assertEqual(#{type => boolean}, erldantic_openapi:type_to_schema(?MODULE, my_boolean)),
+    ?assertEqual({ok, #{type => boolean}},
+                 erldantic_openapi:type_to_schema(?MODULE, my_boolean)),
 
     %% number
-    ?assertEqual(#{type => number}, erldantic_openapi:type_to_schema(?MODULE, my_number)),
+    ?assertEqual({ok, #{type => number}},
+                 erldantic_openapi:type_to_schema(?MODULE, my_number)),
 
     %% atom (mapped to string)
-    ?assertEqual(#{type => string}, erldantic_openapi:type_to_schema(?MODULE, my_atom)),
+    ?assertEqual({ok, #{type => string}}, erldantic_openapi:type_to_schema(?MODULE, my_atom)),
 
     %% binary (mapped to string with format)
-    ?assertEqual(#{type => string, format => binary},
+    ?assertEqual({ok, #{type => string, format => binary}},
                  erldantic_openapi:type_to_schema(?MODULE, my_binary)),
 
     %% float
-    ?assertEqual(#{type => number, format => float},
+    ?assertEqual({ok, #{type => number, format => float}},
                  erldantic_openapi:type_to_schema(?MODULE, my_float)).
 
 %% Test range type mappings
 range_types_test() ->
     %% Custom range 1..10
-    ?assertEqual(#{type => integer,
-                   minimum => 1,
-                   maximum => 10},
+    ?assertEqual({ok,
+                  #{type => integer,
+                    minimum => 1,
+                    maximum => 10}},
                  erldantic_openapi:type_to_schema(?MODULE, my_range)),
 
     %% byte (0..255)
-    ?assertEqual(#{type => integer,
-                   minimum => 0,
-                   maximum => 255},
+    ?assertEqual({ok,
+                  #{type => integer,
+                    minimum => 0,
+                    maximum => 255}},
                  erldantic_openapi:type_to_schema(?MODULE, my_byte)),
 
     %% char (0..1114111)
-    ?assertEqual(#{type => integer,
-                   minimum => 0,
-                   maximum => 1114111},
+    ?assertEqual({ok,
+                  #{type => integer,
+                    minimum => 0,
+                    maximum => 1114111}},
                  erldantic_openapi:type_to_schema(?MODULE, my_char)).
 
 %% Test literal type mappings
 literal_types_test() ->
     %% Literal atom
-    ?assertEqual(#{enum => [hello]},
+    ?assertEqual({ok, #{enum => [hello]}},
                  erldantic_openapi:type_to_schema(?MODULE, my_literal_atom)),
 
     %% Literal integer
-    ?assertEqual(#{enum => [42]},
+    ?assertEqual({ok, #{enum => [42]}},
                  erldantic_openapi:type_to_schema(?MODULE, my_literal_integer)).
 
 %% Test list type mappings
 list_types_test() ->
     %% Regular list
-    ?assertEqual(#{type => array, items => #{type => integer}},
+    ?assertEqual({ok, #{type => array, items => #{type => integer}}},
                  erldantic_openapi:type_to_schema(?MODULE, my_list)),
 
     %% Non-empty list
-    ?assertEqual(#{type => array,
-                   items => #{type => string},
-                   minItems => 1},
+    ?assertEqual({ok,
+                  #{type => array,
+                    items => #{type => string},
+                    minItems => 1}},
                  erldantic_openapi:type_to_schema(?MODULE, my_nonempty_list)).
 
 %% Test union type mappings
 union_types_test() ->
     %% Simple union
-    ?assertEqual(#{oneOf => [#{type => integer}, #{type => string}]},
+    ?assertEqual({ok, #{oneOf => [#{type => integer}, #{type => string}]}},
                  erldantic_openapi:type_to_schema(?MODULE, my_union)),
 
     %% Optional type (union with undefined)
-    ?assertEqual(#{oneOf => [#{type => integer}, #{enum => [null]}]},
+    ?assertEqual({ok, #{oneOf => [#{type => integer}, #{enum => [null]}]}},
                  erldantic_openapi:type_to_schema(?MODULE, my_optional)).
 
 %% Test map type mappings
 map_types_test() ->
     %% Fixed map fields - order doesn't matter, just check structure
-    MapSchema = erldantic_openapi:type_to_schema(?MODULE, my_map),
+    {ok, MapSchema} = erldantic_openapi:type_to_schema(?MODULE, my_map),
     ?assertEqual(object, maps:get(type, MapSchema)),
     ?assertEqual(#{name => #{type => string}, age => #{type => integer}},
                  maps:get(properties, MapSchema)),
@@ -130,7 +138,7 @@ map_types_test() ->
                     maps:get(required, MapSchema))),
 
     %% Flexible map (additionalProperties) - check actual output for now
-    FlexMapSchema = erldantic_openapi:type_to_schema(?MODULE, my_flexible_map),
+    {ok, FlexMapSchema} = erldantic_openapi:type_to_schema(?MODULE, my_flexible_map),
     ?assertEqual(object, maps:get(type, FlexMapSchema)).
 
 %% Test record type mappings

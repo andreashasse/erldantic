@@ -22,16 +22,11 @@
              "TypeName" => "The name of the type to convert to OpenAPI schema"}}).
 
 -spec type_to_schema(Module :: module(), TypeName :: atom()) ->
-                        Schema :: map() | {error, [erldantic:error()]}.
+                        Schema :: {ok, map()} | {error, [erldantic:error()]}.
 type_to_schema(Module, TypeName) when is_atom(Module) andalso is_atom(TypeName) ->
     TypeArity = 0,
     TypeRef = {type, TypeName, TypeArity},
-    case to_schema_no_pt(Module, TypeRef) of
-        {ok, Schema} ->
-            Schema;
-        {error, Errors} ->
-            {error, Errors}
-    end.
+    to_schema_no_pt(Module, TypeRef).
 
 -doc("Converts an Erlang record definition to an OpenAPI 3.0 schema.\nThis function extracts the record definition from the specified module\nand generates a corresponding OpenAPI object schema.\n\n### Returns\n{ok, Schema} if conversion succeeds, or {error, Errors} if the record is not found").
 -doc(#{params =>
@@ -561,17 +556,11 @@ generate_parameter(ParameterSpec) ->
     %% For simple types, generate inline schema instead of reference
     Schema =
         case SchemaRef of
-            {erlang, integer} ->
-                #{type => integer};
-            {erlang, boolean} ->
-                #{type => boolean};
-            {erlang, string} ->
-                #{type => string};
             {Module, TypeName} ->
                 case type_to_schema(Module, TypeName) of
                     {error, _} ->
                         #{type => string};  % Fallback
-                    ValidSchema ->
+                    {ok, ValidSchema} ->
                         ValidSchema
                 end
         end,
@@ -633,7 +622,7 @@ generate_components(SchemaRefs) ->
                              case type_to_schema(Module, TypeName) of
                                  {error, Errors} ->
                                      {error, Errors};  % Propagate errors
-                                 Schema when is_map(Schema) ->
+                                 {ok, Schema} when is_map(Schema) ->
                                      SchemaName = schema_ref_to_name({Module, TypeName}),
                                      {ok, maps:put(SchemaName, Schema, Acc)}
                              end;

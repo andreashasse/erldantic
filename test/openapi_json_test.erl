@@ -436,7 +436,16 @@ convert_to_json_terms(Value) when is_list(Value) ->
             [convert_to_json_terms(Item) || Item <- Value]
     end;
 convert_to_json_terms(Value) when is_atom(Value) ->
-    atom_to_binary(Value, utf8);
+    case Value of
+        true ->
+            true;
+        false ->
+            false;
+        null ->
+            null;
+        _ ->
+            atom_to_binary(Value, utf8)
+    end;
 convert_to_json_terms(Value) ->
     Value.  % Numbers, binaries, booleans pass through
 
@@ -457,3 +466,67 @@ is_string([H | T]) when is_integer(H), H >= 0, H =< 1114111 ->
     is_string(T);
 is_string(_) ->
     false.
+
+%% Test Python-based OpenAPI validation
+python_openapi_validation_test() ->
+    %% Generate a complete OpenAPI specification first
+    GetUsersEndpoint1 = erldantic_openapi:endpoint(get, "/users"),
+    GetUsersEndpoint =
+        erldantic_openapi:with_response(GetUsersEndpoint1, 200, "List of users", {?MODULE, user}),
+
+    CreateUserEndpoint1 = erldantic_openapi:endpoint(post, "/users"),
+    CreateUserEndpoint2 =
+        erldantic_openapi:with_request_body(CreateUserEndpoint1, {?MODULE, create_user_request}),
+    CreateUserEndpoint3 =
+        erldantic_openapi:with_response(CreateUserEndpoint2,
+                                        201,
+                                        "User created",
+                                        {?MODULE, user}),
+    CreateUserEndpoint =
+        erldantic_openapi:with_response(CreateUserEndpoint3,
+                                        400,
+                                        "Invalid input",
+                                        {?MODULE, error_response}),
+
+    GetUserByIdEndpoint1 = erldantic_openapi:endpoint(get, "/users/{id}"),
+    GetUserByIdEndpoint2 =
+        erldantic_openapi:with_parameter(GetUserByIdEndpoint1,
+                                         #{name => id,
+                                           in => path,
+                                           required => true,
+                                           schema => {erlang, integer}}),
+    GetUserByIdEndpoint3 =
+        erldantic_openapi:with_response(GetUserByIdEndpoint2,
+                                        200,
+                                        "User details",
+                                        {?MODULE, user}),
+    GetUserByIdEndpoint =
+        erldantic_openapi:with_response(GetUserByIdEndpoint3,
+                                        404,
+                                        "User not found",
+                                        {?MODULE, error_response}),
+
+    Endpoints = [GetUsersEndpoint, CreateUserEndpoint, GetUserByIdEndpoint],
+    {ok, OpenAPISpec} = erldantic_openapi:endpoints_to_openapi(Endpoints),
+
+    %% Convert to JSON-compatible format and write to file
+    JsonCompatibleSpec = convert_to_json_terms(OpenAPISpec),
+    JsonIoList = json:encode(JsonCompatibleSpec),
+    JsonString = iolist_to_binary(JsonIoList),
+
+    %% Write to file for Python validation
+    file:write_file("generated_openapi.json", JsonString),
+
+    %% Run Python validation script
+    Output = os:cmd("./validate_openapi.py generated_openapi.json"),
+
+    %% Check that validation passed (look for success message in output)
+    case string:find(Output, "is a valid OpenAPI") of
+        nomatch ->
+            %% Format output as a simple string for error reporting
+            OutputStr = io_lib:format("~w", [Output]),
+            ?assert(false, io_lib:format("Python OpenAPI validation failed: ~s", [OutputStr]));
+        _ ->
+            %% Just report success without trying to display the emoji
+            io:format("Python OpenAPI validation: PASSED~n")
+    end.
