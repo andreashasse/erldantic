@@ -354,67 +354,8 @@ valid_openapi_json_test() ->
 
 %% Helper function to validate that a structure is JSON-serializable
 %% (no atoms as values, only as map keys)
-validate_json_serializable(Value) when is_map(Value) ->
-    maps:foreach(fun(K, V) ->
-                    case is_atom(K) orelse is_binary(K) orelse is_list(K) of
-                        true ->
-                            ok;  % Lists (strings) can be converted to binaries for JSON
-                        false ->
-                            io:format("Invalid map key type: ~p (type: ~p)~n", [K, typeof(K)]),
-                            ?assert(false,
-                                    io_lib:format("Map key should be atom, binary, or string, got: ~p",
-                                                  [K]))
-                    end,
-                    validate_json_serializable(V)
-                 end,
-                 Value);
-validate_json_serializable(Value) when is_list(Value) ->
-    lists:foreach(fun validate_json_serializable/1, Value);
-validate_json_serializable(Value) when is_binary(Value) ->
-    ok;
-validate_json_serializable(Value) when is_number(Value) ->
-    ok;
-validate_json_serializable(Value) when is_boolean(Value) ->
-    ok;
-validate_json_serializable(null) ->
-    ok;
-validate_json_serializable(Value) when is_atom(Value) ->
-    %% Atoms are acceptable in intermediate format, they should be converted to binaries for JSON
-    ok;
 validate_json_serializable(Value) ->
-    ?assert(false, io_lib:format("Non-JSON-serializable value: ~p", [Value])).
-
-%% Helper function to determine the type of a value
-typeof(Value) when is_atom(Value) ->
-    atom;
-typeof(Value) when is_binary(Value) ->
-    binary;
-typeof(Value) when is_bitstring(Value) ->
-    bitstring;
-typeof(Value) when is_boolean(Value) ->
-    boolean;
-typeof(Value) when is_float(Value) ->
-    float;
-typeof(Value) when is_function(Value) ->
-    function;
-typeof(Value) when is_integer(Value) ->
-    integer;
-typeof(Value) when is_list(Value) ->
-    list;
-typeof(Value) when is_map(Value) ->
-    map;
-typeof(Value) when is_number(Value) ->
-    number;
-typeof(Value) when is_pid(Value) ->
-    pid;
-typeof(Value) when is_port(Value) ->
-    port;
-typeof(Value) when is_reference(Value) ->
-    reference;
-typeof(Value) when is_tuple(Value) ->
-    tuple;
-typeof(_) ->
-    unknown.
+    json:encode(Value).
 
 %% Test Python-based OpenAPI validation
 python_openapi_validation_test() ->
