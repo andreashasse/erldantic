@@ -130,43 +130,40 @@ union_types_test() ->
 %% Test map type mappings
 map_types_test() ->
     %% Fixed map fields - order doesn't matter, just check structure
-    {ok, MapSchema} = erldantic_openapi:type_to_schema(?MODULE, my_map),
-    ?assertEqual(<<"object">>, maps:get(type, MapSchema)),
-    ?assertEqual(#{name => #{type => <<"string">>}, age => #{type => <<"integer">>}},
-                 maps:get(properties, MapSchema)),
-    ?assert(lists:sort([name, age])
-            =:= lists:sort(
-                    maps:get(required, MapSchema))),
+    ?assertEqual({ok,
+                  #{type => <<"object">>,
+                    properties =>
+                        #{name => #{type => <<"string">>}, age => #{type => <<"integer">>}},
+                    required => [age, name]}},
+                 erldantic_openapi:type_to_schema(?MODULE, my_map)),
 
     %% Flexible map (additionalProperties) - check actual output for now
-    {ok, FlexMapSchema} = erldantic_openapi:type_to_schema(?MODULE, my_flexible_map),
-    ?assertEqual(<<"object">>, maps:get(type, FlexMapSchema)).
+    ?assertMatch({ok, #{type := <<"object">>}},
+                 erldantic_openapi:type_to_schema(?MODULE, my_flexible_map)).
 
 %% Test record type mappings
 record_types_test() ->
     %% Simple record - check the actual return format
-    {ok, UserSchema} = erldantic_openapi:record_to_schema(?MODULE, user),
-    ?assertEqual(<<"object">>, maps:get(type, UserSchema)),
-    ?assertEqual(#{id => #{type => <<"integer">>},
-                   name => #{type => <<"string">>},
-                   email => #{type => <<"string">>}},
-                 maps:get(properties, UserSchema)),
-    ?assert(lists:sort([id, name, email])
-            =:= lists:sort(
-                    maps:get(required, UserSchema))),
+    ?assertEqual({ok,
+                  #{type => <<"object">>,
+                    properties =>
+                        #{id => #{type => <<"integer">>},
+                          name => #{type => <<"string">>},
+                          email => #{type => <<"string">>}},
+                    required => [id, name, email]}},
+                 erldantic_openapi:record_to_schema(?MODULE, user)),
 
     %% Record with array field
-    {ok, ProductSchema} = erldantic_openapi:record_to_schema(?MODULE, product),
-    ?assertEqual(<<"object">>, maps:get(type, ProductSchema)),
     ExpectedProps =
         #{id => #{type => <<"integer">>},
           name => #{type => <<"string">>},
           price => #{type => <<"number">>, format => <<"float">>},
           tags => #{type => <<"array">>, items => #{type => <<"string">>}}},
-    ?assertEqual(ExpectedProps, maps:get(properties, ProductSchema)),
-    ?assert(lists:sort([id, name, price, tags])
-            =:= lists:sort(
-                    maps:get(required, ProductSchema))).
+    ?assertEqual({ok,
+                  #{type => <<"object">>,
+                    properties => ExpectedProps,
+                    required => [id, name, price, tags]}},
+                 erldantic_openapi:record_to_schema(?MODULE, product)).
 
 %% Test error handling
 error_handling_test() ->

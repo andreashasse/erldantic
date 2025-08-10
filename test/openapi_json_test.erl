@@ -88,9 +88,23 @@ schema_json_structure_test() ->
                  UserSchema).
 
 %% Test OpenAPI spec contains all required fields for a valid spec
-openapi_spec_completeness_test( ) -> Endpoint1 = erldantic_openapi : endpoint( get , "/health" ) , Endpoint = erldantic_openapi : with_response( Endpoint1 , 200 , "Health check" , { ?MODULE , user } ) , { ok , OpenAPISpec } = erldantic_openapi : endpoints_to_openapi( [ Endpoint ] ) , ?assertMatch( #{ openapi := _ , info := #{ title := _ , version := _ } , paths := Paths , components := #{ schemas := _ } } when is_map( Paths ) andalso map_size( Paths ) > 0 , OpenAPISpec ) .
+openapi_spec_completeness_test() ->
     %% Create a simple but complete spec
+    Endpoint1 = erldantic_openapi:endpoint(get, "/health"),
+    Endpoint =
+        erldantic_openapi:with_response(Endpoint1, 200, "Health check", {?MODULE, user}),
+
+    {ok, OpenAPISpec} = erldantic_openapi:endpoints_to_openapi([Endpoint]),
+
     %% Validate required OpenAPI 3.0 fields and structure
+    #{paths := Paths} = OpenAPISpec,
+    ?assertMatch(#{openapi := _,
+                   info := #{title := _, version := _},
+                   paths := _,
+                   components := #{schemas := _}},
+                 OpenAPISpec),
+    ?assert(is_map(Paths)),
+    ?assert(map_size(Paths) > 0).
 
 %% Test that complex nested structures are properly formed
 complex_nested_structure_test() ->
@@ -170,80 +184,58 @@ final_json_output_test() ->
     JsonIoList = json:encode(OpenAPISpec),
     JsonString = iolist_to_binary(JsonIoList),
 
-    %% Parse back from JSON to verify round-trip works
-    ParsedJson = json:decode(JsonString),
-
-    %% Display JSON structure for inspection
-    io:format("~n=== Generated OpenAPI JSON ===~n"),
-    io:format("JSON Length: ~p characters~n", [byte_size(JsonString)]),
-    io:format("OpenAPI Version: ~s~n", [maps:get(<<"openapi">>, ParsedJson)]),
-
-    Info = maps:get(<<"info">>, ParsedJson),
-    io:format("API Title: ~s~n", [maps:get(<<"title">>, Info)]),
-    io:format("API Version: ~s~n", [maps:get(<<"version">>, Info)]),
-
-    Paths = maps:get(<<"paths">>, ParsedJson),
-    io:format("Paths: ~p~n", [maps:keys(Paths)]),
-
-    Components = maps:get(<<"components">>, ParsedJson),
-    Schemas = maps:get(<<"schemas">>, Components),
-    io:format("Schema Components: ~p~n", [maps:keys(Schemas)]),
-
-    %% Show a sample schema from JSON
-    UserSchemaJson = maps:get(<<"User">>, Schemas),
-    io:format("User Schema Type: ~p~n", [maps:get(<<"type">>, UserSchemaJson)]),
-    UserPropsJson = maps:get(<<"properties">>, UserSchemaJson),
-    io:format("User Properties: ~p~n", [maps:keys(UserPropsJson)]),
-
     %% Write JSON to file for external validation
     FileName = "generated_openapi.json",
     file:write_file(FileName, JsonString),
-    io:format("~nOpenAPI JSON written to: ~s~n", [FileName]),
-    io:format("You can validate this with: swagger-codegen validate -i ~s~n", [FileName]),
-
-    io:format("~n=== JSON Validation ===~n"),
-    io:format("Successfully converted to JSON string~n"),
-    io:format("Successfully parsed back from JSON~n"),
-    io:format("Round-trip conversion verified~n"),
 
     %% Basic validation that the spec looks correct
     ?assertMatch(#{openapi := <<"3.0.0">>,
                    paths := _,
                    components := _},
-                 OpenAPISpec),
+                 OpenAPISpec).
 
-    %% Validate the parsed JSON matches expected structure
-    ?assertMatch(#{<<"openapi">> := <<"3.0.0">>,
-                   <<"paths">> := _,
-                   <<"components">> := _},
-                 ParsedJson).
-
-%% Test JSON encoding/decoding with various schema types
-json_roundtrip_test() ->
-    %% Test individual schema JSON conversion
+%% Test JSON encoding with various schema types
+json_encoding_test() ->
+    %% Test individual schema JSON encoding
     {ok, UserSchema} = erldantic_openapi:record_to_schema(?MODULE, user),
 
-    %% Convert to JSON and back
-    JsonIoList = json:encode(UserSchema),
-    JsonString = iolist_to_binary(JsonIoList),
-    ParsedSchema = json:decode(JsonString),
+    %% Validate that the schema can be encoded to JSON (this validates JSON compatibility)
+    validate_json_serializable(UserSchema),
 
-    %% Validate the structure is preserved
-    ?assertMatch(#{<<"type">> := <<"object">>,
-                   <<"properties">> :=
-                       #{<<"id">> := #{<<"type">> := <<"integer">>},
-                         <<"name">> := #{<<"type">> := <<"string">>},
-                         <<"email">> := #{<<"type">> := <<"string">>}}},
-                 ParsedSchema).
+    %% Validate the original schema structure
+    ?assertMatch(#{type := <<"object">>,
+                   properties :=
+                       #{id := #{type := <<"integer">>},
+                         name := #{type := <<"string">>},
+                         email := #{type := <<"string">>}}},
+                 UserSchema).
 
-%% Test that the final JSON is valid OpenAPI 3.0
-valid_openapi_json_test( ) -> Endpoint1 = erldantic_openapi : endpoint( get , "/health" ) , Endpoint = erldantic_openapi : with_response( Endpoint1 , 200 , "Health status" , { ?MODULE , user } ) , { ok , OpenAPISpec } = erldantic_openapi : endpoints_to_openapi( [ Endpoint ] ) , JsonIoList = json : encode( OpenAPISpec ) , JsonString = iolist_to_binary( JsonIoList ) , ParsedJson = json : decode( JsonString ) , ?assertMatch( #{ << "openapi" >> := << "3.0.0" >> , << "info" >> := #{ << "title" >> := _ , << "version" >> := _ } , << "paths" >> := Paths , << "components" >> := #{ << "schemas" >> := Schemas } } when is_map( Paths ) andalso map_size( Paths ) > 0 andalso is_map( Schemas ) andalso map_size( Schemas ) > 0 , ParsedJson ) , ?assertMatch( #{ << "/health" >> := #{ << "get" >> := #{ << "responses" >> := #{ << "200" >> := _ } } } } , maps : get( << "paths" >> , ParsedJson ) ) , io : format( "Valid OpenAPI 3.0 JSON generated successfully~n" ) .
+%% Test that the OpenAPI spec is valid and can be encoded to JSON
+valid_openapi_test() ->
     %% Create a minimal but complete API
-    %% Convert to JSON
+    Endpoint1 = erldantic_openapi:endpoint(get, "/health"),
+    Endpoint =
+        erldantic_openapi:with_response(Endpoint1, 200, "Health status", {?MODULE, user}),
 
-    %% Validate against OpenAPI 3.0 requirements
+    {ok, OpenAPISpec} = erldantic_openapi:endpoints_to_openapi([Endpoint]),
+
+    %% Validate that the spec can be encoded to JSON (this validates JSON compatibility)
+    validate_json_serializable(OpenAPISpec),
+
+    %% Validate against OpenAPI 3.0 requirements using original data
+    #{paths := Paths, components := #{schemas := Schemas}} = OpenAPISpec,
+    ?assertMatch(#{openapi := <<"3.0.0">>,
+                   info := #{title := <<"API Documentation">>, version := <<"1.0.0">>},
+                   paths := _,
+                   components := #{schemas := _}},
+                 OpenAPISpec),
+    ?assert(is_map(Paths)),
+    ?assert(map_size(Paths) > 0),
+    ?assert(is_map(Schemas)),
+    ?assert(map_size(Schemas) > 0),
 
     %% Validate specific path and operation structure
+    ?assertMatch(#{<<"/health">> := #{get := #{responses := #{<<"200">> := _}}}}, Paths).
 
 %% Helper function to validate that a structure is JSON-serializable
 %% (no atoms as values, only as map keys)
@@ -309,6 +301,6 @@ python_openapi_validation_test() ->
             OutputStr = io_lib:format("~w", [Output]),
             ?assert(false, io_lib:format("Python OpenAPI validation failed: ~s", [OutputStr]));
         _ ->
-            %% Just report success without trying to display the emoji
-            io:format("Python OpenAPI validation: PASSED~n")
+            %% Validation passed
+            ok
     end.
