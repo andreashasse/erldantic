@@ -69,7 +69,61 @@ openapi_json_serializable_test() ->
                              #{<<"User">> := _,
                                <<"CreateUserRequest">> := _,
                                <<"ErrorResponse">> := _}}},
-                 OpenAPISpec).
+                 OpenAPISpec),
+
+    %% Extract paths for detailed validation
+    #{paths := #{<<"/users">> := UsersPath, <<"/users/{id}">> := UsersByIdPath}} =
+        OpenAPISpec,
+
+    %% Validate /users GET endpoint
+    #{get := #{responses := #{<<"200">> := GetUsersResponse}}} = UsersPath,
+    ?assertMatch(#{description := <<"List of users">>,
+                   content :=
+                       #{<<"application/json">> :=
+                             #{schema := #{'$ref' := <<"#/components/schemas/User">>}}}},
+                 GetUsersResponse),
+
+    %% Validate /users POST endpoint
+    #{post := #{requestBody := PostRequestBody, responses := PostResponses}} = UsersPath,
+    ?assertMatch(#{required := true,
+                   content :=
+                       #{<<"application/json">> :=
+                             #{schema :=
+                                   #{'$ref' := <<"#/components/schemas/CreateUserRequest">>}}}},
+                 PostRequestBody),
+
+    #{<<"201">> := Post201Response, <<"400">> := Post400Response} = PostResponses,
+    ?assertMatch(#{description := <<"User created">>,
+                   content :=
+                       #{<<"application/json">> :=
+                             #{schema := #{'$ref' := <<"#/components/schemas/User">>}}}},
+                 Post201Response),
+    ?assertMatch(#{description := <<"Invalid input">>,
+                   content :=
+                       #{<<"application/json">> :=
+                             #{schema := #{'$ref' := <<"#/components/schemas/ErrorResponse">>}}}},
+                 Post400Response),
+
+    %% Validate /users/{id} GET endpoint
+    #{get := #{parameters := GetByIdParameters, responses := GetByIdResponses}} =
+        UsersByIdPath,
+    ?assertMatch([#{name := <<"id">>,
+                    in := path,
+                    required := true,
+                    schema := #{type := <<"string">>}}],
+                 GetByIdParameters),
+
+    #{<<"200">> := GetById200Response, <<"404">> := GetById404Response} = GetByIdResponses,
+    ?assertMatch(#{description := <<"User details">>,
+                   content :=
+                       #{<<"application/json">> :=
+                             #{schema := #{'$ref' := <<"#/components/schemas/User">>}}}},
+                 GetById200Response),
+    ?assertMatch(#{description := <<"User not found">>,
+                   content :=
+                       #{<<"application/json">> :=
+                             #{schema := #{'$ref' := <<"#/components/schemas/ErrorResponse">>}}}},
+                 GetById404Response).
 
 %% Test individual schema structure is JSON-compatible
 schema_json_structure_test() ->
