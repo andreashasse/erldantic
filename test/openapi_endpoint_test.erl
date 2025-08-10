@@ -132,15 +132,15 @@ single_endpoint_to_openapi_test() ->
     {ok, OpenAPISpec} = erldantic_openapi:endpoints_to_openapi([Endpoint]),
 
     %% Should be valid OpenAPI 3.0 structure
-    ?assertEqual("3.0.0", maps:get(openapi, OpenAPISpec)),
+    ?assertEqual(<<"3.0.0">>, maps:get(openapi, OpenAPISpec)),
     ?assertMatch(#{title := _, version := _}, maps:get(info, OpenAPISpec)),
 
     %% Should have the path
     Paths = maps:get(paths, OpenAPISpec),
-    ?assertMatch(#{"/users" := _}, Paths),
+    ?assertMatch(#{<<"/users">> := _}, Paths),
 
     %% Should have the GET operation
-    UsersPath = maps:get("/users", Paths),
+    UsersPath = maps:get(<<"/users">>, Paths),
     ?assertMatch(#{get := _}, UsersPath),
 
     %% Should have the response
@@ -182,14 +182,14 @@ multiple_endpoints_to_openapi_test() ->
 
     %% Should have all paths
     Paths = maps:get(paths, OpenAPISpec),
-    ?assertMatch(#{"/users" := _, "/users/{id}" := _}, Paths),
+    ?assertMatch(#{<<"/users">> := _, <<"/users/{id}">> := _}, Paths),
 
     %% /users should have both GET and POST
-    UsersPath = maps:get("/users", Paths),
+    UsersPath = maps:get(<<"/users">>, Paths),
     ?assertMatch(#{get := _, post := _}, UsersPath),
 
     %% /users/{id} should have GET only
-    UserIdPath = maps:get("/users/{id}", Paths),
+    UserIdPath = maps:get(<<"/users/{id}">>, Paths),
     ?assertMatch(#{get := _}, UserIdPath),
     ?assertEqual(false, maps:is_key(post, UserIdPath)).
 

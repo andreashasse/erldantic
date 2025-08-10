@@ -61,16 +61,16 @@ openapi_json_serializable_test() ->
     validate_json_serializable(OpenAPISpec),
 
     %% Validate core OpenAPI structure
-    ?assertEqual("3.0.0", maps:get(openapi, OpenAPISpec)),
+    ?assertEqual(<<"3.0.0">>, maps:get(openapi, OpenAPISpec)),
 
     Info = maps:get(info, OpenAPISpec),
-    ?assertEqual("API Documentation", maps:get(title, Info)),
-    ?assertEqual("1.0.0", maps:get(version, Info)),
+    ?assertEqual(<<"API Documentation">>, maps:get(title, Info)),
+    ?assertEqual(<<"1.0.0">>, maps:get(version, Info)),
 
     %% Validate paths exist
     Paths = maps:get(paths, OpenAPISpec),
-    ?assert(maps:is_key("/users", Paths)),
-    ?assert(maps:is_key("/users/{id}", Paths)),
+    ?assert(maps:is_key(<<"/users">>, Paths)),
+    ?assert(maps:is_key(<<"/users/{id}">>, Paths)),
 
     %% Validate components exist
     Components = maps:get(components, OpenAPISpec),
@@ -88,7 +88,7 @@ schema_json_structure_test() ->
     validate_json_serializable(UserSchema),
 
     %% Validate schema structure
-    ?assertEqual(object, maps:get(type, UserSchema)),
+    ?assertEqual(<<"object">>, maps:get(type, UserSchema)),
 
     Properties = maps:get(properties, UserSchema),
     ?assert(maps:is_key(id, Properties)),
@@ -97,10 +97,10 @@ schema_json_structure_test() ->
 
     %% Validate property types
     IdProp = maps:get(id, Properties),
-    ?assertEqual(integer, maps:get(type, IdProp)),
+    ?assertEqual(<<"integer">>, maps:get(type, IdProp)),
 
     NameProp = maps:get(name, Properties),
-    ?assertEqual(string, maps:get(type, NameProp)).
+    ?assertEqual(<<"string">>, maps:get(type, NameProp)).
 
 %% Test OpenAPI spec contains all required fields for a valid spec
 openapi_spec_completeness_test() ->
@@ -153,7 +153,7 @@ complex_nested_structure_test() ->
 
     %% Deep validate the nested structure
     Paths = maps:get(paths, OpenAPISpec),
-    ComplexPath = maps:get("/complex", Paths),
+    ComplexPath = maps:get(<<"/complex">>, Paths),
     PostOp = maps:get(post, ComplexPath),
 
     %% Validate request body structure
@@ -172,7 +172,7 @@ complex_nested_structure_test() ->
     Parameters = maps:get(parameters, PostOp),
     ?assertEqual(1, length(Parameters)),
     [Parameter] = Parameters,
-    ?assertEqual("debug", maps:get(name, Parameter)),
+    ?assertEqual(<<"debug">>, maps:get(name, Parameter)),
     ?assertEqual(query, maps:get(in, Parameter)).
 
 %% Test final JSON output generation - writes actual OpenAPI JSON to file
@@ -220,8 +220,7 @@ final_json_output_test() ->
     {ok, OpenAPISpec} = erldantic_openapi:endpoints_to_openapi(Endpoints),
 
     %% Convert to actual JSON using json.erl
-    JsonCompatibleSpec = convert_to_json_terms(OpenAPISpec),
-    JsonIoList = json:encode(JsonCompatibleSpec),
+    JsonIoList = json:encode(OpenAPISpec),
     JsonString = iolist_to_binary(JsonIoList),
 
     %% Parse back from JSON to verify round-trip works
@@ -261,7 +260,7 @@ final_json_output_test() ->
     io:format("Round-trip conversion verified~n"),
 
     %% Basic validation that the spec looks correct
-    ?assertEqual("3.0.0", maps:get(openapi, OpenAPISpec)),
+    ?assertEqual(<<"3.0.0">>, maps:get(openapi, OpenAPISpec)),
     ?assert(maps:is_key(paths, OpenAPISpec)),
     ?assert(maps:is_key(components, OpenAPISpec)),
 
@@ -274,10 +273,9 @@ final_json_output_test() ->
 json_roundtrip_test() ->
     %% Test individual schema JSON conversion
     {ok, UserSchema} = erldantic_openapi:record_to_schema(?MODULE, user),
-    JsonCompatibleSchema = convert_to_json_terms(UserSchema),
 
     %% Convert to JSON and back
-    JsonIoList = json:encode(JsonCompatibleSchema),
+    JsonIoList = json:encode(UserSchema),
     JsonString = iolist_to_binary(JsonIoList),
     ParsedSchema = json:decode(JsonString),
 
@@ -307,8 +305,7 @@ valid_openapi_json_test() ->
     {ok, OpenAPISpec} = erldantic_openapi:endpoints_to_openapi([Endpoint]),
 
     %% Convert to JSON
-    JsonCompatibleSpec = convert_to_json_terms(OpenAPISpec),
-    JsonIoList = json:encode(JsonCompatibleSpec),
+    JsonIoList = json:encode(OpenAPISpec),
     JsonString = iolist_to_binary(JsonIoList),
     ParsedJson = json:decode(JsonString),
 
@@ -419,54 +416,6 @@ typeof(Value) when is_tuple(Value) ->
 typeof(_) ->
     unknown.
 
-%% Convert Erlang terms to JSON-compatible terms
-convert_to_json_terms(Value) when is_map(Value) ->
-    maps:fold(fun(K, V, Acc) ->
-                 JsonKey = convert_key_to_json(K),
-                 JsonValue = convert_to_json_terms(V),
-                 maps:put(JsonKey, JsonValue, Acc)
-              end,
-              #{},
-              Value);
-convert_to_json_terms(Value) when is_list(Value) ->
-    case is_string(Value) of
-        true ->
-            list_to_binary(Value);  % Convert strings to binaries
-        false ->
-            [convert_to_json_terms(Item) || Item <- Value]
-    end;
-convert_to_json_terms(Value) when is_atom(Value) ->
-    case Value of
-        true ->
-            true;
-        false ->
-            false;
-        null ->
-            null;
-        _ ->
-            atom_to_binary(Value, utf8)
-    end;
-convert_to_json_terms(Value) ->
-    Value.  % Numbers, binaries, booleans pass through
-
-%% Convert map keys to JSON-compatible format
-convert_key_to_json(Key) when is_atom(Key) ->
-    atom_to_binary(Key, utf8);
-convert_key_to_json(Key) when is_list(Key) ->
-    list_to_binary(Key);
-convert_key_to_json(Key) when is_binary(Key) ->
-    Key;
-convert_key_to_json(Key) ->
-    Key.
-
-%% Simple check if a list is a string
-is_string([]) ->
-    true;
-is_string([H | T]) when is_integer(H), H >= 0, H =< 1114111 ->
-    is_string(T);
-is_string(_) ->
-    false.
-
 %% Test Python-based OpenAPI validation
 python_openapi_validation_test() ->
     %% Generate a complete OpenAPI specification first
@@ -491,7 +440,7 @@ python_openapi_validation_test() ->
     GetUserByIdEndpoint1 = erldantic_openapi:endpoint(get, "/users/{id}"),
     GetUserByIdEndpoint2 =
         erldantic_openapi:with_parameter(GetUserByIdEndpoint1,
-                                         #{name => id,
+                                         #{name => "id",
                                            in => path,
                                            required => true,
                                            schema => {erlang, integer}}),
@@ -510,8 +459,7 @@ python_openapi_validation_test() ->
     {ok, OpenAPISpec} = erldantic_openapi:endpoints_to_openapi(Endpoints),
 
     %% Convert to JSON-compatible format and write to file
-    JsonCompatibleSpec = convert_to_json_terms(OpenAPISpec),
-    JsonIoList = json:encode(JsonCompatibleSpec),
+    JsonIoList = json:encode(OpenAPISpec),
     JsonString = iolist_to_binary(JsonIoList),
 
     %% Write to file for Python validation

@@ -64,32 +64,32 @@ to_schema(TypeInfo, Type) ->
                       {ok, Schema :: map()} | {error, [erldantic:error()]}.
 %% Simple types
 do_to_schema(_TypeInfo, #ed_simple_type{type = integer}) ->
-    {ok, #{type => integer}};
+    {ok, #{type => <<"integer">>}};
 do_to_schema(_TypeInfo, #ed_simple_type{type = string}) ->
-    {ok, #{type => string}};
+    {ok, #{type => <<"string">>}};
 do_to_schema(_TypeInfo, #ed_simple_type{type = boolean}) ->
-    {ok, #{type => boolean}};
+    {ok, #{type => <<"boolean">>}};
 do_to_schema(_TypeInfo, #ed_simple_type{type = number}) ->
-    {ok, #{type => number}};
+    {ok, #{type => <<"number">>}};
 do_to_schema(_TypeInfo, #ed_simple_type{type = float}) ->
-    {ok, #{type => number, format => float}};
+    {ok, #{type => <<"number">>, format => <<"float">>}};
 do_to_schema(_TypeInfo, #ed_simple_type{type = atom}) ->
-    {ok, #{type => string}};
+    {ok, #{type => <<"string">>}};
 do_to_schema(_TypeInfo, #ed_simple_type{type = binary}) ->
-    {ok, #{type => string, format => binary}};
+    {ok, #{type => <<"string">>, format => <<"binary">>}};
 do_to_schema(_TypeInfo, #ed_simple_type{type = nonempty_binary}) ->
     {ok,
-     #{type => string,
-       format => binary,
+     #{type => <<"string">>,
+       format => <<"binary">>,
        minLength => 1}};
 do_to_schema(_TypeInfo, #ed_simple_type{type = nonempty_string}) ->
-    {ok, #{type => string, minLength => 1}};
+    {ok, #{type => <<"string">>, minLength => 1}};
 do_to_schema(_TypeInfo, #ed_simple_type{type = pos_integer}) ->
-    {ok, #{type => integer, minimum => 1}};
+    {ok, #{type => <<"integer">>, minimum => 1}};
 do_to_schema(_TypeInfo, #ed_simple_type{type = non_neg_integer}) ->
-    {ok, #{type => integer, minimum => 0}};
+    {ok, #{type => <<"integer">>, minimum => 0}};
 do_to_schema(_TypeInfo, #ed_simple_type{type = neg_integer}) ->
-    {ok, #{type => integer, maximum => -1}};
+    {ok, #{type => <<"integer">>, maximum => -1}};
 do_to_schema(_TypeInfo, #ed_simple_type{type = term}) ->
     {ok, #{}};  % any type
 %% Range types
@@ -98,7 +98,7 @@ do_to_schema(_TypeInfo,
                        lower_bound = Min,
                        upper_bound = Max}) ->
     {ok,
-     #{type => integer,
+     #{type => <<"integer">>,
        minimum => Min,
        maximum => Max}};
 %% Literal types
@@ -110,7 +110,7 @@ do_to_schema(_TypeInfo, #ed_literal{value = Value}) ->
 do_to_schema(TypeInfo, #ed_list{type = ItemType}) ->
     case do_to_schema(TypeInfo, ItemType) of
         {ok, ItemSchema} ->
-            {ok, #{type => array, items => ItemSchema}};
+            {ok, #{type => <<"array">>, items => ItemSchema}};
         {error, _} = Err ->
             Err
     end;
@@ -118,7 +118,7 @@ do_to_schema(TypeInfo, #ed_nonempty_list{type = ItemType}) ->
     case do_to_schema(TypeInfo, ItemType) of
         {ok, ItemSchema} ->
             {ok,
-             #{type => array,
+             #{type => <<"array">>,
                items => ItemSchema,
                minItems => 1}};
         {error, _} = Err ->
@@ -307,7 +307,7 @@ map_fields_to_schema(TypeInfo, Fields) ->
             Schema =
                 case {Properties, HasAdditional} of
                     {Props, false} when Props =/= #{} ->
-                        BaseSchema = #{type => object, properties => Props},
+                        BaseSchema = #{type => <<"object">>, properties => Props},
                         case Required of
                             [] ->
                                 BaseSchema;
@@ -315,9 +315,9 @@ map_fields_to_schema(TypeInfo, Fields) ->
                                 BaseSchema#{required => Required}
                         end;
                     {#{}, true} ->
-                        #{type => object, additionalProperties => true};
+                        #{type => <<"object">>, additionalProperties => true};
                     _ ->
-                        #{type => object}
+                        #{type => <<"object">>}
                 end,
             {ok, Schema};
         {error, _} = Err ->
@@ -378,7 +378,7 @@ record_to_schema_internal(TypeInfo, #ed_rec{fields = Fields}) ->
     case process_record_fields(TypeInfo, Fields, #{}, []) of
         {ok, Properties, Required} ->
             Schema =
-                #{type => object,
+                #{type => <<"object">>,
                   properties => Properties,
                   required => Required},
             {ok, Schema};
@@ -400,7 +400,7 @@ process_record_fields(_TypeInfo, [], Properties, Required) ->
 process_record_fields(TypeInfo, [{FieldName, FieldType} | Rest], Properties, Required) ->
     case do_to_schema(TypeInfo, FieldType) of
         {ok, FieldSchema} ->
-            NewProperties = maps:put(FieldName, FieldSchema, Properties),
+            NewProperties = Properties#{FieldName => FieldSchema},
             %% FIXME: Are all fields required?
             NewRequired = [FieldName | Required],
             process_record_fields(TypeInfo, Rest, NewProperties, NewRequired);
@@ -480,8 +480,13 @@ endpoints_to_openapi(Endpoints) when is_list(Endpoints) ->
 
         %% Generate paths section
         Paths =
-            maps:map(fun(_Path, PathEndpoints) -> generate_path_operations(PathEndpoints) end,
-                     PathGroups),
+            maps:fold(fun(Path, PathEndpoints, Acc) ->
+                         BinaryPath = unicode:characters_to_binary(Path),
+                         PathOps = generate_path_operations(PathEndpoints),
+                         maps:put(BinaryPath, PathOps, Acc)
+                      end,
+                      #{},
+                      PathGroups),
 
         %% Collect all schema references
         SchemaRefs = collect_schema_refs(Endpoints),
@@ -497,8 +502,8 @@ endpoints_to_openapi(Endpoints) when is_list(Endpoints) ->
 
         %% Build complete OpenAPI spec
         OpenAPISpec =
-            #{openapi => "3.0.0",
-              info => #{title => "API Documentation", version => "1.0.0"},
+            #{openapi => <<"3.0.0">>,
+              info => #{title => <<"API Documentation">>, version => <<"1.0.0">>},
               paths => Paths,
               components => Components},
 
@@ -588,7 +593,7 @@ generate_response(_StatusCode, ResponseSpec) ->
     SchemaRef = maps:get(schema, ResponseSpec),
     SchemaName = schema_ref_to_name(SchemaRef),
 
-    #{description => Description,
+    #{description => unicode:characters_to_binary(Description),
       content =>
           #{<<"application/json">> =>
                 #{schema => #{'$ref' => <<"#/components/schemas/", SchemaName/binary>>}}}}.
@@ -615,13 +620,13 @@ generate_parameter(ParameterSpec) ->
             {Module, TypeName} ->
                 case type_to_schema(Module, TypeName) of
                     {error, _} ->
-                        #{type => string};  % Fallback
+                        #{type => <<"string">>};  % Fallback
                     {ok, ValidSchema} ->
                         ValidSchema
                 end
         end,
 
-    #{name => Name,
+    #{name => unicode:characters_to_binary(Name),
       in => In,
       required => Required,
       schema => Schema}.

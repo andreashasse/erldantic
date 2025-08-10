@@ -44,51 +44,52 @@
 %% Test simple type mappings
 simple_types_test() ->
     %% integer
-    ?assertEqual({ok, #{type => integer}},
+    ?assertEqual({ok, #{type => <<"integer">>}},
                  erldantic_openapi:type_to_schema(?MODULE, my_integer)),
 
     %% string
-    ?assertEqual({ok, #{type => string}},
+    ?assertEqual({ok, #{type => <<"string">>}},
                  erldantic_openapi:type_to_schema(?MODULE, my_string)),
 
     %% boolean
-    ?assertEqual({ok, #{type => boolean}},
+    ?assertEqual({ok, #{type => <<"boolean">>}},
                  erldantic_openapi:type_to_schema(?MODULE, my_boolean)),
 
     %% number
-    ?assertEqual({ok, #{type => number}},
+    ?assertEqual({ok, #{type => <<"number">>}},
                  erldantic_openapi:type_to_schema(?MODULE, my_number)),
 
     %% atom (mapped to string)
-    ?assertEqual({ok, #{type => string}}, erldantic_openapi:type_to_schema(?MODULE, my_atom)),
+    ?assertEqual({ok, #{type => <<"string">>}},
+                 erldantic_openapi:type_to_schema(?MODULE, my_atom)),
 
     %% binary (mapped to string with format)
-    ?assertEqual({ok, #{type => string, format => binary}},
+    ?assertEqual({ok, #{type => <<"string">>, format => <<"binary">>}},
                  erldantic_openapi:type_to_schema(?MODULE, my_binary)),
 
     %% float
-    ?assertEqual({ok, #{type => number, format => float}},
+    ?assertEqual({ok, #{type => <<"number">>, format => <<"float">>}},
                  erldantic_openapi:type_to_schema(?MODULE, my_float)).
 
 %% Test range type mappings
 range_types_test() ->
     %% Custom range 1..10
     ?assertEqual({ok,
-                  #{type => integer,
+                  #{type => <<"integer">>,
                     minimum => 1,
                     maximum => 10}},
                  erldantic_openapi:type_to_schema(?MODULE, my_range)),
 
     %% byte (0..255)
     ?assertEqual({ok,
-                  #{type => integer,
+                  #{type => <<"integer">>,
                     minimum => 0,
                     maximum => 255}},
                  erldantic_openapi:type_to_schema(?MODULE, my_byte)),
 
     %% char (0..1114111)
     ?assertEqual({ok,
-                  #{type => integer,
+                  #{type => <<"integer">>,
                     minimum => 0,
                     maximum => 1114111}},
                  erldantic_openapi:type_to_schema(?MODULE, my_char)).
@@ -106,32 +107,32 @@ literal_types_test() ->
 %% Test list type mappings
 list_types_test() ->
     %% Regular list
-    ?assertEqual({ok, #{type => array, items => #{type => integer}}},
+    ?assertEqual({ok, #{type => <<"array">>, items => #{type => <<"integer">>}}},
                  erldantic_openapi:type_to_schema(?MODULE, my_list)),
 
     %% Non-empty list
     ?assertEqual({ok,
-                  #{type => array,
-                    items => #{type => string},
+                  #{type => <<"array">>,
+                    items => #{type => <<"string">>},
                     minItems => 1}},
                  erldantic_openapi:type_to_schema(?MODULE, my_nonempty_list)).
 
 %% Test union type mappings
 union_types_test() ->
     %% Simple union
-    ?assertEqual({ok, #{oneOf => [#{type => integer}, #{type => string}]}},
+    ?assertEqual({ok, #{oneOf => [#{type => <<"integer">>}, #{type => <<"string">>}]}},
                  erldantic_openapi:type_to_schema(?MODULE, my_union)),
 
     %% Optional type (union with undefined)
-    ?assertEqual({ok, #{oneOf => [#{type => integer}, #{enum => [null]}]}},
+    ?assertEqual({ok, #{oneOf => [#{type => <<"integer">>}, #{enum => [null]}]}},
                  erldantic_openapi:type_to_schema(?MODULE, my_optional)).
 
 %% Test map type mappings
 map_types_test() ->
     %% Fixed map fields - order doesn't matter, just check structure
     {ok, MapSchema} = erldantic_openapi:type_to_schema(?MODULE, my_map),
-    ?assertEqual(object, maps:get(type, MapSchema)),
-    ?assertEqual(#{name => #{type => string}, age => #{type => integer}},
+    ?assertEqual(<<"object">>, maps:get(type, MapSchema)),
+    ?assertEqual(#{name => #{type => <<"string">>}, age => #{type => <<"integer">>}},
                  maps:get(properties, MapSchema)),
     ?assert(lists:sort([name, age])
             =:= lists:sort(
@@ -139,16 +140,16 @@ map_types_test() ->
 
     %% Flexible map (additionalProperties) - check actual output for now
     {ok, FlexMapSchema} = erldantic_openapi:type_to_schema(?MODULE, my_flexible_map),
-    ?assertEqual(object, maps:get(type, FlexMapSchema)).
+    ?assertEqual(<<"object">>, maps:get(type, FlexMapSchema)).
 
 %% Test record type mappings
 record_types_test() ->
     %% Simple record - check the actual return format
     {ok, UserSchema} = erldantic_openapi:record_to_schema(?MODULE, user),
-    ?assertEqual(object, maps:get(type, UserSchema)),
-    ?assertEqual(#{id => #{type => integer},
-                   name => #{type => string},
-                   email => #{type => string}},
+    ?assertEqual(<<"object">>, maps:get(type, UserSchema)),
+    ?assertEqual(#{id => #{type => <<"integer">>},
+                   name => #{type => <<"string">>},
+                   email => #{type => <<"string">>}},
                  maps:get(properties, UserSchema)),
     ?assert(lists:sort([id, name, email])
             =:= lists:sort(
@@ -156,12 +157,12 @@ record_types_test() ->
 
     %% Record with array field
     {ok, ProductSchema} = erldantic_openapi:record_to_schema(?MODULE, product),
-    ?assertEqual(object, maps:get(type, ProductSchema)),
+    ?assertEqual(<<"object">>, maps:get(type, ProductSchema)),
     ExpectedProps =
-        #{id => #{type => integer},
-          name => #{type => string},
-          price => #{type => number, format => float},
-          tags => #{type => array, items => #{type => string}}},
+        #{id => #{type => <<"integer">>},
+          name => #{type => <<"string">>},
+          price => #{type => <<"number">>, format => <<"float">>},
+          tags => #{type => <<"array">>, items => #{type => <<"string">>}}},
     ?assertEqual(ExpectedProps, maps:get(properties, ProductSchema)),
     ?assert(lists:sort([id, name, price, tags])
             =:= lists:sort(
