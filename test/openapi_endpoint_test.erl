@@ -131,67 +131,18 @@ single_endpoint_to_openapi_test() ->
     %% Generate OpenAPI spec
     {ok, OpenAPISpec} = erldantic_openapi:endpoints_to_openapi([Endpoint]),
 
-    %% Should be valid OpenAPI 3.0 structure
-    ?assertEqual(<<"3.0.0">>, maps:get(openapi, OpenAPISpec)),
-    ?assertMatch(#{title := _, version := _}, maps:get(info, OpenAPISpec)),
-
-    %% Should have the path
-    Paths = maps:get(paths, OpenAPISpec),
-    ?assertMatch(#{<<"/users">> := _}, Paths),
-
-    %% Should have the GET operation
-    UsersPath = maps:get(<<"/users">>, Paths),
-    ?assertMatch(#{get := _}, UsersPath),
-
-    %% Should have the response
-    GetOp = maps:get(get, UsersPath),
-    ?assertMatch(#{responses := #{<<"200">> := _}}, GetOp).
+    %% Should be valid OpenAPI 3.0 structure with complete path and operation
+    ?assertMatch(#{openapi := <<"3.0.0">>,
+                   info := #{title := _, version := _},
+                   paths := #{<<"/users">> := #{get := #{responses := #{<<"200">> := _}}}}},
+                 OpenAPISpec).
 
 %% Test generating OpenAPI spec from multiple endpoints
-multiple_endpoints_to_openapi_test() ->
+multiple_endpoints_to_openapi_test( ) -> Endpoint1 = erldantic_openapi : endpoint( get , "/users" ) , Endpoint1WithResp = erldantic_openapi : with_response( Endpoint1 , 200 , "List of users" , { ?MODULE , user_list } ) , Endpoint2 = erldantic_openapi : endpoint( post , "/users" ) , Endpoint2WithBody = erldantic_openapi : with_request_body( Endpoint2 , { ?MODULE , create_user_request } ) , Endpoint2WithResp = erldantic_openapi : with_response( Endpoint2WithBody , 201 , "User created" , { ?MODULE , user } ) , PathParam = #{ name => "id" , in => path , required => true , schema => { ?MODULE , user_id } } , Endpoint3 = erldantic_openapi : endpoint( get , "/users/{id}" ) , Endpoint3WithParam = erldantic_openapi : with_parameter( Endpoint3 , PathParam ) , Endpoint3WithResp1 = erldantic_openapi : with_response( Endpoint3WithParam , 200 , "User details" , { ?MODULE , user } ) , Endpoint3WithResp2 = erldantic_openapi : with_response( Endpoint3WithResp1 , 404 , "User not found" , { ?MODULE , error_response } ) , Endpoints = [ Endpoint1WithResp , Endpoint2WithResp , Endpoint3WithResp2 ] , { ok , OpenAPISpec } = erldantic_openapi : endpoints_to_openapi( Endpoints ) , ?assertMatch( #{ paths := #{ << "/users" >> := #{ get := _ , post := _ } , << "/users/{id}" >> := UsersIdPath } } when not is_map_key( post , UsersIdPath ) , OpenAPISpec ) .
     %% Create multiple endpoints
-    Endpoint1 = erldantic_openapi:endpoint(get, "/users"),
-    Endpoint1WithResp =
-        erldantic_openapi:with_response(Endpoint1, 200, "List of users", {?MODULE, user_list}),
-
-    Endpoint2 = erldantic_openapi:endpoint(post, "/users"),
-    Endpoint2WithBody =
-        erldantic_openapi:with_request_body(Endpoint2, {?MODULE, create_user_request}),
-    Endpoint2WithResp =
-        erldantic_openapi:with_response(Endpoint2WithBody, 201, "User created", {?MODULE, user}),
-
-    PathParam =
-        #{name => "id",
-          in => path,
-          required => true,
-          schema => {?MODULE, user_id}},
-    Endpoint3 = erldantic_openapi:endpoint(get, "/users/{id}"),
-    Endpoint3WithParam = erldantic_openapi:with_parameter(Endpoint3, PathParam),
-    Endpoint3WithResp1 =
-        erldantic_openapi:with_response(Endpoint3WithParam, 200, "User details", {?MODULE, user}),
-    Endpoint3WithResp2 =
-        erldantic_openapi:with_response(Endpoint3WithResp1,
-                                        404,
-                                        "User not found",
-                                        {?MODULE, error_response}),
-
-    Endpoints = [Endpoint1WithResp, Endpoint2WithResp, Endpoint3WithResp2],
-
     %% Generate OpenAPI spec
-    {ok, OpenAPISpec} = erldantic_openapi:endpoints_to_openapi(Endpoints),
 
-    %% Should have all paths
-    Paths = maps:get(paths, OpenAPISpec),
-    ?assertMatch(#{<<"/users">> := _, <<"/users/{id}">> := _}, Paths),
-
-    %% /users should have both GET and POST
-    UsersPath = maps:get(<<"/users">>, Paths),
-    ?assertMatch(#{get := _, post := _}, UsersPath),
-
-    %% /users/{id} should have GET only
-    UserIdPath = maps:get(<<"/users/{id}">>, Paths),
-    ?assertMatch(#{get := _}, UserIdPath),
-    ?assertEqual(false, maps:is_key(post, UserIdPath)).
+    %% Should have all paths with correct operations
 
 %% Test OpenAPI spec includes component schemas
 openapi_with_components_test() ->

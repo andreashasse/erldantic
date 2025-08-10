@@ -61,23 +61,15 @@ openapi_json_serializable_test() ->
     validate_json_serializable(OpenAPISpec),
 
     %% Validate core OpenAPI structure
-    ?assertEqual(<<"3.0.0">>, maps:get(openapi, OpenAPISpec)),
-
-    Info = maps:get(info, OpenAPISpec),
-    ?assertEqual(<<"API Documentation">>, maps:get(title, Info)),
-    ?assertEqual(<<"1.0.0">>, maps:get(version, Info)),
-
-    %% Validate paths exist
-    Paths = maps:get(paths, OpenAPISpec),
-    ?assert(maps:is_key(<<"/users">>, Paths)),
-    ?assert(maps:is_key(<<"/users/{id}">>, Paths)),
-
-    %% Validate components exist
-    Components = maps:get(components, OpenAPISpec),
-    Schemas = maps:get(schemas, Components),
-    ?assert(maps:is_key(<<"User">>, Schemas)),
-    ?assert(maps:is_key(<<"CreateUserRequest">>, Schemas)),
-    ?assert(maps:is_key(<<"ErrorResponse">>, Schemas)).
+    ?assertMatch(#{openapi := <<"3.0.0">>,
+                   info := #{title := <<"API Documentation">>, version := <<"1.0.0">>},
+                   paths := #{<<"/users">> := _, <<"/users/{id}">> := _},
+                   components :=
+                       #{schemas :=
+                             #{<<"User">> := _,
+                               <<"CreateUserRequest">> := _,
+                               <<"ErrorResponse">> := _}}},
+                 OpenAPISpec).
 
 %% Test individual schema structure is JSON-compatible
 schema_json_structure_test() ->
@@ -88,47 +80,17 @@ schema_json_structure_test() ->
     validate_json_serializable(UserSchema),
 
     %% Validate schema structure
-    ?assertEqual(<<"object">>, maps:get(type, UserSchema)),
-
-    Properties = maps:get(properties, UserSchema),
-    ?assert(maps:is_key(id, Properties)),
-    ?assert(maps:is_key(name, Properties)),
-    ?assert(maps:is_key(email, Properties)),
-
-    %% Validate property types
-    IdProp = maps:get(id, Properties),
-    ?assertEqual(<<"integer">>, maps:get(type, IdProp)),
-
-    NameProp = maps:get(name, Properties),
-    ?assertEqual(<<"string">>, maps:get(type, NameProp)).
+    ?assertMatch(#{type := <<"object">>,
+                   properties :=
+                       #{id := #{type := <<"integer">>},
+                         name := #{type := <<"string">>},
+                         email := #{type := <<"string">>}}},
+                 UserSchema).
 
 %% Test OpenAPI spec contains all required fields for a valid spec
-openapi_spec_completeness_test() ->
+openapi_spec_completeness_test( ) -> Endpoint1 = erldantic_openapi : endpoint( get , "/health" ) , Endpoint = erldantic_openapi : with_response( Endpoint1 , 200 , "Health check" , { ?MODULE , user } ) , { ok , OpenAPISpec } = erldantic_openapi : endpoints_to_openapi( [ Endpoint ] ) , ?assertMatch( #{ openapi := _ , info := #{ title := _ , version := _ } , paths := Paths , components := #{ schemas := _ } } when is_map( Paths ) andalso map_size( Paths ) > 0 , OpenAPISpec ) .
     %% Create a simple but complete spec
-    Endpoint1 = erldantic_openapi:endpoint(get, "/health"),
-    Endpoint =
-        erldantic_openapi:with_response(Endpoint1, 200, "Health check", {?MODULE, user}),
-
-    {ok, OpenAPISpec} = erldantic_openapi:endpoints_to_openapi([Endpoint]),
-
-    %% Validate required OpenAPI 3.0 fields exist
-    RequiredFields = [openapi, info, paths],
-    lists:foreach(fun(Field) -> ?assert(maps:is_key(Field, OpenAPISpec)) end, RequiredFields),
-
-    %% Validate info object has required fields
-    Info = maps:get(info, OpenAPISpec),
-    InfoRequiredFields = [title, version],
-    lists:foreach(fun(Field) -> ?assert(maps:is_key(Field, Info)) end, InfoRequiredFields),
-
-    %% Validate paths structure
-    Paths = maps:get(paths, OpenAPISpec),
-    ?assert(is_map(Paths)),
-    ?assert(maps:size(Paths) > 0),
-
-    %% Validate that we have components when schemas are referenced
-    Components = maps:get(components, OpenAPISpec),
-    ?assert(is_map(Components)),
-    ?assert(maps:is_key(schemas, Components)).
+    %% Validate required OpenAPI 3.0 fields and structure
 
 %% Test that complex nested structures are properly formed
 complex_nested_structure_test() ->
@@ -152,28 +114,13 @@ complex_nested_structure_test() ->
     validate_json_serializable(OpenAPISpec),
 
     %% Deep validate the nested structure
-    Paths = maps:get(paths, OpenAPISpec),
-    ComplexPath = maps:get(<<"/complex">>, Paths),
-    PostOp = maps:get(post, ComplexPath),
-
-    %% Validate request body structure
-    ?assert(maps:is_key(requestBody, PostOp)),
-    RequestBody = maps:get(requestBody, PostOp),
-    ?assertEqual(true, maps:get(required, RequestBody)),
-
-    %% Validate response structure
-    ?assert(maps:is_key(responses, PostOp)),
-    Responses = maps:get(responses, PostOp),
-    ?assert(maps:is_key(<<"201">>, Responses)),
-    ?assert(maps:is_key(<<"400">>, Responses)),
-
-    %% Validate parameter structure
-    ?assert(maps:is_key(parameters, PostOp)),
-    Parameters = maps:get(parameters, PostOp),
-    ?assertEqual(1, length(Parameters)),
-    [Parameter] = Parameters,
-    ?assertEqual(<<"debug">>, maps:get(name, Parameter)),
-    ?assertEqual(query, maps:get(in, Parameter)).
+    ?assertMatch(#{paths :=
+                       #{<<"/complex">> :=
+                             #{post :=
+                                   #{requestBody := #{required := true},
+                                     responses := #{<<"201">> := _, <<"400">> := _},
+                                     parameters := [#{name := <<"debug">>, in := query}]}}}},
+                 OpenAPISpec).
 
 %% Test final JSON output generation - writes actual OpenAPI JSON to file
 final_json_output_test() ->
@@ -260,14 +207,16 @@ final_json_output_test() ->
     io:format("Round-trip conversion verified~n"),
 
     %% Basic validation that the spec looks correct
-    ?assertEqual(<<"3.0.0">>, maps:get(openapi, OpenAPISpec)),
-    ?assert(maps:is_key(paths, OpenAPISpec)),
-    ?assert(maps:is_key(components, OpenAPISpec)),
+    ?assertMatch(#{openapi := <<"3.0.0">>,
+                   paths := _,
+                   components := _},
+                 OpenAPISpec),
 
     %% Validate the parsed JSON matches expected structure
-    ?assertEqual(<<"3.0.0">>, maps:get(<<"openapi">>, ParsedJson)),
-    ?assert(maps:is_key(<<"paths">>, ParsedJson)),
-    ?assert(maps:is_key(<<"components">>, ParsedJson)).
+    ?assertMatch(#{<<"openapi">> := <<"3.0.0">>,
+                   <<"paths">> := _,
+                   <<"components">> := _},
+                 ParsedJson).
 
 %% Test JSON encoding/decoding with various schema types
 json_roundtrip_test() ->
@@ -280,77 +229,21 @@ json_roundtrip_test() ->
     ParsedSchema = json:decode(JsonString),
 
     %% Validate the structure is preserved
-    ?assertEqual(<<"object">>, maps:get(<<"type">>, ParsedSchema)),
-    ?assert(maps:is_key(<<"properties">>, ParsedSchema)),
-
-    Properties = maps:get(<<"properties">>, ParsedSchema),
-    ?assert(maps:is_key(<<"id">>, Properties)),
-    ?assert(maps:is_key(<<"name">>, Properties)),
-    ?assert(maps:is_key(<<"email">>, Properties)),
-
-    %% Validate property types are correct
-    IdProp = maps:get(<<"id">>, Properties),
-    ?assertEqual(<<"integer">>, maps:get(<<"type">>, IdProp)),
-
-    NameProp = maps:get(<<"name">>, Properties),
-    ?assertEqual(<<"string">>, maps:get(<<"type">>, NameProp)).
+    ?assertMatch(#{<<"type">> := <<"object">>,
+                   <<"properties">> :=
+                       #{<<"id">> := #{<<"type">> := <<"integer">>},
+                         <<"name">> := #{<<"type">> := <<"string">>},
+                         <<"email">> := #{<<"type">> := <<"string">>}}},
+                 ParsedSchema).
 
 %% Test that the final JSON is valid OpenAPI 3.0
-valid_openapi_json_test() ->
+valid_openapi_json_test( ) -> Endpoint1 = erldantic_openapi : endpoint( get , "/health" ) , Endpoint = erldantic_openapi : with_response( Endpoint1 , 200 , "Health status" , { ?MODULE , user } ) , { ok , OpenAPISpec } = erldantic_openapi : endpoints_to_openapi( [ Endpoint ] ) , JsonIoList = json : encode( OpenAPISpec ) , JsonString = iolist_to_binary( JsonIoList ) , ParsedJson = json : decode( JsonString ) , ?assertMatch( #{ << "openapi" >> := << "3.0.0" >> , << "info" >> := #{ << "title" >> := _ , << "version" >> := _ } , << "paths" >> := Paths , << "components" >> := #{ << "schemas" >> := Schemas } } when is_map( Paths ) andalso map_size( Paths ) > 0 andalso is_map( Schemas ) andalso map_size( Schemas ) > 0 , ParsedJson ) , ?assertMatch( #{ << "/health" >> := #{ << "get" >> := #{ << "responses" >> := #{ << "200" >> := _ } } } } , maps : get( << "paths" >> , ParsedJson ) ) , io : format( "Valid OpenAPI 3.0 JSON generated successfully~n" ) .
     %% Create a minimal but complete API
-    Endpoint1 = erldantic_openapi:endpoint(get, "/health"),
-    Endpoint =
-        erldantic_openapi:with_response(Endpoint1, 200, "Health status", {?MODULE, user}),
-
-    {ok, OpenAPISpec} = erldantic_openapi:endpoints_to_openapi([Endpoint]),
-
     %% Convert to JSON
-    JsonIoList = json:encode(OpenAPISpec),
-    JsonString = iolist_to_binary(JsonIoList),
-    ParsedJson = json:decode(JsonString),
 
     %% Validate against OpenAPI 3.0 requirements
-    %% Required root fields
-    RequiredFields = [<<"openapi">>, <<"info">>, <<"paths">>],
-    lists:foreach(fun(Field) ->
-                     ?assert(maps:is_key(Field, ParsedJson),
-                             io_lib:format("Missing required field: ~p", [Field]))
-                  end,
-                  RequiredFields),
 
-    %% OpenAPI version
-    ?assertEqual(<<"3.0.0">>, maps:get(<<"openapi">>, ParsedJson)),
-
-    %% Info object requirements
-    Info = maps:get(<<"info">>, ParsedJson),
-    ?assert(maps:is_key(<<"title">>, Info)),
-    ?assert(maps:is_key(<<"version">>, Info)),
-
-    %% Paths object
-    Paths = maps:get(<<"paths">>, ParsedJson),
-    ?assert(is_map(Paths)),
-    ?assert(maps:size(Paths) > 0),
-
-    %% Check that paths contain valid operations
-    ?assert(maps:is_key(<<"/health">>, Paths)),
-    HealthPath = maps:get(<<"/health">>, Paths),
-    ?assert(maps:is_key(<<"get">>, HealthPath)),
-
-    %% Check operation structure
-    GetOp = maps:get(<<"get">>, HealthPath),
-    ?assert(maps:is_key(<<"responses">>, GetOp)),
-
-    Responses = maps:get(<<"responses">>, GetOp),
-    ?assert(maps:is_key(<<"200">>, Responses)),
-
-    %% Components should exist with schemas
-    Components = maps:get(<<"components">>, ParsedJson),
-    ?assert(maps:is_key(<<"schemas">>, Components)),
-
-    Schemas = maps:get(<<"schemas">>, Components),
-    ?assert(maps:size(Schemas) > 0),
-
-    io:format("Valid OpenAPI 3.0 JSON generated successfully~n").
+    %% Validate specific path and operation structure
 
 %% Helper function to validate that a structure is JSON-serializable
 %% (no atoms as values, only as map keys)
