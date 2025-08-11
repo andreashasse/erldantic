@@ -30,7 +30,7 @@
 -type my_optional() :: integer() | undefined.
 %% Map types
 -type my_map() :: #{name := string(), age := integer()}.
--type my_flexible_map() :: #{string() => integer()}.
+-type my_flexible_map() :: #{config := string(), timeout := integer()}.
 
 %% Record types
 -record(user, {id :: integer(), name :: string(), email :: string()}).
@@ -137,8 +137,12 @@ map_types_test() ->
                     required => [age, name]}},
                  erldantic_openapi:type_to_schema(?MODULE, my_map)),
 
-    %% Flexible map (additionalProperties) - check actual output for now
-    ?assertMatch({ok, #{type := <<"object">>}},
+    %% Structured map with specific fields
+    ?assertEqual({ok,
+                  #{type => <<"object">>,
+                    properties =>
+                        #{config => #{type => <<"string">>}, timeout => #{type => <<"integer">>}},
+                    required => [timeout, config]}},
                  erldantic_openapi:type_to_schema(?MODULE, my_flexible_map)).
 
 %% Test record type mappings

@@ -569,12 +569,7 @@ check_type_to_json(nonempty_string, Json) when is_list(Json), Json =/= [] ->
                               value => Json,
                               comment => "non printable"}}]}
     end;
-check_type_to_json(Type, Json) ->
-    check_type(Type, Json).
-
-check_type(integer, Json) when is_integer(Json) ->
-    {true, Json};
-check_type(string, Json) when is_list(Json) ->
+check_type_to_json(string, Json) when is_list(Json) ->
     %% All characters should be printable ASCII or it's probably not intended as a string
     %% FIXME: Document this.
     case io_lib:printable_list(Json) of
@@ -589,6 +584,11 @@ check_type(string, Json) when is_list(Json) ->
                               value => Json,
                               comment => "non printable"}}]}
     end;
+check_type_to_json(Type, Json) ->
+    check_type(Type, Json).
+
+check_type(integer, Json) when is_integer(Json) ->
+    {true, Json};
 check_type(boolean, Json) when is_boolean(Json) ->
     {true, Json};
 check_type(float, Json) when is_float(Json) ->

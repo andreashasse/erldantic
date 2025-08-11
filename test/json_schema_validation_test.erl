@@ -21,7 +21,9 @@
       notifications := boolean(),
       max_items := pos_integer(),
       tags => [string()],
-      metadata => #{string() => term()}}.
+      metadata => #{version := string(), created_at := string()}}.
+%% Test type with binary keys - this should fail
+-type binary_key_map() :: #{binary() => integer()}.
 
 %% Tests
 simple_type_validation_test() ->
@@ -109,7 +111,7 @@ complex_map_validation_test() ->
           <<"notifications">> => true,
           <<"max_items">> => 50,
           <<"tags">> => [<<"erlang">>, <<"json">>, <<"api">>],
-          <<"metadata">> => #{<<"version">> => <<"1.0">>, <<"author">> => <<"test">>}},
+          <<"metadata">> => #{<<"version">> => <<"1.0">>, <<"created_at">> => <<"2023-01-01">>}},
     ?assertEqual({ok, ValidCompleteData},
                  jesse:validate_with_schema(JesseSchema, ValidCompleteData)),
 
