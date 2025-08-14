@@ -1,6 +1,6 @@
 -module(erldantic_openapi).
 
--export([type_to_schema/2, record_to_schema/2, endpoint/2, with_response/4,
+-export([endpoint/2, with_response/4,
          with_request_body/2, with_parameter/2, endpoints_to_openapi/1]).
 
 -ignore_xref([{erldantic_openapi, type_to_schema, 2},
@@ -12,33 +12,8 @@
               {erldantic_openapi, endpoints_to_openapi, 1}]).
 
 -include("../include/erldantic.hrl").
--include("../include/erldantic_internal.hrl").
 
 %% API
-
--doc("Converts an Erlang type definition to an OpenAPI 3.0 schema.\nThis function extracts the type definition from the specified module\nand generates a corresponding OpenAPI schema object.\nThe type must be of arity 0.\n\n### Returns\n{ok, Schema} if conversion succeeds, or {error, Errors} if the type is not found").
--doc(#{params =>
-           #{"Module" => "The module containing the type definition",
-             "TypeName" => "The name of the type to convert to OpenAPI schema"}}).
-
--spec type_to_schema(Module :: module(), TypeName :: atom()) ->
-                        Schema :: {ok, map()} | {error, [erldantic:error()]}.
-type_to_schema(Module, TypeName) when is_atom(Module) andalso is_atom(TypeName) ->
-    erldantic_json_schema:type_to_schema(Module, TypeName).
-
--doc("Converts an Erlang record definition to an OpenAPI 3.0 schema.\nThis function extracts the record definition from the specified module\nand generates a corresponding OpenAPI object schema.\n\n### Returns\n{ok, Schema} if conversion succeeds, or {error, Errors} if the record is not found").
--doc(#{params =>
-           #{"Module" => "The module containing the record definition",
-             "RecordName" => "The name of the record to convert to OpenAPI schema"}}).
-
--spec record_to_schema(Module :: module(), RecordName :: atom()) ->
-                          {ok, Schema :: map()} | {error, [erldantic:error()]}.
-record_to_schema(Module, RecordName) when is_atom(Module) andalso is_atom(RecordName) ->
-    erldantic_json_schema:record_to_schema(Module, RecordName).
-
-%% INTERNAL (functions specific to OpenAPI endpoint processing)
-
-%% ENDPOINT API
 
 -doc("Creates a basic endpoint specification.\nThis function creates the foundation for an endpoint with the specified HTTP method and path.\nAdditional details like responses, request body, and parameters can be added using the with_* functions.\n\n### Returns\nEndpoint map with method and path set").
 -doc(#{params =>
