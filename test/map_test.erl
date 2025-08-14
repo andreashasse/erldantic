@@ -15,6 +15,8 @@
 -type map_with_tuple_key() :: #{tuple() => atom()}.
 -type map_with_fun_value() :: #{atom() => fun()}.
 -type map_with_fun_key() :: #{fun() => atom()}.
+-type map_in_map_value() :: #{hej => #{string() => integer()}}.
+-type map_in_map_key() :: #{#{string() => integer} => integer()}.
 
 map1_test() ->
     ?assertEqual({ok, #{a1 => 1}}, to_json_atom_map(#{a1 => 1})).
@@ -223,6 +225,52 @@ from_json_map_with_fun_key_test() ->
     ?assertError({type_not_supported, _},
                  from_json_map_with_fun_key(#{<<"key">> => <<"value">>})).
 
+map_in_map_value_test() ->
+    ?assertEqual({ok, #{hej => #{<<"key1">> => 42, <<"key2">> => 100}}},
+                 to_json_map_in_map_value(#{hej => #{<<"key1">> => 42, <<"key2">> => 100}})).
+
+map_in_map_value_bad_test() ->
+    ?assertEqual({error,
+                  [#ed_error{location = [hej, <<"key1">>],
+                             type = type_mismatch,
+                             ctx =
+                                 #{type => #ed_simple_type{type = integer},
+                                   value => <<"not_integer">>}}]},
+                 to_json_map_in_map_value(#{hej => #{<<"key1">> => <<"not_integer">>}})),
+    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
+                 to_json_map_in_map_value(not_a_map)).
+
+map_in_map_key_test() ->
+    ?assertEqual({ok, #{#{<<"str1">> => 1, <<"str2">> => 2} => 42}},
+                 to_json_map_in_map_key(#{#{<<"str1">> => 1, <<"str2">> => 2} => 42})).
+
+map_in_map_key_bad_test() ->
+    ?assertEqual({error,
+                  [#ed_error{location = [],
+                             type = type_mismatch,
+                             ctx = #{type => #ed_simple_type{type = map}, value => not_a_map}}]},
+                 to_json_map_in_map_key(not_a_map)).
+
+from_json_map_in_map_value_test() ->
+    ?assertEqual({ok, #{hej => #{<<"key1">> => 42, <<"key2">> => 100}}},
+                 from_json_map_in_map_value(#{<<"hej">> =>
+                                                  #{<<"key1">> => 42, <<"key2">> => 100}})).
+
+from_json_map_in_map_value_bad_test() ->
+    ?assertEqual({error,
+                  [#ed_error{location = [hej, <<"key1">>],
+                             type = type_mismatch,
+                             ctx =
+                                 #{type => #ed_simple_type{type = integer},
+                                   value => <<"not_integer">>}}]},
+                 from_json_map_in_map_value(#{<<"hej">> => #{<<"key1">> => <<"not_integer">>}})),
+    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
+                 from_json_map_in_map_value(not_a_map)).
+
+from_json_map_in_map_key_test() ->
+    ?assertError({type_not_supported, _},
+                 from_json_map_in_map_key(#{<<"key">> => <<"value">>})).
+
 -spec to_json_mandatory_type_map(term()) ->
                                     {ok, mandatory_type_map()} | {error, [erldantic:error()]}.
 to_json_mandatory_type_map(Data) ->
@@ -316,3 +364,23 @@ to_json_map_with_fun_key(Data) ->
                                     {ok, map_with_fun_key()} | {error, [erldantic:error()]}.
 from_json_map_with_fun_key(Data) ->
     erldantic_json:type_from_json(?MODULE, map_with_fun_key, Data).
+
+-spec to_json_map_in_map_value(term()) ->
+                                  {ok, map_in_map_value()} | {error, [erldantic:error()]}.
+to_json_map_in_map_value(Data) ->
+    erldantic_json:type_to_json(?MODULE, map_in_map_value, Data).
+
+-spec from_json_map_in_map_value(term()) ->
+                                    {ok, map_in_map_value()} | {error, [erldantic:error()]}.
+from_json_map_in_map_value(Data) ->
+    erldantic_json:type_from_json(?MODULE, map_in_map_value, Data).
+
+-spec to_json_map_in_map_key(term()) ->
+                                {ok, map_in_map_key()} | {error, [erldantic:error()]}.
+to_json_map_in_map_key(Data) ->
+    erldantic_json:type_to_json(?MODULE, map_in_map_key, Data).
+
+-spec from_json_map_in_map_key(term()) ->
+                                  {ok, map_in_map_key()} | {error, [erldantic:error()]}.
+from_json_map_in_map_key(Data) ->
+    erldantic_json:type_from_json(?MODULE, map_in_map_key, Data).
