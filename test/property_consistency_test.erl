@@ -31,7 +31,7 @@ prop_jesse_erldantic_consistency() ->
             {test_type_name(), json_generator:json_value()},
             begin
                 % Generate OpenAPI schema from the type
-                SchemaResult = erldantic_openapi:type_to_schema(?MODULE, TypeName),
+                SchemaResult = erldantic_json_schema:type_to_schema(?MODULE, TypeName),
                 case SchemaResult of
                     {ok, Schema} ->
                         % Convert schema to Jesse format

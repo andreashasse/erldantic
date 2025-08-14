@@ -16,7 +16,7 @@
 -type map_with_fun_value() :: #{atom() => fun()}.
 -type map_with_fun_key() :: #{fun() => atom()}.
 -type map_in_map_value() :: #{hej => #{string() => integer()}}.
--type map_in_map_key() :: #{#{string() => integer} => integer()}.
+-type map_in_map_key() :: #{#{string() => integer()} => integer()}.
 
 map1_test() ->
     ?assertEqual({ok, #{a1 => 1}}, to_json_atom_map(#{a1 => 1})).
@@ -227,22 +227,20 @@ from_json_map_with_fun_key_test() ->
 
 map_in_map_value_test() ->
     ?assertEqual({ok, #{hej => #{<<"key1">> => 42, <<"key2">> => 100}}},
-                 to_json_map_in_map_value(#{hej => #{<<"key1">> => 42, <<"key2">> => 100}})).
+                 to_json_map_in_map_value(#{hej => #{"key1" => 42, "key2" => 100}})).
 
 map_in_map_value_bad_test() ->
     ?assertEqual({error,
-                  [#ed_error{location = [hej, <<"key1">>],
-                             type = type_mismatch,
-                             ctx =
-                                 #{type => #ed_simple_type{type = integer},
-                                   value => <<"not_integer">>}}]},
+                  [#ed_error{location = [hej],
+                             type = not_matched_fields,
+                             ctx = #{key => <<"key1">>, value => <<"not_integer">>}}]},
                  to_json_map_in_map_value(#{hej => #{<<"key1">> => <<"not_integer">>}})),
     ?assertMatch({error, [#ed_error{type = type_mismatch}]},
                  to_json_map_in_map_value(not_a_map)).
 
 map_in_map_key_test() ->
     ?assertEqual({ok, #{#{<<"str1">> => 1, <<"str2">> => 2} => 42}},
-                 to_json_map_in_map_key(#{#{<<"str1">> => 1, <<"str2">> => 2} => 42})).
+                 to_json_map_in_map_key(#{#{"str1" => 1, "str2" => 2} => 42})).
 
 map_in_map_key_bad_test() ->
     ?assertEqual({error,
@@ -252,7 +250,7 @@ map_in_map_key_bad_test() ->
                  to_json_map_in_map_key(not_a_map)).
 
 from_json_map_in_map_value_test() ->
-    ?assertEqual({ok, #{hej => #{<<"key1">> => 42, <<"key2">> => 100}}},
+    ?assertEqual({ok, #{hej => #{"key1" => 42, "key2" => 100}}},
                  from_json_map_in_map_value(#{<<"hej">> =>
                                                   #{<<"key1">> => 42, <<"key2">> => 100}})).
 
@@ -268,7 +266,9 @@ from_json_map_in_map_value_bad_test() ->
                  from_json_map_in_map_value(not_a_map)).
 
 from_json_map_in_map_key_test() ->
-    ?assertError({type_not_supported, _},
+    ?assertMatch({error,
+                  [#ed_error{type = not_matched_fields,
+                             ctx = #{value := <<"value">>, key := <<"key">>}}]},
                  from_json_map_in_map_key(#{<<"key">> => <<"value">>})).
 
 -spec to_json_mandatory_type_map(term()) ->

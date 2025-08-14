@@ -128,7 +128,7 @@ openapi_json_serializable_test() ->
 %% Test individual schema structure is JSON-compatible
 schema_json_structure_test() ->
     %% Generate schema for user record
-    {ok, UserSchema} = erldantic_openapi:record_to_schema(?MODULE, user),
+    {ok, UserSchema} = erldantic_json_schema:record_to_schema(?MODULE, user),
 
     %% Validate JSON-compatible structure
     validate_json_serializable(UserSchema),
@@ -251,7 +251,7 @@ final_json_output_test() ->
 %% Test JSON encoding with various schema types
 json_encoding_test() ->
     %% Test individual schema JSON encoding
-    {ok, UserSchema} = erldantic_openapi:record_to_schema(?MODULE, user),
+    {ok, UserSchema} = erldantic_json_schema:record_to_schema(?MODULE, user),
 
     %% Validate that the schema can be encoded to JSON (this validates JSON compatibility)
     validate_json_serializable(UserSchema),

@@ -1,7 +1,7 @@
 -module(erldantic_openapi).
 
--export([endpoint/2, with_response/4,
-         with_request_body/2, with_parameter/2, endpoints_to_openapi/1]).
+-export([endpoint/2, with_response/4, with_request_body/2, with_parameter/2,
+         endpoints_to_openapi/1]).
 
 -ignore_xref([{erldantic_openapi, type_to_schema, 2},
               {erldantic_openapi, record_to_schema, 2},
@@ -223,7 +223,7 @@ generate_parameter(ParameterSpec) ->
     Schema =
         case SchemaRef of
             {Module, TypeName} ->
-                case type_to_schema(Module, TypeName) of
+                case erldantic_json_schema:type_to_schema(Module, TypeName) of
                     {error, _} ->
                         #{type => <<"string">>};  % Fallback
                     {ok, ValidSchema} ->
@@ -285,7 +285,9 @@ collect_parameter_refs(Parameters) ->
                              {ok, map()} | {error, [erldantic:error()]}.
 generate_components(SchemaRefs) ->
     case erldantic_util:fold_until_error(fun({Module, TypeName}, Acc) ->
-                                            case type_to_schema(Module, TypeName) of
+                                            case erldantic_json_schema:type_to_schema(Module,
+                                                                                      TypeName)
+                                            of
                                                 {error, Errors} ->
                                                     {error, Errors};
                                                 {ok, Schema} when is_map(Schema) ->

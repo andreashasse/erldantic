@@ -45,31 +45,31 @@
 simple_types_test() ->
     %% integer
     ?assertEqual({ok, #{type => <<"integer">>}},
-                 erldantic_openapi:type_to_schema(?MODULE, my_integer)),
+                 erldantic_json_schema:type_to_schema(?MODULE, my_integer)),
 
     %% string
     ?assertEqual({ok, #{type => <<"string">>}},
-                 erldantic_openapi:type_to_schema(?MODULE, my_string)),
+                 erldantic_json_schema:type_to_schema(?MODULE, my_string)),
 
     %% boolean
     ?assertEqual({ok, #{type => <<"boolean">>}},
-                 erldantic_openapi:type_to_schema(?MODULE, my_boolean)),
+                 erldantic_json_schema:type_to_schema(?MODULE, my_boolean)),
 
     %% number
     ?assertEqual({ok, #{type => <<"number">>}},
-                 erldantic_openapi:type_to_schema(?MODULE, my_number)),
+                 erldantic_json_schema:type_to_schema(?MODULE, my_number)),
 
     %% atom (mapped to string)
     ?assertEqual({ok, #{type => <<"string">>}},
-                 erldantic_openapi:type_to_schema(?MODULE, my_atom)),
+                 erldantic_json_schema:type_to_schema(?MODULE, my_atom)),
 
     %% binary (mapped to string with format)
     ?assertEqual({ok, #{type => <<"string">>, format => <<"binary">>}},
-                 erldantic_openapi:type_to_schema(?MODULE, my_binary)),
+                 erldantic_json_schema:type_to_schema(?MODULE, my_binary)),
 
     %% float
     ?assertEqual({ok, #{type => <<"number">>, format => <<"float">>}},
-                 erldantic_openapi:type_to_schema(?MODULE, my_float)).
+                 erldantic_json_schema:type_to_schema(?MODULE, my_float)).
 
 %% Test range type mappings
 range_types_test() ->
@@ -78,54 +78,54 @@ range_types_test() ->
                   #{type => <<"integer">>,
                     minimum => 1,
                     maximum => 10}},
-                 erldantic_openapi:type_to_schema(?MODULE, my_range)),
+                 erldantic_json_schema:type_to_schema(?MODULE, my_range)),
 
     %% byte (0..255)
     ?assertEqual({ok,
                   #{type => <<"integer">>,
                     minimum => 0,
                     maximum => 255}},
-                 erldantic_openapi:type_to_schema(?MODULE, my_byte)),
+                 erldantic_json_schema:type_to_schema(?MODULE, my_byte)),
 
     %% char (0..1114111)
     ?assertEqual({ok,
                   #{type => <<"integer">>,
                     minimum => 0,
                     maximum => 1114111}},
-                 erldantic_openapi:type_to_schema(?MODULE, my_char)).
+                 erldantic_json_schema:type_to_schema(?MODULE, my_char)).
 
 %% Test literal type mappings
 literal_types_test() ->
     %% Literal atom
     ?assertEqual({ok, #{enum => [hello]}},
-                 erldantic_openapi:type_to_schema(?MODULE, my_literal_atom)),
+                 erldantic_json_schema:type_to_schema(?MODULE, my_literal_atom)),
 
     %% Literal integer
     ?assertEqual({ok, #{enum => [42]}},
-                 erldantic_openapi:type_to_schema(?MODULE, my_literal_integer)).
+                 erldantic_json_schema:type_to_schema(?MODULE, my_literal_integer)).
 
 %% Test list type mappings
 list_types_test() ->
     %% Regular list
     ?assertEqual({ok, #{type => <<"array">>, items => #{type => <<"integer">>}}},
-                 erldantic_openapi:type_to_schema(?MODULE, my_list)),
+                 erldantic_json_schema:type_to_schema(?MODULE, my_list)),
 
     %% Non-empty list
     ?assertEqual({ok,
                   #{type => <<"array">>,
                     items => #{type => <<"string">>},
                     minItems => 1}},
-                 erldantic_openapi:type_to_schema(?MODULE, my_nonempty_list)).
+                 erldantic_json_schema:type_to_schema(?MODULE, my_nonempty_list)).
 
 %% Test union type mappings
 union_types_test() ->
     %% Simple union
     ?assertEqual({ok, #{oneOf => [#{type => <<"integer">>}, #{type => <<"string">>}]}},
-                 erldantic_openapi:type_to_schema(?MODULE, my_union)),
+                 erldantic_json_schema:type_to_schema(?MODULE, my_union)),
 
     %% Optional type (union with undefined)
     ?assertEqual({ok, #{oneOf => [#{type => <<"integer">>}, #{enum => [null]}]}},
-                 erldantic_openapi:type_to_schema(?MODULE, my_optional)).
+                 erldantic_json_schema:type_to_schema(?MODULE, my_optional)).
 
 %% Test map type mappings
 map_types_test() ->
@@ -135,7 +135,7 @@ map_types_test() ->
                     properties =>
                         #{name => #{type => <<"string">>}, age => #{type => <<"integer">>}},
                     required => [age, name]}},
-                 erldantic_openapi:type_to_schema(?MODULE, my_map)),
+                 erldantic_json_schema:type_to_schema(?MODULE, my_map)),
 
     %% Structured map with specific fields
     ?assertEqual({ok,
@@ -143,7 +143,7 @@ map_types_test() ->
                     properties =>
                         #{config => #{type => <<"string">>}, timeout => #{type => <<"integer">>}},
                     required => [timeout, config]}},
-                 erldantic_openapi:type_to_schema(?MODULE, my_flexible_map)).
+                 erldantic_json_schema:type_to_schema(?MODULE, my_flexible_map)).
 
 %% Test record type mappings
 record_types_test() ->
@@ -155,7 +155,7 @@ record_types_test() ->
                           name => #{type => <<"string">>},
                           email => #{type => <<"string">>}},
                     required => [id, name, email]}},
-                 erldantic_openapi:record_to_schema(?MODULE, user)),
+                 erldantic_json_schema:record_to_schema(?MODULE, user)),
 
     %% Record with array field
     ExpectedProps =
@@ -167,16 +167,16 @@ record_types_test() ->
                   #{type => <<"object">>,
                     properties => ExpectedProps,
                     required => [id, name, price, tags]}},
-                 erldantic_openapi:record_to_schema(?MODULE, product)).
+                 erldantic_json_schema:record_to_schema(?MODULE, product)).
 
 %% Test error handling
 error_handling_test() ->
     %% Non-existent type
-    {error, [Error1]} = erldantic_openapi:type_to_schema(?MODULE, non_existent_type),
+    {error, [Error1]} = erldantic_json_schema:type_to_schema(?MODULE, non_existent_type),
     ?assertEqual(no_match, Error1#ed_error.type),
     ?assertEqual([openapi_schema_test], Error1#ed_error.location),
 
     %% Non-existent record
-    {error, [Error2]} = erldantic_openapi:record_to_schema(?MODULE, non_existent_record),
+    {error, [Error2]} = erldantic_json_schema:record_to_schema(?MODULE, non_existent_record),
     ?assertEqual(no_match, Error2#ed_error.type),
     ?assertEqual([openapi_schema_test], Error2#ed_error.location).
