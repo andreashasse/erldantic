@@ -27,13 +27,15 @@ jesse_erldantic_consistency_property_test_() ->
 
 %% The main property: Jesse and erldantic should agree on validation results
 prop_jesse_erldantic_consistency() ->
-    ?FORALL({TypeName, JsonValue},
-            {test_type_name(), json_generator:json_value()},
+    ?FORALL({{TypeName, Type}, JsonValue},
+            {test_type(), json_generator:json_value()},
             begin
+                TypeInfo = #{TypeName => Type},
                 % Generate OpenAPI schema from the type
-                SchemaResult = erldantic_json_schema:type_to_schema(?MODULE, TypeName),
+                SchemaResult = json_schema(TypeInfo, Type),
                 case SchemaResult of
                     {ok, Schema} ->
+                        io:format("schema ~p", [Schema]),
                         % Convert schema to Jesse format
                         JesseSchema = json:decode(iolist_to_binary(json:encode(Schema))),
 
@@ -48,8 +50,8 @@ prop_jesse_erldantic_consistency() ->
                             end,
 
                         % Test erldantic_json validation
-                        ErldanticResult =
-                            erldantic_json:type_from_json(?MODULE, TypeName, JsonValue),
+                        ErldanticResult = from_json(TypeInfo, Type, JsonValue),
+
                         ErldanticValid =
                             case ErldanticResult of
                                 {ok, _} ->
@@ -83,12 +85,21 @@ prop_jesse_erldantic_consistency() ->
             end).
 
 %% Generator for test type names
-test_type_name() ->
-    oneof([%test_integer,
-           test_string,
-           test_binary,
-           test_boolean,
-           %test_float,
-           %test_atom,
-           test_list,
-           test_map]).
+test_type() ->
+    {my_type, ed_type_generators:ed_type()}.
+
+json_schema(TypeInfo, Type) ->
+    try
+        erldantic_json_schema:to_schema(TypeInfo, Type)
+    catch
+        _:_ ->
+            {error, fixme}
+    end.
+
+from_json(TypeInfo, Type, JsonValue) ->
+    try
+        erldantic_json:from_json(TypeInfo, Type, JsonValue)
+    catch
+        _:_ ->
+            {error, fixme}
+    end.

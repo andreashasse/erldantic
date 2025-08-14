@@ -1,4 +1,4 @@
--module(openapi_schema_test).
+-module(erldantic_json_schema_test).
 
 -include_lib("eunit/include/eunit.hrl").
 
@@ -174,9 +174,9 @@ error_handling_test() ->
     %% Non-existent type
     {error, [Error1]} = erldantic_json_schema:type_to_schema(?MODULE, non_existent_type),
     ?assertEqual(no_match, Error1#ed_error.type),
-    ?assertEqual([openapi_schema_test], Error1#ed_error.location),
+    ?assertEqual([?MODULE], Error1#ed_error.location),
 
     %% Non-existent record
     {error, [Error2]} = erldantic_json_schema:record_to_schema(?MODULE, non_existent_record),
     ?assertEqual(no_match, Error2#ed_error.type),
-    ?assertEqual([openapi_schema_test], Error2#ed_error.location).
+    ?assertEqual([?MODULE], Error2#ed_error.location).
