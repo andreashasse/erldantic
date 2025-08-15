@@ -128,7 +128,7 @@ missing_test() ->
                  erldantic_json:type_to_json(?MODULE, my_iolist, IoList3)),
     ?assertMatch({error, [#ed_error{type = type_mismatch}]},
                  erldantic_json:type_to_json(?MODULE, my_iolist, <<"helloworld">>)),
-    ?assertEqual({ok, <<"helloworld">>},
+    ?assertEqual({ok, [<<"helloworld">>]},
                  erldantic_json:type_from_json(?MODULE, my_iolist, <<"helloworld">>)),
 
     %% port

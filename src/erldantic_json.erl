@@ -551,7 +551,7 @@ list_from_json(_TypeInfo, Type, Data) ->
                 location = [],
                 ctx = #{type => {list, Type}, value => Data}}]}.
 
-check_type_from_json(string, Json) when is_binary(Json) ->
+string_from_json(Type, Json) ->
     StringValue = unicode:characters_to_list(Json),
     case io_lib:printable_list(StringValue) of
         true ->
@@ -561,17 +561,19 @@ check_type_from_json(string, Json) when is_binary(Json) ->
              [#ed_error{type = type_mismatch,
                         location = [],
                         ctx =
-                            #{type => #ed_simple_type{type = string},
+                            #{type => #ed_simple_type{type = Type},
                               value => Json,
                               comment => "non printable"}}]}
-    end;
+    end.
+
+check_type_from_json(string, Json) when is_binary(Json) ->
+    string_from_json(string, Json);
 check_type_from_json(nonempty_string, Json) when is_binary(Json), byte_size(Json) > 0 ->
-    %% FIXME: use string json code.
-    {true, unicode:characters_to_list(Json)};
+    string_from_json(nonempty_string, Json);
 check_type_from_json(iodata, Json) when is_binary(Json) ->
     {true, Json};
 check_type_from_json(iolist, Json) when is_binary(Json) ->
-    {true, Json};
+    {true, [Json]};
 check_type_from_json(atom, Json) when is_binary(Json) ->
     try
         {true, binary_to_existing_atom(Json, utf8)}
