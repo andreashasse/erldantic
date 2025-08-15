@@ -1,7 +1,6 @@
 -module(erldantic_json_schema).
 
 -export([type_to_schema/2, record_to_schema/2]).
-
 %% Exported for test
 -export([to_schema/2]).
 

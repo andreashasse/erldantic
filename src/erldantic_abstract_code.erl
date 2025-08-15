@@ -47,6 +47,8 @@ types_in_module(Module) ->
 
 -spec type_in_form(erl_parse:abstract_form() | erl_parse:form_info()) ->
                       false | {true, {erldantic:ed_type_reference(), erldantic:ed_type()}}.
+type_in_form({attribute, _, record, {_RecordName, []} = T}) ->
+    error({not_supported, T});
 type_in_form({attribute, _, record, {RecordName, Fields}})
     when is_list(Fields) andalso is_atom(RecordName) ->
     FieldInfos = lists:map(fun record_field_info/1, Fields),

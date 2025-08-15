@@ -31,9 +31,14 @@
 -type my_nonempty_bitstring() :: nonempty_bitstring().
 -type my_no_return() :: no_return().
 -type my_none() :: none().
+-type my_range() :: -2..2.
 
 missing_test() ->
     Types = erldantic_abstract_code:types_in_module(?MODULE),
+
+    %% range
+    %% FIXME: more specific matching
+    ?assertMatch({error, _}, erldantic_json:type_to_json(?MODULE, my_range, -0.0)),
 
     %% arity
     ?assertEqual(#ed_range{type = integer,

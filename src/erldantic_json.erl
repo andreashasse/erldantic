@@ -1,7 +1,6 @@
 -module(erldantic_json).
 
 -export([type_to_json/3, type_from_json/3, record_to_json/3, record_from_json/3]).
-
 %% exported for test
 -export([to_json/3, from_json/3]).
 
@@ -177,7 +176,22 @@ do_to_json(_TypeInfo, Type, OtherValue) ->
                          TypeArity :: non_neg_integer()) ->
                             erldantic:ed_type().
 type_info_get_type(TypeInfo, TypeName, TypeArity) ->
-    maps:get({type, TypeName, TypeArity}, TypeInfo).
+    try
+        maps:get({type, TypeName, TypeArity}, TypeInfo)
+    catch
+        error:{badkey, _} ->
+            erlang:error({type_not_found, {TypeInfo, TypeName, TypeArity}})
+    end.
+
+-spec type_info_get_record(TypeInfo :: erldantic:type_info(), RecordName :: atom()) ->
+                              erldantic:ed_type().
+type_info_get_record(TypeInfo, RecordName) ->
+    try
+        maps:get({record, RecordName}, TypeInfo)
+    catch
+        error:{badkey, _} ->
+            erlang:error({record_not_found, {TypeInfo, RecordName}})
+    end.
 
 -spec prim_type_to_json(Type :: erldantic:ed_type(), Value :: term()) ->
                            {ok, json:encode_value()} | {error, [erldantic:error()]}.
@@ -185,6 +199,8 @@ prim_type_to_json(#ed_simple_type{type = Type} = T, Value) ->
     case check_type_to_json(Type, Value) of
         {true, NewValue} ->
             {ok, NewValue};
+        {error, Reason} ->
+            {error, Reason};
         false ->
             {error,
              [#ed_error{type = type_mismatch,
@@ -441,6 +457,8 @@ from_json(_TypeInfo, #ed_simple_type{type = PrimaryType} = T, Json) ->
     case check_type_from_json(PrimaryType, Json) of
         {true, NewValue} ->
             {ok, NewValue};
+        {error, Reason} ->
+            {error, Reason};
         false ->
             {error,
              [#ed_error{type = type_mismatch,
@@ -468,7 +486,7 @@ from_json(_TypeInfo,
                     lower_bound = Min,
                     upper_bound = Max},
           Value)
-    when Min =< Value, Value =< Max ->
+    when Min =< Value, Value =< Max, is_integer(Value) ->
     {ok, Value};
 from_json(_TypeInfo,
           #ed_range{type = integer,
@@ -534,8 +552,21 @@ list_from_json(_TypeInfo, Type, Data) ->
                 ctx = #{type => {list, Type}, value => Data}}]}.
 
 check_type_from_json(string, Json) when is_binary(Json) ->
-    {true, unicode:characters_to_list(Json)};
+    StringValue = unicode:characters_to_list(Json),
+    case io_lib:printable_list(StringValue) of
+        true ->
+            {true, StringValue};
+        false ->
+            {error,
+             [#ed_error{type = type_mismatch,
+                        location = [],
+                        ctx =
+                            #{type => #ed_simple_type{type = string},
+                              value => Json,
+                              comment => "non printable"}}]}
+    end;
 check_type_from_json(nonempty_string, Json) when is_binary(Json), byte_size(Json) > 0 ->
+    %% FIXME: use string json code.
     {true, unicode:characters_to_list(Json)};
 check_type_from_json(iodata, Json) when is_binary(Json) ->
     {true, Json};
@@ -551,8 +582,6 @@ check_type_from_json(atom, Json) when is_binary(Json) ->
 check_type_from_json(Type, Json) ->
     check_type(Type, Json).
 
-check_type_to_json(string, Json) when is_list(Json) ->
-    {true, unicode:characters_to_binary(Json)};
 check_type_to_json(iodata, Json) when is_binary(Json) ->
     {true, Json};
 check_type_to_json(iodata, Json) when is_list(Json) ->
@@ -577,7 +606,7 @@ check_type_to_json(string, Json) when is_list(Json) ->
     %% FIXME: Document this.
     case io_lib:printable_list(Json) of
         true ->
-            {true, Json};
+            {true, unicode:characters_to_binary(Json)};
         false ->
             {error,
              [#ed_error{type = type_mismatch,
@@ -855,7 +884,7 @@ map_field_type_from_json(TypeInfo, KeyType, ValueType, Json) ->
                        TypeArgs :: [erldantic:record_field()]) ->
                           {ok, term()} | {error, list()}.
 record_from_json(TypeInfo, RecordName, Json, TypeArgs) when is_atom(RecordName) ->
-    Record = maps:get({record, RecordName}, TypeInfo),
+    Record = type_info_get_record(TypeInfo, RecordName),
     record_from_json(TypeInfo, Record, Json, TypeArgs);
 record_from_json(TypeInfo, #ed_rec{name = RecordName} = ARec, Json, TypeArgs) ->
     RecordInfo = record_replace_vars(ARec#ed_rec.fields, TypeArgs),
