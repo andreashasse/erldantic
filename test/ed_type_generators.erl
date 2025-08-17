@@ -15,24 +15,24 @@ simple_type_atom() ->
                {10, non_neg_integer},
                {10, neg_integer},
                {10, pos_integer},
-               {1, float},
+               {10, float},
                {10, number},
                {10, boolean},
-               {1, atom},
-               {1, string},
-               {1, nonempty_string},
-               {1, binary},
-               {1, nonempty_binary},
+               {10, atom},
+               {10, string},
+               {10, nonempty_string},
+               {10, binary},
+               {10, nonempty_binary},
                {1, bitstring},
                {1, nonempty_bitstring},
                {1, term},
                {1, reference},
                {1, pid},
                {1, port},
-               {1, iolist},
-               {1, iodata},
+               {10, iolist},
+               {10, iodata},
                {1, none},
-               {1, map}]).
+               {10, map}]).
 
 ed_simple_type() ->
     ?LET(Type, simple_type_atom(), #ed_simple_type{type = Type}).
@@ -42,8 +42,10 @@ ed_tuple() ->
     ?SIZED(Size, ed_tuple(Size)).
 
 ed_tuple(Size) ->
-    oneof([#ed_tuple{fields = any},
-           ?LET(Fields, list(ed_type(Size)), #ed_tuple{fields = Fields})]).
+    ?LET(Len,
+         choose(0, Size),
+         oneof([#ed_tuple{fields = any},
+                ?LET(Fields, vector(Len, ed_type(Size)), #ed_tuple{fields = Fields})])).
 
 %% Map field generator
 map_field() ->
@@ -64,27 +66,33 @@ ed_map() ->
     ?SIZED(Size, ed_map(Size)).
 
 ed_map(Size) ->
-    ?LET(Fields, list(map_field(Size)), #ed_map{fields = Fields}).
+    ?LET(Len,
+         choose(0, Size),
+         ?LET(Fields, vector(Len, map_field(Size)), #ed_map{fields = Fields})).
 
 %% Record generator
 ed_rec() ->
     ?SIZED(Size, ed_rec(Size)).
 
 ed_rec(Size) ->
-    ?LET({Name, Fields, Arity},
-         {my_atom(), non_empty(list({my_atom(), ed_type(Size)})), pos_integer()},
-         #ed_rec{name = Name,
-                 fields = Fields,
-                 arity = Arity}).
+    ?LET(Len,
+         choose(1, max(1, Size)),
+         ?LET({Name, Fields, Arity},
+              {my_atom(), non_empty(vector(Len, {my_atom(), ed_type(Size)})), pos_integer()},
+              #ed_rec{name = Name,
+                      fields = Fields,
+                      arity = Arity})).
 
 %% Type with variables generator
 ed_type_with_variables() ->
     ?SIZED(Size, ed_type_with_variables(Size)).
 
 ed_type_with_variables(Size) ->
-    ?LET({Type, Vars},
-         {ed_type(Size), list(my_atom())},
-         #ed_type_with_variables{type = Type, vars = Vars}).
+    ?LET(Len,
+         choose(1, max(1, Size)),
+         ?LET({Type, Vars},
+              {ed_type(Size), vector(Len, my_atom())},
+              #ed_type_with_variables{type = Type, vars = Vars})).
 
 %% Function generator
 ed_function() ->
@@ -101,7 +109,9 @@ ed_union() ->
     ?SIZED(Size, ed_union(Size)).
 
 ed_union(Size) ->
-    ?LET(Types, non_empty(list(ed_type(Size))), #ed_union{types = Types}).
+    ?LET(Len,
+         choose(1, max(1, Size)),
+         ?LET(Types, non_empty(vector(Len, ed_type(Size))), #ed_union{types = Types})).
 
 %% Literal generator
 ed_literal() ->
@@ -118,26 +128,31 @@ ed_rec_ref() ->
     ?SIZED(Size, ed_rec_ref(Size)).
 
 ed_rec_ref(Size) ->
-    ?LET({RecordName, FieldTypes},
-         {my_atom(), list(record_field(Size))},
-         #ed_rec_ref{record_name = RecordName, field_types = FieldTypes}).
+    ?LET(Len,
+         choose(0, Size),
+         ?LET({RecordName, FieldTypes},
+              {my_atom(), vector(Len, record_field(Size))},
+              #ed_rec_ref{record_name = RecordName, field_types = FieldTypes})).
 
 %% Remote type generator
 ed_remote_type() ->
     ?SIZED(Size, ed_remote_type(Size)).
 
 ed_remote_type(Size) ->
-    ?LET({Module, Function, Args},
-         {my_atom(), my_atom(), list(ed_type(Size))},
-         #ed_remote_type{mfargs = {Module, Function, Args}}).
+    ?LET(Len,
+         choose(0, Size),
+         ?LET({Module, Function, Args},
+              {my_atom(), my_atom(), vector(Len, ed_type(Size))},
+              #ed_remote_type{mfargs = {Module, Function, Args}})).
 
 %% Maybe improper list generator
 ed_maybe_improper_list() ->
     ?SIZED(Size, ed_maybe_improper_list(Size)).
 
 ed_maybe_improper_list(Size) ->
+    Childsize = Size div 2,
     ?LET({Elements, Tail},
-         {ed_type(Size), ed_type(Size)},
+         {ed_type(Childsize), ed_type(Childsize)},
          #ed_maybe_improper_list{elements = Elements, tail = Tail}).
 
 %% Nonempty improper list generator
@@ -154,9 +169,11 @@ ed_user_type_ref() ->
     ?SIZED(Size, ed_user_type_ref(Size)).
 
 ed_user_type_ref(Size) ->
-    ?LET({TypeName, Variables},
-         {my_atom(), list(ed_type(Size))},
-         #ed_user_type_ref{type_name = TypeName, variables = Variables}).
+    ?LET(Len,
+         choose(0, Size),
+         ?LET({TypeName, Variables},
+              {my_atom(), vector(Len, ed_type(Size))},
+              #ed_user_type_ref{type_name = TypeName, variables = Variables})).
 
 %% Variable generator
 ed_var() ->
@@ -192,8 +209,7 @@ ed_type(0) ->
     oneof([ed_simple_type(), ed_literal(1), ed_var(), ed_range()]);
 ed_type(Size) ->
     ChildSize = Size div 2,
-
-    frequency([{80, ed_simple_type()},
+    frequency([{10, ed_simple_type()},
                {10, ed_literal(Size)},
                {10, ed_range()},
                {10, ed_var()},
