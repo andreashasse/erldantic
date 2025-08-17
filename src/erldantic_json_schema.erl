@@ -1,11 +1,10 @@
 -module(erldantic_json_schema).
 
 -export([type_to_schema/2, record_to_schema/2]).
-
 %% Exported for test
 -export([to_schema/2]).
--ignore_xref([to_schema/2]).
 
+-ignore_xref([to_schema/2]).
 -ignore_xref([{erldantic_json_schema, type_to_schema, 2},
               {erldantic_json_schema, record_to_schema, 2}]).
 

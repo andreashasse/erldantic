@@ -1,11 +1,10 @@
 -module(erldantic_json).
 
 -export([type_to_json/3, type_from_json/3, record_to_json/3, record_from_json/3]).
-
 %% exported for test
 -export([to_json/3, from_json/3]).
--ignore_xref([to_json/3, from_json/3]).
 
+-ignore_xref([to_json/3, from_json/3]).
 -ignore_xref([{erldantic_json, type_to_json, 3},
               {erldantic_json, type_from_json, 3},
               {erldantic_json, record_to_json, 3},
@@ -186,10 +185,11 @@ type_info_get_type(TypeInfo, TypeName, TypeArity) ->
     end.
 
 -spec type_info_get_record(TypeInfo :: erldantic:type_info(), RecordName :: atom()) ->
-                              erldantic:ed_type().
+                              #ed_rec{}.
 type_info_get_record(TypeInfo, RecordName) ->
     try
-        maps:get({record, RecordName}, TypeInfo)
+        Rec = #ed_rec{} = maps:get({record, RecordName}, TypeInfo),
+        Rec
     catch
         error:{badkey, _} ->
             erlang:error({record_not_found, {TypeInfo, RecordName}})
