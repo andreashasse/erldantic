@@ -3,7 +3,6 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -include("../include/erldantic.hrl").
--include("../include/erldantic_internal.hrl").
 
 -compile(nowarn_unused_type).
 

@@ -2,8 +2,6 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--include("../include/erldantic.hrl").
-
 -compile(nowarn_unused_type).
 
 %% Test types for Jesse validation

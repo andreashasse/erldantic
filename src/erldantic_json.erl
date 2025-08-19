@@ -543,6 +543,7 @@ list_from_json(TypeInfo, Type, Data) when is_list(Data) ->
                      {ok, Json};
                  {error, Errs} ->
                      Errs2 = lists:map(fun(Err) -> err_append_location(Err, Nr) end, Errs),
+
                      {error, Errs2}
              end
           end,

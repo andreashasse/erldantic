@@ -1,6 +1,5 @@
 -module(erldantic_abstract_code).
 
--include("../include/erldantic.hrl").
 -include("../include/erldantic_internal.hrl").
 
 -export([types_in_module/1]).
