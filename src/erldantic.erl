@@ -19,6 +19,7 @@
     #ed_tuple{} |
     #ed_type_with_variables{} |
     #ed_function{} |
+    #ed_function_spec{} |
     #ed_union{} |
     #ed_literal{} |
     #ed_range{} |
@@ -31,7 +32,9 @@
     {map_field_assoc | map_field_exact, Name :: atom(), ed_type()} |
     {map_field_type_assoc | map_field_type_exact, ed_type(), ed_type()}.
 -type ed_type_reference() ::
-    {record, atom()} | {type, Name :: atom(), Arity :: non_neg_integer()}.
+    {record, atom()} |
+    {type, Name :: atom(), Arity :: arity()} |
+    {function, Name :: atom(), Arity :: arity()}.
 -type error() :: #ed_error{}.
 -type ed_type_or_ref() :: ed_type() | ed_type_reference().
 

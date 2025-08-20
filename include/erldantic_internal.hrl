@@ -44,3 +44,4 @@
 -record(ed_range, {type :: integer, lower_bound :: integer(), upper_bound :: integer()}).
 -record(ed_list, {type :: erldantic:ed_type()}).
 -record(ed_nonempty_list, {type :: erldantic:ed_type()}).
+-record(ed_function_spec, {args :: [erldantic:ed_type()], return :: erldantic:ed_type()}).

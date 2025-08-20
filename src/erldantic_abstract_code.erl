@@ -32,12 +32,7 @@ types_in_module(Module) ->
         FilePath ->
             case beam_lib:chunks(FilePath, [abstract_code]) of
                 {ok, {Module, [{abstract_code, {_, Forms}}]}} ->
-                    NamedTypes =
-                        lists:filtermap(fun(F) ->
-                                           %%io:format("F ~p~n", [F]),
-                                           type_in_form(F)
-                                        end,
-                                        Forms),
+                    NamedTypes = lists:filtermap(fun(F) -> type_in_form(F) end, Forms),
                     maps:from_list(NamedTypes);
                 {error, beam_lib, Reason} ->
                     erlang:error({beam_lib_error, Module, Reason})
@@ -77,6 +72,32 @@ type_in_form({attribute, _, TypeOrOpaque, {TypeName, Type, Args}})
         _ ->
             {true,
              {{type, TypeName, TypeArity}, #ed_type_with_variables{type = FieldInfo, vars = Vars}}}
+    end;
+type_in_form({attribute, _, spec, {FunctionSpec, FunctionTypeList}}) ->
+    case FunctionSpec of
+        {FunctionName, Arity} when is_atom(FunctionName) andalso is_integer(Arity) ->
+            case FunctionTypeList of
+                [{type, _, 'fun', [{type, _, product, Args}, ReturnType]}] when is_list(Args) ->
+                    ArgTypes =
+                        lists:map(fun(Arg) ->
+                                     [ArgType] = field_info_to_type(Arg),
+                                     ArgType
+                                  end,
+                                  Args),
+                    [ReturnTypeProcessed] = field_info_to_type(ReturnType),
+                    {true,
+                     {{function, FunctionName, Arity},
+                      #ed_function_spec{args = ArgTypes, return = ReturnTypeProcessed}}};
+                [{type, _, 'fun', [{type, _, product, []}, ReturnType]}] when Arity =:= 0 ->
+                    [ReturnTypeProcessed] = field_info_to_type(ReturnType),
+                    {true,
+                     {{function, FunctionName, Arity},
+                      #ed_function_spec{args = [], return = ReturnTypeProcessed}}};
+                _ ->
+                    false
+            end;
+        _ ->
+            false
     end;
 type_in_form({attribute, _, TypeOrOpaque, _} = T)
     when TypeOrOpaque =:= opaque orelse TypeOrOpaque =:= type ->
