@@ -30,7 +30,8 @@
 -type map_field() ::
     {map_field_assoc | map_field_exact, Name :: atom(), ed_type()} |
     {map_field_type_assoc | map_field_type_exact, ed_type(), ed_type()}.
--type ed_type_reference() :: {type, Name :: atom(), Arity :: arity()} | {record, Name :: atom()}.
+-type ed_type_reference() ::
+    {type, Name :: atom(), Arity :: arity()} | {record, Name :: atom()}.
 -type error() :: #ed_error{}.
 -type ed_type_or_ref() :: ed_type() | ed_type_reference().
 -type ed_function_spec() :: #ed_function_spec{}.
