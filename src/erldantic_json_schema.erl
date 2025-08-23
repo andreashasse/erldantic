@@ -152,7 +152,7 @@ do_to_schema(TypeInfo, #ed_rec_ref{record_name = RecordName}) ->
     record_to_schema_internal(TypeInfo, RecordName);
 %% Type references
 do_to_schema(TypeInfo, {type, TypeName, TypeArity}) when is_atom(TypeName) ->
-    Type = type_info_get_type(TypeInfo, TypeName, TypeArity),
+    {ok, Type} = erldantic_type_info:get_type(TypeInfo, TypeName, TypeArity),
     TypeWithoutVars = apply_args(TypeInfo, Type, []),
     do_to_schema(TypeInfo, TypeWithoutVars);
 %% User type references
@@ -171,7 +171,7 @@ do_to_schema(TypeInfo, #ed_user_type_ref{type_name = TypeName, variables = TypeA
 do_to_schema(_TypeInfo, #ed_remote_type{mfargs = {Module, TypeName, Args}}) ->
     TypeInfo = erldantic_module_types:get(Module),
     TypeArity = length(Args),
-    Type = type_info_get_type(TypeInfo, TypeName, TypeArity),
+    {ok, Type} = erldantic_type_info:get_type(TypeInfo, TypeName, TypeArity),
     TypeWithoutVars = apply_args(TypeInfo, Type, Args),
     do_to_schema(TypeInfo, TypeWithoutVars);
 %% Unsupported types
@@ -282,14 +282,6 @@ apply_args(TypeInfo, Type, TypeArgs) when is_list(TypeArgs) ->
             lists:zip(ArgNames, TypeArgs)),
     type_replace_vars(TypeInfo, Type, NamedTypes).
 
--spec type_info_get_type(TypeInfo :: erldantic:type_info(),
-                         TypeName :: atom(),
-                         TypeArity :: non_neg_integer()) ->
-                            erldantic:ed_type().
-type_info_get_type(TypeInfo, TypeName, TypeArity) ->
-    {ok, Type} = erldantic_type_info:get_type(TypeInfo, TypeName, TypeArity),
-    Type.
-
 -spec map_fields_to_schema(erldantic:type_info(), [erldantic:map_field()]) ->
                               {ok, map()} | {error, [erldantic:error()]}.
 map_fields_to_schema(TypeInfo, Fields) ->
@@ -364,7 +356,7 @@ process_map_fields(_TypeInfo,
 -spec record_to_schema_internal(erldantic:type_info(), atom() | #ed_rec{}) ->
                                    {ok, map()} | {error, [erldantic:error()]}.
 record_to_schema_internal(TypeInfo, RecordName) when is_atom(RecordName) ->
-    RecordInfo = type_info_get_record(TypeInfo, RecordName),
+    {ok, RecordInfo} = erldantic_type_info:get_record(TypeInfo, RecordName),
     record_to_schema_internal(TypeInfo, RecordInfo);
 record_to_schema_internal(TypeInfo, #ed_rec{fields = Fields}) ->
     case process_record_fields(TypeInfo, Fields, #{}, []) of
@@ -377,10 +369,6 @@ record_to_schema_internal(TypeInfo, #ed_rec{fields = Fields}) ->
         {error, _} = Err ->
             Err
     end.
-
-type_info_get_record(TypeInfo, RecordName) ->
-    {ok, Record} = erldantic_type_info:get_record(TypeInfo, RecordName),
-    Record.
 
 -spec process_record_fields(erldantic:type_info(),
                             [{atom(), erldantic:ed_type()}],

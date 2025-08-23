@@ -56,8 +56,6 @@ build_type_info_fold({{function, Name, Arity}, FuncSpec}, TypeInfo) ->
     {{record, atom()}, erldantic:ed_type()} |
     {{function, atom(), arity()}, erldantic:ed_function_spec()}.
 
-type_in_form({attribute, _, record, {_RecordName, []} = T}) ->
-    error({not_supported, T});
 type_in_form({attribute, _, record, {RecordName, Fields}})
     when is_list(Fields) andalso is_atom(RecordName) ->
     FieldInfos = lists:map(fun record_field_info/1, Fields),
@@ -88,7 +86,10 @@ type_in_form({attribute, _, TypeOrOpaque, {TypeName, Type, Args}})
             {true,
              {{type, TypeName, TypeArity}, #ed_type_with_variables{type = FieldInfo, vars = Vars}}}
     end;
-type_in_form({attribute, _, spec, {{FunctionName, Arity}, [{type, _, 'fun', [{type, _, product, Args}, ReturnType]}]}})
+type_in_form({attribute,
+              _,
+              spec,
+              {{FunctionName, Arity}, [{type, _, 'fun', [{type, _, product, Args}, ReturnType]}]}})
     when is_atom(FunctionName) andalso is_integer(Arity) andalso is_list(Args) ->
     ArgTypes =
         lists:map(fun(Arg) ->

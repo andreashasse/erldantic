@@ -115,7 +115,7 @@ do_to_json(TypeInfo,
 do_to_json(TypeInfo, #ed_user_type_ref{type_name = TypeName, variables = TypeArgs}, Data)
     when is_atom(TypeName) ->
     TypeArity = length(TypeArgs),
-    Type = type_info_get_type(TypeInfo, TypeName, TypeArity),
+    {ok, Type} = erldantic_type_info:get_type(TypeInfo, TypeName, TypeArity),
     TypeWithoutVars = apply_args(TypeInfo, Type, TypeArgs),
     do_to_json(TypeInfo, TypeWithoutVars, Data);
 do_to_json(_TypeInfo, #ed_simple_type{type = NotSupported} = Type, _Data)
@@ -147,14 +147,14 @@ do_to_json(TypeInfo, #ed_list{type = Type}, Data) when is_list(Data) ->
     list_to_json(TypeInfo, Type, Data);
 do_to_json(TypeInfo, {type, TypeName, TypeArity}, Data) when is_atom(TypeName) ->
     %% FIXME: For simple types without arity, default to 0
-    Type = type_info_get_type(TypeInfo, TypeName, TypeArity),
+    {ok, Type} = erldantic_type_info:get_type(TypeInfo, TypeName, TypeArity),
     do_to_json(TypeInfo, Type, Data);
 do_to_json(TypeInfo, #ed_map{} = Map, Data) ->
     map_to_json(TypeInfo, Map, Data);
 do_to_json(_TypeInfo, #ed_remote_type{mfargs = {Module, TypeName, Args}}, Data) ->
     TypeInfo = erldantic_module_types:get(Module),
     TypeArity = length(Args),
-    Type = type_info_get_type(TypeInfo, TypeName, TypeArity),
+    {ok, Type} = erldantic_type_info:get_type(TypeInfo, TypeName, TypeArity),
     TypeWithoutVars = apply_args(TypeInfo, Type, Args),
     do_to_json(TypeInfo, TypeWithoutVars, Data);
 do_to_json(_TypeInfo, #ed_maybe_improper_list{} = Type, _Data) ->
@@ -171,28 +171,6 @@ do_to_json(_TypeInfo, Type, OtherValue) ->
      [#ed_error{type = type_mismatch,
                 location = [],
                 ctx = #{type => Type, value => OtherValue}}]}.
-
--spec type_info_get_type(TypeInfo :: erldantic:type_info(),
-                         TypeName :: atom(),
-                         TypeArity :: non_neg_integer()) ->
-                            erldantic:ed_type().
-type_info_get_type(TypeInfo, TypeName, TypeArity) ->
-    case erldantic_type_info:get_type(TypeInfo, TypeName, TypeArity) of
-        {ok, Type} ->
-            Type;
-        error ->
-            erlang:error({type_not_found, {TypeInfo, TypeName, TypeArity}})
-    end.
-
--spec type_info_get_record(TypeInfo :: erldantic:type_info(), RecordName :: atom()) ->
-                              #ed_rec{}.
-type_info_get_record(TypeInfo, RecordName) ->
-    case erldantic_type_info:get_record(TypeInfo, RecordName) of
-        {ok, Rec} when is_record(Rec, ed_rec) ->
-            Rec;
-        error ->
-            erlang:error({record_not_found, {TypeInfo, RecordName}})
-    end.
 
 -spec prim_type_to_json(Type :: erldantic:ed_type(), Value :: term()) ->
                            {ok, json:encode_value()} | {error, [erldantic:error()]}.
@@ -678,7 +656,7 @@ do_first(Fun, TypeInfo, [Type | Rest], Json) ->
                      Json :: json:decode_value()) ->
                         {ok, term()} | {error, [erldantic:error()]}.
 type_from_json(TypeInfo, TypeName, TypeArity, TypeArgs, Json) ->
-    Type = type_info_get_type(TypeInfo, TypeName, TypeArity),
+    {ok, Type} = erldantic_type_info:get_type(TypeInfo, TypeName, TypeArity),
     TypeWithoutVars = apply_args(TypeInfo, Type, TypeArgs),
     from_json(TypeInfo, TypeWithoutVars, Json).
 
@@ -888,7 +866,7 @@ map_field_type_from_json(TypeInfo, KeyType, ValueType, Json) ->
                        TypeArgs :: [erldantic:record_field()]) ->
                           {ok, term()} | {error, list()}.
 record_from_json(TypeInfo, RecordName, Json, TypeArgs) when is_atom(RecordName) ->
-    Record = type_info_get_record(TypeInfo, RecordName),
+    {ok, Record} = erldantic_type_info:get_record(TypeInfo, RecordName),
     record_from_json(TypeInfo, Record, Json, TypeArgs);
 record_from_json(TypeInfo, #ed_rec{name = RecordName} = ARec, Json, TypeArgs) ->
     RecordInfo = record_replace_vars(ARec#ed_rec.fields, TypeArgs),

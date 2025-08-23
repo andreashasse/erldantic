@@ -2,6 +2,8 @@
 
 -include("../include/erldantic_internal.hrl").
 
+-ignore_xref([get_function/3]).
+
 -export([new/0]).
 -export([add_type/4, get_type/3]).
 -export([add_record/3, get_record/2]).
@@ -30,11 +32,11 @@ get_type(#type_info{types = Types}, Name, Arity) ->
             error
     end.
 
--spec add_record(type_info(), atom(), erldantic:ed_type()) -> type_info().
+-spec add_record(type_info(), atom(), #ed_rec{}) -> type_info().
 add_record(#type_info{records = Records} = TypeInfo, Name, Record) ->
     TypeInfo#type_info{records = Records#{Name => Record}}.
 
--spec get_record(type_info(), atom()) -> {ok, erldantic:ed_type()} | error.
+-spec get_record(type_info(), atom()) -> {ok, #ed_rec{}} | error.
 get_record(#type_info{records = Records}, Name) ->
     case maps:find(Name, Records) of
         {ok, Record} ->
