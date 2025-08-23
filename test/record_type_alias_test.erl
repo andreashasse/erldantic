@@ -16,24 +16,27 @@
 type_in_form_test() ->
     TypeInfo = erldantic_abstract_code:types_in_module(?MODULE),
 
+    {ok, PersonAliasType} = erldantic_type_info:get_type(TypeInfo, person_alias, 0),
     ?assertMatch(#ed_rec_ref{record_name = person,
                              field_types =
                                  [{name, #ed_simple_type{type = string}},
                                   {age, #ed_simple_type{type = integer}}]},
-                 maps:get({type, person_alias, 0}, TypeInfo)),
+                 PersonAliasType),
 
+    {ok, AddressAliasType} = erldantic_type_info:get_type(TypeInfo, address_alias, 0),
     ?assertMatch(#ed_rec_ref{record_name = address,
                              field_types =
                                  [{street, #ed_simple_type{type = string}},
                                   {city, #ed_simple_type{type = string}}]},
-                 maps:get({type, address_alias, 0}, TypeInfo)),
+                 AddressAliasType),
 
+    {ok, PersonNewAgeType} = erldantic_type_info:get_type(TypeInfo, person_new_age, 0),
     ?assertMatch(#ed_rec_ref{record_name = person,
                              field_types = [{age, #ed_simple_type{type = non_neg_integer}}]},
-                 maps:get({type, person_new_age, 0}, TypeInfo)),
+                 PersonNewAgeType),
 
-    ?assertMatch(#ed_rec_ref{record_name = person, field_types = []},
-                 maps:get({type, person_t, 0}, TypeInfo)).
+    {ok, PersonTType} = erldantic_type_info:get_type(TypeInfo, person_t, 0),
+    ?assertMatch(#ed_rec_ref{record_name = person, field_types = []}, PersonTType).
 
 to_json_person_record_test() ->
     Person = #person{name = "John", age = 30},
