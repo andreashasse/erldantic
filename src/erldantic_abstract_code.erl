@@ -33,14 +33,29 @@ types_in_module(Module) ->
             case beam_lib:chunks(FilePath, [abstract_code]) of
                 {ok, {Module, [{abstract_code, {_, Forms}}]}} ->
                     NamedTypes = lists:filtermap(fun(F) -> type_in_form(F) end, Forms),
-                    maps:from_list(NamedTypes);
+                    build_type_info(NamedTypes);
                 {error, beam_lib, Reason} ->
                     erlang:error({beam_lib_error, Module, Reason})
             end
     end.
 
+build_type_info(NamedTypes) ->
+    lists:foldl(fun build_type_info_fold/2, erldantic_type_info:new(), NamedTypes).
+
+build_type_info_fold({{type, Name, Arity}, Type}, TypeInfo) ->
+    erldantic_type_info:add_type(TypeInfo, Name, Arity, Type);
+build_type_info_fold({{record, Name}, Record}, TypeInfo) ->
+    erldantic_type_info:add_record(TypeInfo, Name, Record);
+build_type_info_fold({{function, Name, Arity}, FuncSpec}, TypeInfo) ->
+    erldantic_type_info:add_function(TypeInfo, Name, Arity, FuncSpec).
+
 -spec type_in_form(erl_parse:abstract_form() | erl_parse:form_info()) ->
-                      false | {true, {erldantic:ed_type_reference(), erldantic:ed_type()}}.
+                      false | {true, type_form_result()}.
+-type type_form_result() ::
+    {{type, atom(), arity()}, erldantic:ed_type()} |
+    {{record, atom()}, erldantic:ed_type()} |
+    {{function, atom(), arity()}, erldantic:ed_function_spec()}.
+
 type_in_form({attribute, _, record, {_RecordName, []} = T}) ->
     error({not_supported, T});
 type_in_form({attribute, _, record, {RecordName, Fields}})

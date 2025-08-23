@@ -3,7 +3,7 @@
 -include("../include/erldantic.hrl").
 -include("../include/erldantic_internal.hrl").
 
--type type_info() :: #{ed_type_reference() => ed_type()}.
+-type type_info() :: erldantic_type_info:type_info().
 -type var_type() :: {VarName :: atom(), ed_type()}.
 -type user_type_name() :: atom().
 -type record_field() :: {FieldName :: atom(), ed_type()}.
@@ -19,7 +19,6 @@
     #ed_tuple{} |
     #ed_type_with_variables{} |
     #ed_function{} |
-    #ed_function_spec{} |
     #ed_union{} |
     #ed_literal{} |
     #ed_range{} |
@@ -31,10 +30,7 @@
 -type map_field() ::
     {map_field_assoc | map_field_exact, Name :: atom(), ed_type()} |
     {map_field_type_assoc | map_field_type_exact, ed_type(), ed_type()}.
--type ed_type_reference() ::
-    {record, atom()} |
-    {type, Name :: atom(), Arity :: arity()} |
-    {function, Name :: atom(), Arity :: arity()}.
+-type ed_type_reference() :: {type, Name :: atom(), Arity :: arity()}.
 -type error() :: #ed_error{}.
 -type ed_type_or_ref() :: ed_type() | ed_type_reference().
 

@@ -14,17 +14,21 @@
 
 erl_abstract_code_parses_tuple_types_test() ->
     TypeInfo = erldantic_abstract_code:types_in_module(?MODULE),
-    ?assertEqual(#ed_tuple{fields = []}, maps:get({type, empty_tuple, 0}, TypeInfo)),
+    {ok, EmptyTupleType} = erldantic_type_info:get_type(TypeInfo, empty_tuple, 0),
+    ?assertEqual(#ed_tuple{fields = []}, EmptyTupleType),
+    {ok, Tuple2Type} = erldantic_type_info:get_type(TypeInfo, tuple2, 0),
     ?assertEqual(#ed_tuple{fields =
                                [#ed_simple_type{type = integer}, #ed_simple_type{type = atom}]},
-                 maps:get({type, tuple2, 0}, TypeInfo)),
-    ?assertEqual(#ed_tuple{fields = any}, maps:get({type, tuple3, 0}, TypeInfo)),
+                 Tuple2Type),
+    {ok, Tuple3Type} = erldantic_type_info:get_type(TypeInfo, tuple3, 0),
+    ?assertEqual(#ed_tuple{fields = any}, Tuple3Type),
+    {ok, WithTupleRecord} = erldantic_type_info:get_record(TypeInfo, with_tuple),
     ?assertEqual(#ed_rec{name = with_tuple,
                          fields =
                              [{id, #ed_simple_type{type = integer}},
                               {data, #ed_tuple{fields = any}}],
                          arity = 3},
-                 maps:get({record, with_tuple}, TypeInfo)).
+                 WithTupleRecord).
 
 erldantic_json_handles_tuple_data_test() ->
     Tuple1 = {},

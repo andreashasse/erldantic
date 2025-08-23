@@ -10,10 +10,10 @@
 -type result(ResultType) :: #{result => ResultType, errors => [atom()]}.
 
 type_in_form_test() ->
-    Types = erldantic_abstract_code:types_in_module(?MODULE),
+    TypeInfo = erldantic_abstract_code:types_in_module(?MODULE),
     ?assertEqual(#ed_user_type_ref{type_name = result,
                                    variables = [#ed_simple_type{type = integer}]},
-                 maps:get({type, int_result, 0}, Types)),
+                 maps:get({type, int_result, 0}, TypeInfo)),
 
     ?assertEqual(#ed_type_with_variables{type =
                                              #ed_map{fields =
@@ -26,7 +26,7 @@ type_in_form_test() ->
                                                                         #ed_simple_type{type =
                                                                                             atom}}}]},
                                          vars = ['ResultType']},
-                 maps:get({type, result, 1}, Types)).
+                 maps:get({type, result, 1}, TypeInfo)).
 
 map_to_json_test() ->
     ?assertEqual({ok, #{result => 1, errors => []}},

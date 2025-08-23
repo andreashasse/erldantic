@@ -158,13 +158,13 @@ do_to_schema(TypeInfo, {type, TypeName, TypeArity}) when is_atom(TypeName) ->
 %% User type references
 do_to_schema(TypeInfo, #ed_user_type_ref{type_name = TypeName, variables = TypeArgs}) ->
     TypeArity = length(TypeArgs),
-    case maps:get({type, TypeName, TypeArity}, TypeInfo, undefined) of
-        undefined ->
+    case erldantic_type_info:get_type(TypeInfo, TypeName, TypeArity) of
+        error ->
             {error,
              [#ed_error{type = no_match,
                         location = [TypeName],
                         ctx = #{type => TypeName, arity => TypeArity}}]};
-        Type ->
+        {ok, Type} ->
             do_to_schema(TypeInfo, Type)
     end;
 %% Remote types
@@ -287,7 +287,8 @@ apply_args(TypeInfo, Type, TypeArgs) when is_list(TypeArgs) ->
                          TypeArity :: non_neg_integer()) ->
                             erldantic:ed_type().
 type_info_get_type(TypeInfo, TypeName, TypeArity) ->
-    maps:get({type, TypeName, TypeArity}, TypeInfo).
+    {ok, Type} = erldantic_type_info:get_type(TypeInfo, TypeName, TypeArity),
+    Type.
 
 -spec map_fields_to_schema(erldantic:type_info(), [erldantic:map_field()]) ->
                               {ok, map()} | {error, [erldantic:error()]}.
@@ -378,7 +379,8 @@ record_to_schema_internal(TypeInfo, #ed_rec{fields = Fields}) ->
     end.
 
 type_info_get_record(TypeInfo, RecordName) ->
-    maps:get({record, RecordName}, TypeInfo).
+    {ok, Record} = erldantic_type_info:get_record(TypeInfo, RecordName),
+    Record.
 
 -spec process_record_fields(erldantic:type_info(),
                             [{atom(), erldantic:ed_type()}],

@@ -177,21 +177,20 @@ do_to_json(_TypeInfo, Type, OtherValue) ->
                          TypeArity :: non_neg_integer()) ->
                             erldantic:ed_type().
 type_info_get_type(TypeInfo, TypeName, TypeArity) ->
-    try
-        maps:get({type, TypeName, TypeArity}, TypeInfo)
-    catch
-        error:{badkey, _} ->
+    case erldantic_type_info:get_type(TypeInfo, TypeName, TypeArity) of
+        {ok, Type} ->
+            Type;
+        error ->
             erlang:error({type_not_found, {TypeInfo, TypeName, TypeArity}})
     end.
 
 -spec type_info_get_record(TypeInfo :: erldantic:type_info(), RecordName :: atom()) ->
                               #ed_rec{}.
 type_info_get_record(TypeInfo, RecordName) ->
-    try
-        Rec = #ed_rec{} = maps:get({record, RecordName}, TypeInfo),
-        Rec
-    catch
-        error:{badkey, _} ->
+    case erldantic_type_info:get_record(TypeInfo, RecordName) of
+        {ok, Rec} when is_record(Rec, ed_rec) ->
+            Rec;
+        error ->
             erlang:error({record_not_found, {TypeInfo, RecordName}})
     end.
 
@@ -366,7 +365,7 @@ map_field_type(TypeInfo, KeyType, ValueType, Data) ->
                      TypeArgs :: [{atom(), erldantic:ed_type()}]) ->
                         {ok, #{atom() => json:encode_value()}} | {error, [erldantic:error()]}.
 record_to_json(TypeInfo, RecordName, Record, TypeArgs) when is_atom(RecordName) ->
-    RecordInfo = maps:get({record, RecordName}, TypeInfo),
+    {ok, RecordInfo} = erldantic_type_info:get_record(TypeInfo, RecordName),
     record_to_json(TypeInfo, RecordInfo, Record, TypeArgs);
 record_to_json(TypeInfo,
                #ed_rec{name = RecordName,
@@ -732,21 +731,21 @@ type_replace_vars(TypeInfo, #ed_type_with_variables{type = Type}, NamedTypes) ->
                                   end,
                                   Fields)};
         #ed_rec_ref{record_name = RecordName, field_types = RefFieldTypes} ->
-            case TypeInfo of
-                #{{record, RecordName} := #ed_rec{fields = Fields} = Rec} ->
+            case erldantic_type_info:get_record(TypeInfo, RecordName) of
+                {ok, #ed_rec{fields = Fields} = Rec} ->
                     NewRec = Rec#ed_rec{fields = record_replace_vars(Fields, RefFieldTypes)},
                     type_replace_vars(TypeInfo, NewRec, NamedTypes);
-                #{} ->
+                error ->
                     erlang:error({missing_type, {record, RecordName}})
             end;
         #ed_remote_type{mfargs = {Module, TypeName, Args}} ->
             case erldantic_module_types:get(Module) of
                 {ok, TypeInfo} ->
                     TypeArity = length(Args),
-                    case TypeInfo of
-                        #{{type, TypeName, TypeArity} := Type} ->
+                    case erldantic_type_info:get_type(TypeInfo, TypeName, TypeArity) of
+                        {ok, Type} ->
                             type_replace_vars(TypeInfo, Type, NamedTypes);
-                        #{} ->
+                        error ->
                             erlang:error({missing_type, TypeName})
                     end;
                 {error, _} = Err ->
@@ -946,11 +945,11 @@ can_be_undefined(TypeInfo, Type) ->
             true;
         #ed_user_type_ref{type_name = TypeName, variables = TypeArgs} ->
             TypeArity = length(TypeArgs),
-            case TypeInfo of
-                #{{type, TypeName, TypeArity} := Type2} ->
+            case erldantic_type_info:get_type(TypeInfo, TypeName, TypeArity) of
+                {ok, Type2} ->
                     %% infinite recursion?
                     can_be_undefined(TypeInfo, Type2);
-                #{} ->
+                error ->
                     %% error?
                     false
             end;
