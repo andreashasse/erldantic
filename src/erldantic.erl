@@ -30,11 +30,12 @@
 -type map_field() ::
     {map_field_assoc | map_field_exact, Name :: atom(), ed_type()} |
     {map_field_type_assoc | map_field_type_exact, ed_type(), ed_type()}.
--type ed_type_reference() :: {type, Name :: atom(), Arity :: arity()}.
+-type ed_type_reference() :: {type, Name :: atom(), Arity :: arity()} | {record, Name :: atom()}.
 -type error() :: #ed_error{}.
 -type ed_type_or_ref() :: ed_type() | ed_type_reference().
+-type ed_function_spec() :: #ed_function_spec{}.
 
 %% Internal type definitions moved from erldantic_internal.hrl
 
 -export_type([ed_type/0, ed_type_reference/0, ed_type_or_ref/0, var_type/0, type_info/0,
-              record_field/0, error/0, map_field/0, user_type_name/0]).
+              record_field/0, error/0, map_field/0, user_type_name/0, ed_function_spec/0]).

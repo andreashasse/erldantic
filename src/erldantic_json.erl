@@ -195,7 +195,7 @@ nonempty_list_to_json(_TypeInfo, Type, Data) ->
                 location = [],
                 ctx = #{type => {nonempty_list, Type}, value => Data}}]}.
 
--spec list_to_json(TypeInfo :: map(),
+-spec list_to_json(TypeInfo :: erldantic:type_info(),
                    Type :: erldantic:ed_type_or_ref(),
                    Data :: [term()]) ->
                       {ok, [json:encode_value()]} | {error, [erldantic:error()]}.
@@ -337,7 +337,7 @@ map_field_type(TypeInfo, KeyType, ValueType, Data) ->
           end,
     erldantic_util:fold_until_error(Fun, {[], Data}, maps:to_list(Data)).
 
--spec record_to_json(TypeInfo :: map(),
+-spec record_to_json(TypeInfo :: erldantic:type_info(),
                      RecordName :: atom() | #ed_rec{},
                      Record :: term(),
                      TypeArgs :: [{atom(), erldantic:ed_type()}]) ->
@@ -400,7 +400,7 @@ do_record_to_json(TypeInfo, RecFieldTypesWithData) ->
 err_append_location(Err, FieldName) ->
     Err#ed_error{location = [FieldName | Err#ed_error.location]}.
 
--spec from_json(TypeInfo :: map(),
+-spec from_json(TypeInfo :: erldantic:type_info(),
                 Type :: erldantic:ed_type_or_ref(),
                 Json :: json:decode_value()) ->
                    {ok, term()} | {error, [erldantic:error()]}.
@@ -860,7 +860,7 @@ map_field_type_from_json(TypeInfo, KeyType, ValueType, Json) ->
                                     {[], Json},
                                     maps:to_list(Json)).
 
--spec record_from_json(TypeInfo :: map(),
+-spec record_from_json(TypeInfo :: erldantic:type_info(),
                        RecordName :: atom() | #ed_rec{},
                        Json :: json:decode_value(),
                        TypeArgs :: [erldantic:record_field()]) ->
@@ -872,7 +872,7 @@ record_from_json(TypeInfo, #ed_rec{name = RecordName} = ARec, Json, TypeArgs) ->
     RecordInfo = record_replace_vars(ARec#ed_rec.fields, TypeArgs),
     do_record_from_json(TypeInfo, RecordName, RecordInfo, Json).
 
--spec do_record_from_json(TypeInfo :: map(),
+-spec do_record_from_json(TypeInfo :: erldantic:type_info(),
                           RecordName :: atom(),
                           RecordInfo :: list(),
                           Json :: json:decode_value()) ->
