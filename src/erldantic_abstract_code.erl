@@ -106,17 +106,17 @@ type_in_form({attribute, _, spec, {{FunctionName, Arity}, FunctionTypes}})
                           bounded_fun,
                           [{type, _, 'fun', [{type, _, product, Args}, ReturnType]}, Constraints]}
                              when is_list(Args) andalso is_list(Constraints) ->
-                             ConstraintMap = build_constraint_map(Constraints),
+                             ConstraintMap = bound_fun_constraints(Constraints),
                              ArgTypes =
                                  lists:map(fun(Arg) ->
                                               [ArgType] =
-                                                  field_info_to_type(substitute_vars(Arg,
+                                                  field_info_to_type(bound_fun_substitute_vars(Arg,
                                                                                      ConstraintMap)),
                                               ArgType
                                            end,
                                            Args),
                              [ReturnTypeProcessed] =
-                                 field_info_to_type(substitute_vars(ReturnType, ConstraintMap)),
+                                 field_info_to_type(bound_fun_substitute_vars(ReturnType, ConstraintMap)),
                              #ed_function_spec{args = ArgTypes, return = ReturnTypeProcessed}
                      end
                   end,
@@ -380,23 +380,21 @@ record_field_info({typed_record_field, {record_field, _, {atom, _, FieldName}, _
     {FieldName, TypeInfo}.
 
 %% Helper functions for bounded_fun handling
+-spec bound_fun_constraints(list()) -> #{atom() => term()}.
+bound_fun_constraints(Constraints) ->
+    lists:foldl(fun bound_fun_constraint_aux/2, #{}, Constraints).
 
-%% Build a constraint map from type constraints for variable substitution
--spec build_constraint_map(list()) -> #{atom() => term()}.
-build_constraint_map(Constraints) ->
-    lists:foldl(fun build_constraint_map_fold/2, #{}, Constraints).
-
-build_constraint_map_fold({type,
+bound_fun_constraint_aux({type,
                            _,
                            constraint,
                            [{atom, _, is_subtype}, [{var, _, VarName}, TypeDef]]},
                           Acc)
     when is_atom(VarName) ->
     maps:put(VarName, TypeDef, Acc);
-build_constraint_map_fold(Constraint, _Acc) ->
+bound_fun_constraint_aux(Constraint, _Acc) ->
     error({unsupported_constraint, Constraint}).
 
-substitute_vars({var, _, VarName} = Var, ConstraintMap) when is_atom(VarName) ->
+bound_fun_substitute_vars({var, _, VarName} = Var, ConstraintMap) when is_atom(VarName) ->
     maps:get(VarName, ConstraintMap, Var);
-substitute_vars(Term, _ConstraintMap) ->
+bound_fun_substitute_vars(Term, _ConstraintMap) ->
     Term.
