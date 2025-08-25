@@ -49,4 +49,4 @@
 -record(type_info,
         {types = #{} :: #{erldantic_type_info:type_key() => erldantic:ed_type()},
          records = #{} :: #{atom() => #ed_rec{}},
-         functions = #{} :: #{erldantic_type_info:function_key() => #ed_function_spec{}}}).
+         functions = #{} :: #{erldantic_type_info:function_key() => [#ed_function_spec{}]}}).

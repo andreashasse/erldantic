@@ -81,11 +81,21 @@ process_id(_) ->
     {error, invalid_id}.
 
 %% Function with bounded_fun spec (using when constraints)
--spec with_bound_fun(Module, Args) -> integer() when
-      Module :: module(),
-      Args :: list(integer()).
+-spec with_bound_fun(Module, Args) -> integer()
+    when Module :: module(),
+         Args :: [integer()].
 with_bound_fun(_Module, _Args) ->
     42.
+
+%% Function with multiple clauses in spec
+-spec multi_clause_func(my_id(), string()) -> #user{};
+                       (binary(), atom()) -> boolean().
+multi_clause_func(Id, Name) when is_integer(Id) ->
+    #user{id = Id,
+          name = Name,
+          active = true};
+multi_clause_func(_Binary, _Atom) ->
+    false.
 
 %% Function using external module records (if available)
 -spec external_type_func(external_type:some_record()) -> ok.
@@ -96,7 +106,7 @@ function_spec_extraction_test() ->
     TypeInfo = erldantic_abstract_code:types_in_module(?MODULE),
 
     %% Test my_function/2 spec extraction
-    {ok, MyFunctionSpec} = erldantic_type_info:get_function(TypeInfo, my_function, 2),
+    {ok, [MyFunctionSpec]} = erldantic_type_info:get_function(TypeInfo, my_function, 2),
     ?assertMatch(#ed_function_spec{args =
                                        [#ed_simple_type{type = integer},
                                         #ed_simple_type{type = string}],
@@ -104,18 +114,18 @@ function_spec_extraction_test() ->
                  MyFunctionSpec),
 
     %% Test simple_func/1 spec extraction
-    {ok, SimpleFuncSpec} = erldantic_type_info:get_function(TypeInfo, simple_func, 1),
+    {ok, [SimpleFuncSpec]} = erldantic_type_info:get_function(TypeInfo, simple_func, 1),
     ?assertMatch(#ed_function_spec{args = [#ed_simple_type{type = atom}],
                                    return = #ed_simple_type{type = term}},
                  SimpleFuncSpec),
 
     %% Test no_arg_func/0 spec extraction
-    {ok, NoArgFuncSpec} = erldantic_type_info:get_function(TypeInfo, no_arg_func, 0),
+    {ok, [NoArgFuncSpec]} = erldantic_type_info:get_function(TypeInfo, no_arg_func, 0),
     ?assertMatch(#ed_function_spec{args = [], return = #ed_simple_type{type = integer}},
                  NoArgFuncSpec),
 
     %% Test complex_func/2 spec extraction - more complex types
-    {ok, ComplexFuncSpec} = erldantic_type_info:get_function(TypeInfo, complex_func, 2),
+    {ok, [ComplexFuncSpec]} = erldantic_type_info:get_function(TypeInfo, complex_func, 2),
     ?assertMatch(#ed_function_spec{args =
                                        [#ed_list{type = #ed_simple_type{type = integer}},
                                         #ed_map{fields =
@@ -137,13 +147,13 @@ user_defined_types_test() ->
     TypeInfo = erldantic_abstract_code:types_in_module(?MODULE),
 
     %% Test function with user-defined record argument
-    {ok, ProcessUserSpec} = erldantic_type_info:get_function(TypeInfo, process_user, 1),
+    {ok, [ProcessUserSpec]} = erldantic_type_info:get_function(TypeInfo, process_user, 1),
     ?assertMatch(#ed_function_spec{args = [#ed_rec_ref{record_name = user}],
                                    return = #ed_user_type_ref{type_name = my_custom_type}},
                  ProcessUserSpec),
 
     %% Test function returning user-defined record
-    {ok, CreateUserSpec} = erldantic_type_info:get_function(TypeInfo, create_user, 2),
+    {ok, [CreateUserSpec]} = erldantic_type_info:get_function(TypeInfo, create_user, 2),
     ?assertMatch(#ed_function_spec{args =
                                        [#ed_user_type_ref{type_name = my_id},
                                         #ed_simple_type{type = string}],
@@ -151,7 +161,8 @@ user_defined_types_test() ->
                  CreateUserSpec),
 
     %% Test function with record argument and tuple return
-    {ok, HandleResponseSpec} = erldantic_type_info:get_function(TypeInfo, handle_response, 1),
+    {ok, [HandleResponseSpec]} =
+        erldantic_type_info:get_function(TypeInfo, handle_response, 1),
     ?assertMatch(#ed_function_spec{args = [#ed_rec_ref{record_name = response}],
                                    return =
                                        #ed_tuple{fields =
@@ -160,7 +171,7 @@ user_defined_types_test() ->
                  HandleResponseSpec),
 
     %% Test function using remote types
-    {ok, GetKeysSpec} = erldantic_type_info:get_function(TypeInfo, get_keys, 1),
+    {ok, [GetKeysSpec]} = erldantic_type_info:get_function(TypeInfo, get_keys, 1),
     ?assertMatch(#ed_function_spec{args =
                                        [#ed_map{fields =
                                                     [{map_field_type_assoc,
@@ -171,7 +182,8 @@ user_defined_types_test() ->
                  GetKeysSpec),
 
     %% Test function with remote type argument
-    {ok, FormatDatetimeSpec} = erldantic_type_info:get_function(TypeInfo, format_datetime, 1),
+    {ok, [FormatDatetimeSpec]} =
+        erldantic_type_info:get_function(TypeInfo, format_datetime, 1),
     ?assertMatch(#ed_function_spec{args =
                                        [#ed_remote_type{mfargs = {calendar, datetime, []}}],
                                    return = #ed_simple_type{type = string}},
@@ -181,7 +193,7 @@ parametrized_types_test() ->
     TypeInfo = erldantic_abstract_code:types_in_module(?MODULE),
 
     %% Test function using parametrized user-defined types
-    {ok, ProcessListSpec} = erldantic_type_info:get_function(TypeInfo, process_list, 1),
+    {ok, [ProcessListSpec]} = erldantic_type_info:get_function(TypeInfo, process_list, 1),
     ?assertMatch(#ed_function_spec{args =
                                        [#ed_user_type_ref{type_name = my_list,
                                                           variables =
@@ -193,7 +205,7 @@ parametrized_types_test() ->
                  ProcessListSpec),
 
     %% Test function with type variables in spec
-    {ok, MakePairSpec} = erldantic_type_info:get_function(TypeInfo, make_pair, 2),
+    {ok, [MakePairSpec]} = erldantic_type_info:get_function(TypeInfo, make_pair, 2),
     ?assertMatch(#ed_function_spec{args = [#ed_var{name = 'A'}, #ed_var{name = 'B'}],
                                    return =
                                        #ed_user_type_ref{type_name = my_pair,
@@ -203,7 +215,7 @@ parametrized_types_test() ->
                  MakePairSpec),
 
     %% Test function with complex type variables and functions
-    {ok, TransformPairSpec} = erldantic_type_info:get_function(TypeInfo, transform_pair, 3),
+    {ok, [TransformPairSpec]} = erldantic_type_info:get_function(TypeInfo, transform_pair, 3),
     ?assertMatch(#ed_function_spec{args =
                                        [#ed_user_type_ref{type_name = my_pair,
                                                           variables =
@@ -224,7 +236,7 @@ complex_types_test() ->
     TypeInfo = erldantic_abstract_code:types_in_module(?MODULE),
 
     %% Test function with union of user-defined and built-in types
-    {ok, ProcessIdSpec} = erldantic_type_info:get_function(TypeInfo, process_id, 1),
+    {ok, [ProcessIdSpec]} = erldantic_type_info:get_function(TypeInfo, process_id, 1),
     ?assertMatch(#ed_function_spec{args =
                                        [#ed_union{types =
                                                       [#ed_user_type_ref{type_name = my_id},
@@ -242,7 +254,7 @@ complex_types_test() ->
                  ProcessIdSpec),
 
     %% Test function with external module record type
-    {ok, ExternalTypeFuncSpec} =
+    {ok, [ExternalTypeFuncSpec]} =
         erldantic_type_info:get_function(TypeInfo, external_type_func, 1),
     ?assertMatch(#ed_function_spec{args =
                                        [#ed_remote_type{mfargs = {external_type, some_record, []}}],
@@ -251,11 +263,24 @@ complex_types_test() ->
 
 bounded_fun_spec_test() ->
     TypeInfo = erldantic_abstract_code:types_in_module(?MODULE),
-    
+
     %% Test bounded_fun spec with when constraints
-    {ok, WithBoundFunSpec} = erldantic_type_info:get_function(TypeInfo, with_bound_fun, 2),
+    {ok, [WithBoundFunSpec]} = erldantic_type_info:get_function(TypeInfo, with_bound_fun, 2),
     ?assertMatch(#ed_function_spec{args =
                                        [#ed_simple_type{type = atom},
                                         #ed_list{type = #ed_simple_type{type = integer}}],
                                    return = #ed_simple_type{type = integer}},
                  WithBoundFunSpec).
+
+multi_clause_spec_test() ->
+    TypeInfo = erldantic_abstract_code:types_in_module(?MODULE),
+    {ok, MultiClauseSpecs} = erldantic_type_info:get_function(TypeInfo, multi_clause_func, 2),
+    ?assertEqual([#ed_function_spec{args =
+                                        [#ed_user_type_ref{type_name = my_id, variables = []},
+                                         #ed_simple_type{type = string}],
+                                    return = #ed_rec_ref{record_name = user, field_types = []}},
+                  #ed_function_spec{args =
+                                        [#ed_simple_type{type = binary},
+                                         #ed_simple_type{type = atom}],
+                                    return = #ed_simple_type{type = boolean}}],
+                 MultiClauseSpecs).

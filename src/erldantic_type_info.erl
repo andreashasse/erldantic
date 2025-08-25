@@ -25,12 +25,7 @@ add_type(#type_info{types = Types} = TypeInfo, Name, Arity, Type) ->
 
 -spec get_type(type_info(), atom(), arity()) -> {ok, erldantic:ed_type()} | error.
 get_type(#type_info{types = Types}, Name, Arity) ->
-    case maps:find({Name, Arity}, Types) of
-        {ok, Type} ->
-            {ok, Type};
-        error ->
-            error
-    end.
+    maps:find({Name, Arity}, Types).
 
 -spec add_record(type_info(), atom(), #ed_rec{}) -> type_info().
 add_record(#type_info{records = Records} = TypeInfo, Name, Record) ->
@@ -38,24 +33,14 @@ add_record(#type_info{records = Records} = TypeInfo, Name, Record) ->
 
 -spec get_record(type_info(), atom()) -> {ok, #ed_rec{}} | error.
 get_record(#type_info{records = Records}, Name) ->
-    case maps:find(Name, Records) of
-        {ok, Record} ->
-            {ok, Record};
-        error ->
-            error
-    end.
+    maps:find(Name, Records).
 
--spec add_function(type_info(), atom(), arity(), erldantic:ed_function_spec()) ->
+-spec add_function(type_info(), atom(), arity(), [erldantic:ed_function_spec()]) ->
                       type_info().
 add_function(#type_info{functions = Functions} = TypeInfo, Name, Arity, FuncSpec) ->
     TypeInfo#type_info{functions = Functions#{{Name, Arity} => FuncSpec}}.
 
 -spec get_function(type_info(), atom(), arity()) ->
-                      {ok, erldantic:ed_function_spec()} | error.
+                      {ok, [erldantic:ed_function_spec()]} | error.
 get_function(#type_info{functions = Functions}, Name, Arity) ->
-    case maps:find({Name, Arity}, Functions) of
-        {ok, FuncSpec} ->
-            {ok, FuncSpec};
-        error ->
-            error
-    end.
+    maps:find({Name, Arity}, Functions).
