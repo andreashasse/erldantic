@@ -9,10 +9,11 @@
 -type int_result() :: external_type:result_t(integer()).
 
 type_in_form_test() ->
-    Types = erldantic_abstract_code:types_in_module(?MODULE),
+    TypeInfo = erldantic_abstract_code:types_in_module(?MODULE),
+    {ok, IntResultType} = erldantic_type_info:get_type(TypeInfo, int_result, 0),
     ?assertEqual(#ed_remote_type{mfargs =
                                      {external_type, result_t, [#ed_simple_type{type = integer}]}},
-                 maps:get({type, int_result, 0}, Types)).
+                 IntResultType).
 
 map1_to_json_test() ->
     ?assertEqual({ok, #{value => 1, errors => []}},

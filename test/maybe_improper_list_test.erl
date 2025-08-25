@@ -17,15 +17,19 @@
 
 erl_abstract_code_parses_maybe_improper_list_types_test() ->
     TypeInfo = erldantic_abstract_code:types_in_module(?MODULE),
+    {ok, EmptyImproperType} = erldantic_type_info:get_type(TypeInfo, empty_improper, 0),
     ?assertEqual(#ed_maybe_improper_list{elements = #ed_simple_type{type = term},
                                          tail = #ed_simple_type{type = term}},
-                 maps:get({type, empty_improper, 0}, TypeInfo)),
+                 EmptyImproperType),
+    {ok, Iolist1Type} = erldantic_type_info:get_type(TypeInfo, iolist1, 0),
     ?assertEqual(#ed_maybe_improper_list{elements = #ed_simple_type{type = string},
                                          tail = #ed_simple_type{type = binary}},
-                 maps:get({type, iolist1, 0}, TypeInfo)),
+                 Iolist1Type),
+    {ok, Iolist2Type} = erldantic_type_info:get_type(TypeInfo, iolist2, 0),
     ?assertEqual(#ed_maybe_improper_list{elements = #ed_simple_type{type = string},
                                          tail = #ed_simple_type{type = string}},
-                 maps:get({type, iolist2, 0}, TypeInfo)),
+                 Iolist2Type),
+    {ok, Iolist3Type} = erldantic_type_info:get_type(TypeInfo, iolist3, 0),
     ?assertEqual(#ed_maybe_improper_list{elements = #ed_simple_type{type = string},
                                          tail =
                                              #ed_maybe_improper_list{elements =
@@ -34,10 +38,12 @@ erl_abstract_code_parses_maybe_improper_list_types_test() ->
                                                                      tail =
                                                                          #ed_simple_type{type =
                                                                                              string}}},
-                 maps:get({type, iolist3, 0}, TypeInfo)),
+                 Iolist3Type),
+    {ok, Iolist4Type} = erldantic_type_info:get_type(TypeInfo, iolist4, 0),
     ?assertEqual(#ed_maybe_improper_list{elements = #ed_simple_type{type = binary},
                                          tail = #ed_simple_type{type = binary}},
-                 maps:get({type, iolist4, 0}, TypeInfo)),
+                 Iolist4Type),
+    {ok, Iolist5Type} = erldantic_type_info:get_type(TypeInfo, iolist5, 0),
     ?assertEqual(#ed_maybe_improper_list{elements = #ed_simple_type{type = binary},
                                          tail =
                                              #ed_maybe_improper_list{elements =
@@ -46,10 +52,11 @@ erl_abstract_code_parses_maybe_improper_list_types_test() ->
                                                                      tail =
                                                                          #ed_simple_type{type =
                                                                                              binary}}},
-                 maps:get({type, iolist5, 0}, TypeInfo)),
+                 Iolist5Type),
+    {ok, NonEmptyIolist1Type} = erldantic_type_info:get_type(TypeInfo, non_empty_iolist1, 0),
     ?assertEqual(#ed_nonempty_improper_list{elements = #ed_simple_type{type = string},
                                             tail = #ed_simple_type{type = binary}},
-                 maps:get({type, non_empty_iolist1, 0}, TypeInfo)),
+                 NonEmptyIolist1Type),
     ok.
 
 erldantic_json_handles_maybe_improper_list_data_test() ->

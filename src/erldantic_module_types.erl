@@ -7,8 +7,6 @@
 
 -type module_version() :: term().
 
--include("../include/erldantic.hrl").
-
 %% API
 -spec get(Module :: module()) -> erldantic:type_info().
 get(Module) ->

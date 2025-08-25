@@ -2,21 +2,44 @@
 
 -include_lib("proper/include/proper.hrl").
 
--type other_thingy() :: this | that.
-
--record(my_record, {id, data :: string(), d2 :: [other_thingy()], d3 :: string()}).
-
--type my_t() :: #my_record{id :: integer()}.
-
 prop_hej() ->
-    ?FORALL(Map,
-            my_t(),
+    ?FORALL({{TypeName, Type}, JsonValue},
+            {test_type(), json_generator:json_value()},
             begin
-                {ok, Value} = erldantic_json:type_to_json(?MODULE, my_t, Map),
-                Json = iolist_to_binary(json:encode(Value)),
-                Value2 = json:decode(Json),
-                Res = erldantic_json:type_from_json(?MODULE, my_t, Value2),
-                ?WHENFAIL(io:format("Map   ~p~nValue ~p~nJson   ~p~nValue2 ~p~nRes   ~p~n",
-                                    [Map, Value, Json, Value2, Res]),
-                          Res =:= {ok, Map})
+                TypeInfo = #{{type, TypeName} => Type},
+                case from_json(TypeInfo, Type, JsonValue) of
+                    {ok, Data} ->
+                        case erldantic_json:to_json(TypeInfo, Type, Data) of
+                            {ok, Value} ->
+                                Json = iolist_to_binary(json:encode(Value)),
+                                ?WHENFAIL(io:format("~nJsonValue ~p~nValue    ~p~nJson   ~p",
+                                                    [JsonValue, Value, Json]),
+                                          Json =/= JsonValue);
+                            {error, Reason} ->
+                                io:format("~nFailed to_json~n Type ~p~n Json ~p~n Data ~p~n Reason ~p",
+                                          [Type, JsonValue, Data, Reason]),
+                                collect(failed_to_json, false)
+                        end;
+                    {error, _} ->
+                        collect(json_dont_match_type, true)
+                end
             end).
+
+from_json(TypeInfo, Type, JsonValue) ->
+    try
+        erldantic_json:from_json(TypeInfo, Type, JsonValue)
+    catch
+        error:{type_not_supported, _} ->
+            {error, type_not_supported};
+        error:{type_not_implemented, _} ->
+            {error, type_not_implemented};
+        error:{module_types_not_found, _} ->
+            {error, module_types_not_found};
+        error:{type_not_found, _} ->
+            {error, {type_not_found}};
+        error:{record_not_found, _} ->
+            {error, {record_not_found}}
+    end.
+
+test_type() ->
+    {my_type, ed_type_generators:ed_type()}.
