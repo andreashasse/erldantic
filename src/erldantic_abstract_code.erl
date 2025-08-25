@@ -86,49 +86,6 @@ type_in_form({attribute, _, TypeOrOpaque, {TypeName, Type, Args}})
             {true,
              {{type, TypeName, TypeArity}, #ed_type_with_variables{type = FieldInfo, vars = Vars}}}
     end;
-type_in_form({attribute,
-              _,
-              spec,
-              {{FunctionName, Arity}, [{type, _, 'fun', [{type, _, product, Args}, ReturnType]}]}})
-    when is_atom(FunctionName) andalso is_integer(Arity) andalso is_list(Args) ->
-    ArgTypes =
-        lists:map(fun(Arg) ->
-                     [ArgType] = field_info_to_type(Arg),
-                     ArgType
-                  end,
-                  Args),
-    [ReturnTypeProcessed] = field_info_to_type(ReturnType),
-    {true,
-     {{function, FunctionName, Arity},
-      [#ed_function_spec{args = ArgTypes, return = ReturnTypeProcessed}]}};
-type_in_form({attribute,
-              _,
-              spec,
-              {{FunctionName, Arity},
-               [{type,
-                 _,
-                 bounded_fun,
-                 [{type, _, 'fun', [{type, _, product, Args}, ReturnType]}, Constraints]}
-                | _]}})
-    when is_atom(FunctionName)
-         andalso is_integer(Arity)
-         andalso is_list(Args)
-         andalso is_list(Constraints) ->
-    %% Build constraint map for variable substitution
-    ConstraintMap = build_constraint_map(Constraints),
-    %% Substitute variables in arguments
-    ArgTypes =
-        lists:map(fun(Arg) ->
-                     [ArgType] = field_info_to_type(substitute_vars(Arg, ConstraintMap)),
-                     ArgType
-                  end,
-                  Args),
-    %% Substitute variables in return type
-    [ReturnTypeProcessed] = field_info_to_type(substitute_vars(ReturnType, ConstraintMap)),
-    {true,
-     {{function, FunctionName, Arity},
-      [#ed_function_spec{args = ArgTypes, return = ReturnTypeProcessed}]}};
-%% Handle function specs with multiple alternatives
 type_in_form({attribute, _, spec, {{FunctionName, Arity}, FunctionTypes}})
     when is_atom(FunctionName) andalso is_integer(Arity) andalso is_list(FunctionTypes) ->
     ProcessedSpecs =

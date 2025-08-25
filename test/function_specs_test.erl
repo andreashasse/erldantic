@@ -97,6 +97,16 @@ multi_clause_func(Id, Name) when is_integer(Id) ->
 multi_clause_func(_Binary, _Atom) ->
     false.
 
+%% Function with mixed bounded_fun and regular fun clauses
+-spec mixed_spec_func(Module, Args) -> integer()
+                         when Module :: atom(),
+                              Args :: [term()];
+                     (binary(), atom()) -> string().
+mixed_spec_func(Module, Args) when is_atom(Module) ->
+    length(Args);
+mixed_spec_func(Binary, _Atom) when is_binary(Binary) ->
+    binary_to_list(Binary).
+
 %% Function using external module records (if available)
 -spec external_type_func(external_type:some_record()) -> ok.
 external_type_func(_) ->
@@ -284,3 +294,17 @@ multi_clause_spec_test() ->
                                          #ed_simple_type{type = atom}],
                                     return = #ed_simple_type{type = boolean}}],
                  MultiClauseSpecs).
+
+mixed_bounded_fun_spec_test() ->
+    TypeInfo = erldantic_abstract_code:types_in_module(?MODULE),
+    {ok, MixedSpecs} = erldantic_type_info:get_function(TypeInfo, mixed_spec_func, 2),
+    ?assertEqual(2, length(MixedSpecs)),
+    ?assertEqual([#ed_function_spec{args =
+                                        [#ed_simple_type{type = atom},
+                                         #ed_list{type = #ed_simple_type{type = term}}],
+                                    return = #ed_simple_type{type = integer}},
+                  #ed_function_spec{args =
+                                        [#ed_simple_type{type = binary},
+                                         #ed_simple_type{type = atom}],
+                                    return = #ed_simple_type{type = string}}],
+                 MixedSpecs).
