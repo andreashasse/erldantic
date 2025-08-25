@@ -101,6 +101,8 @@ type_in_form({attribute,
     {true,
      {{function, FunctionName, Arity},
       #ed_function_spec{args = ArgTypes, return = ReturnTypeProcessed}}};
+type_in_form({attribute, _, spec, Spec}) ->
+    error({bug_spec_not_handled, Spec});
 type_in_form({attribute, _, TypeOrOpaque, _} = T)
     when TypeOrOpaque =:= opaque orelse TypeOrOpaque =:= type ->
     error({not_supported, T});
