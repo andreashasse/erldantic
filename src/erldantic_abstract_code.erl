@@ -89,44 +89,38 @@ type_in_form({attribute, _, TypeOrOpaque, {TypeName, Type, Args}})
 type_in_form({attribute, _, spec, {{FunctionName, Arity}, FunctionTypes}})
     when is_atom(FunctionName) andalso is_integer(Arity) andalso is_list(FunctionTypes) ->
     ProcessedSpecs =
-        lists:filtermap(fun(FuncType) ->
-                           case FuncType of
-                               {type, _, 'fun', [{type, _, product, Args}, ReturnType]}
-                                   when is_list(Args) ->
-                                   ArgTypes =
-                                       lists:map(fun(Arg) ->
-                                                    [ArgType] = field_info_to_type(Arg),
-                                                    ArgType
-                                                 end,
-                                                 Args),
-                                   [ReturnTypeProcessed] = field_info_to_type(ReturnType),
-                                   {true,
-                                    #ed_function_spec{args = ArgTypes,
-                                                      return = ReturnTypeProcessed}};
-                               {type,
-                                _,
-                                bounded_fun,
-                                [{type, _, 'fun', [{type, _, product, Args}, ReturnType]},
-                                 Constraints]}
-                                   when is_list(Args) andalso is_list(Constraints) ->
-                                   ConstraintMap = build_constraint_map(Constraints),
-                                   ArgTypes =
-                                       lists:map(fun(Arg) ->
-                                                    [ArgType] =
-                                                        field_info_to_type(substitute_vars(Arg,
-                                                                                           ConstraintMap)),
-                                                    ArgType
-                                                 end,
-                                                 Args),
-                                   [ReturnTypeProcessed] =
-                                       field_info_to_type(substitute_vars(ReturnType,
-                                                                          ConstraintMap)),
-                                   {true,
-                                    #ed_function_spec{args = ArgTypes,
-                                                      return = ReturnTypeProcessed}}
-                           end
-                        end,
-                        FunctionTypes),
+        lists:map(fun(FuncType) ->
+                     case FuncType of
+                         {type, _, 'fun', [{type, _, product, Args}, ReturnType]}
+                             when is_list(Args) ->
+                             ArgTypes =
+                                 lists:map(fun(Arg) ->
+                                              [ArgType] = field_info_to_type(Arg),
+                                              ArgType
+                                           end,
+                                           Args),
+                             [ReturnTypeProcessed] = field_info_to_type(ReturnType),
+                             #ed_function_spec{args = ArgTypes, return = ReturnTypeProcessed};
+                         {type,
+                          _,
+                          bounded_fun,
+                          [{type, _, 'fun', [{type, _, product, Args}, ReturnType]}, Constraints]}
+                             when is_list(Args) andalso is_list(Constraints) ->
+                             ConstraintMap = build_constraint_map(Constraints),
+                             ArgTypes =
+                                 lists:map(fun(Arg) ->
+                                              [ArgType] =
+                                                  field_info_to_type(substitute_vars(Arg,
+                                                                                     ConstraintMap)),
+                                              ArgType
+                                           end,
+                                           Args),
+                             [ReturnTypeProcessed] =
+                                 field_info_to_type(substitute_vars(ReturnType, ConstraintMap)),
+                             #ed_function_spec{args = ArgTypes, return = ReturnTypeProcessed}
+                     end
+                  end,
+                  FunctionTypes),
     {true, {{function, FunctionName, Arity}, ProcessedSpecs}};
 type_in_form({attribute, _, spec, Spec}) ->
     error({bug_spec_not_handled, Spec});
@@ -402,19 +396,7 @@ build_constraint_map_fold({type,
 build_constraint_map_fold(Constraint, _Acc) ->
     error({unsupported_constraint, Constraint}).
 
-%% Substitute variables in a type definition using constraint map
--spec substitute_vars(term(), #{atom() => term()}) -> term().
 substitute_vars({var, _, VarName} = Var, ConstraintMap) when is_atom(VarName) ->
-    case maps:get(VarName, ConstraintMap, not_found) of
-        not_found ->
-            Var;  % Keep the variable as is if no constraint found
-        TypeDef ->
-            TypeDef
-    end;
-substitute_vars(Type, ConstraintMap) when is_tuple(Type) ->
-    list_to_tuple(lists:map(fun(Element) -> substitute_vars(Element, ConstraintMap) end,
-                            tuple_to_list(Type)));
-substitute_vars(List, ConstraintMap) when is_list(List) ->
-    lists:map(fun(Element) -> substitute_vars(Element, ConstraintMap) end, List);
+    maps:get(VarName, ConstraintMap, Var);
 substitute_vars(Term, _ConstraintMap) ->
     Term.
