@@ -101,6 +101,25 @@ type_in_form({attribute,
     {true,
      {{function, FunctionName, Arity},
       #ed_function_spec{args = ArgTypes, return = ReturnTypeProcessed}}};
+type_in_form({attribute,
+              _,
+              spec,
+              {{FunctionName, Arity}, [{type, _, bounded_fun, [{type, _, 'fun', [{type, _, product, Args}, ReturnType]}, Constraints]} | _]}})
+    when is_atom(FunctionName) andalso is_integer(Arity) andalso is_list(Args) andalso is_list(Constraints) ->
+    %% Build constraint map for variable substitution
+    ConstraintMap = build_constraint_map(Constraints),
+    %% Substitute variables in arguments
+    ArgTypes =
+        lists:map(fun(Arg) ->
+                     [ArgType] = field_info_to_type(substitute_vars(Arg, ConstraintMap)),
+                     ArgType
+                  end,
+                  Args),
+    %% Substitute variables in return type
+    [ReturnTypeProcessed] = field_info_to_type(substitute_vars(ReturnType, ConstraintMap)),
+    {true,
+     {{function, FunctionName, Arity},
+      #ed_function_spec{args = ArgTypes, return = ReturnTypeProcessed}}};
 type_in_form({attribute, _, spec, Spec}) ->
     error({bug_spec_not_handled, Spec});
 type_in_form({attribute, _, TypeOrOpaque, _} = T)
@@ -357,3 +376,37 @@ record_field_info({typed_record_field, {record_field, _, {atom, _, FieldName}, _
     when is_atom(FieldName) ->
     [TypeInfo] = field_info_to_type(Type),
     {FieldName, TypeInfo}.
+
+%% Helper functions for bounded_fun handling
+
+%% Build a constraint map from type constraints for variable substitution
+-spec build_constraint_map(list()) -> #{atom() => term()}.
+build_constraint_map(Constraints) ->
+    lists:foldl(fun build_constraint_map_fold/2, #{}, Constraints).
+
+build_constraint_map_fold({type,
+                           _,
+                           constraint,
+                           [{atom, _, is_subtype}, [{var, _, VarName}, TypeDef]]},
+                          Acc)
+    when is_atom(VarName) ->
+    maps:put(VarName, TypeDef, Acc);
+build_constraint_map_fold(Constraint, _Acc) ->
+    error({unsupported_constraint, Constraint}).
+
+%% Substitute variables in a type definition using constraint map
+-spec substitute_vars(term(), #{atom() => term()}) -> term().
+substitute_vars({var, _, VarName} = Var, ConstraintMap) when is_atom(VarName) ->
+    case maps:get(VarName, ConstraintMap, not_found) of
+        not_found ->
+            Var;  % Keep the variable as is if no constraint found
+        TypeDef ->
+            TypeDef
+    end;
+substitute_vars(Type, ConstraintMap) when is_tuple(Type) ->
+    list_to_tuple(lists:map(fun(Element) -> substitute_vars(Element, ConstraintMap) end,
+                            tuple_to_list(Type)));
+substitute_vars(List, ConstraintMap) when is_list(List) ->
+    lists:map(fun(Element) -> substitute_vars(Element, ConstraintMap) end, List);
+substitute_vars(Term, _ConstraintMap) ->
+    Term.

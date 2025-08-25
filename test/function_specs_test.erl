@@ -80,6 +80,13 @@ process_id(Id) when is_integer(Id) ->
 process_id(_) ->
     {error, invalid_id}.
 
+%% Function with bounded_fun spec (using when constraints)
+-spec with_bound_fun(Module, Args) -> integer() when
+      Module :: module(),
+      Args :: list(integer()).
+with_bound_fun(_Module, _Args) ->
+    42.
+
 %% Function using external module records (if available)
 -spec external_type_func(external_type:some_record()) -> ok.
 external_type_func(_) ->
@@ -241,3 +248,14 @@ complex_types_test() ->
                                        [#ed_remote_type{mfargs = {external_type, some_record, []}}],
                                    return = #ed_literal{value = ok}},
                  ExternalTypeFuncSpec).
+
+bounded_fun_spec_test() ->
+    TypeInfo = erldantic_abstract_code:types_in_module(?MODULE),
+    
+    %% Test bounded_fun spec with when constraints
+    {ok, WithBoundFunSpec} = erldantic_type_info:get_function(TypeInfo, with_bound_fun, 2),
+    ?assertMatch(#ed_function_spec{args =
+                                       [#ed_simple_type{type = atom},
+                                        #ed_list{type = #ed_simple_type{type = integer}}],
+                                   return = #ed_simple_type{type = integer}},
+                 WithBoundFunSpec).
