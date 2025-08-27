@@ -73,12 +73,9 @@ do_to_schema(_TypeInfo, #ed_simple_type{type = float}) ->
 do_to_schema(_TypeInfo, #ed_simple_type{type = atom}) ->
     {ok, #{type => <<"string">>}};
 do_to_schema(_TypeInfo, #ed_simple_type{type = binary}) ->
-    {ok, #{type => <<"string">>, format => <<"binary">>}};
+    {ok, #{type => <<"string">>}};
 do_to_schema(_TypeInfo, #ed_simple_type{type = nonempty_binary}) ->
-    {ok,
-     #{type => <<"string">>,
-       format => <<"binary">>,
-       minLength => 1}};
+    {ok, #{type => <<"string">>, minLength => 1}};
 do_to_schema(_TypeInfo, #ed_simple_type{type = nonempty_string}) ->
     {ok, #{type => <<"string">>, minLength => 1}};
 do_to_schema(_TypeInfo, #ed_simple_type{type = pos_integer}) ->
@@ -101,6 +98,8 @@ do_to_schema(_TypeInfo,
 %% Literal types
 do_to_schema(_TypeInfo, #ed_literal{value = undefined}) ->
     {ok, #{enum => [null]}};
+do_to_schema(_TypeInfo, #ed_literal{value = Value}) when is_atom(Value) ->
+    {ok, #{enum => [atom_to_binary(Value, utf8)]}};
 do_to_schema(_TypeInfo, #ed_literal{value = Value}) ->
     {ok, #{enum => [Value]}};
 %% List types
@@ -123,21 +122,23 @@ do_to_schema(TypeInfo, #ed_nonempty_list{type = ItemType}) ->
     end;
 %% Union types
 do_to_schema(TypeInfo, #ed_union{types = Types}) ->
-    case erldantic_util:fold_until_error(fun(T, Acc) ->
-                                            case do_to_schema(TypeInfo, T) of
-                                                {ok, Schema} ->
-                                                    {ok, [Schema | Acc]};
-                                                {error, _} = Err ->
-                                                    Err
-                                            end
-                                         end,
-                                         [],
-                                         Types)
+    %% Check if this is a union with undefined - if so, extract the non-undefined type
+    case lists:partition(fun (#ed_literal{value = undefined}) ->
+                                 true;
+                             (_) ->
+                                 false
+                         end,
+                         Types)
     of
-        {ok, Schemas} ->
-            {ok, #{oneOf => lists:reverse(Schemas)}};
-        {error, _} = Err ->
-            Err
+        {[_UndefinedLiteral], [SingleType]} ->
+            %% Union with undefined and one other type - return just the other type
+            do_to_schema(TypeInfo, SingleType);
+        {[], _} ->
+            %% No undefined in union - generate normal oneOf
+            generate_oneof_schema(TypeInfo, Types);
+        {[_UndefinedLiteral], OtherTypes} when length(OtherTypes) > 1 ->
+            %% Union with undefined and multiple other types - generate oneOf for all
+            generate_oneof_schema(TypeInfo, Types)
     end;
 %% Map types
 do_to_schema(TypeInfo, #ed_map{fields = Fields}) ->
@@ -381,8 +382,33 @@ process_record_fields(TypeInfo, [{FieldName, FieldType} | Rest], Properties, Req
     case do_to_schema(TypeInfo, FieldType) of
         {ok, FieldSchema} ->
             NewProperties = Properties#{FieldName => FieldSchema},
-            NewRequired = [FieldName | Required],
+            NewRequired =
+                case erldantic_type:can_be_undefined(TypeInfo, FieldType) of
+                    true ->
+                        Required;
+                    false ->
+                        [FieldName | Required]
+                end,
             process_record_fields(TypeInfo, Rest, NewProperties, NewRequired);
+        {error, _} = Err ->
+            Err
+    end.
+
+%% Helper function to generate oneOf schemas
+generate_oneof_schema(TypeInfo, Types) ->
+    case erldantic_util:fold_until_error(fun(T, Acc) ->
+                                            case do_to_schema(TypeInfo, T) of
+                                                {ok, Schema} ->
+                                                    {ok, [Schema | Acc]};
+                                                {error, _} = Err ->
+                                                    Err
+                                            end
+                                         end,
+                                         [],
+                                         Types)
+    of
+        {ok, Schemas} ->
+            {ok, #{oneOf => lists:reverse(Schemas)}};
         {error, _} = Err ->
             Err
     end.

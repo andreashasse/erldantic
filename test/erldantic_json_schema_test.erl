@@ -35,10 +35,13 @@
 -record(user, {id :: integer(), name :: string(), email :: string()}).
 -record(product,
         {id :: integer(), name :: string(), price :: float(), tags :: [string()]}).
+-record(user_with_optional,
+        {id :: integer(), name :: string(), email :: string() | undefined}).
 
 %% Type aliases for records to avoid unused warnings
 -type user() :: #user{}.
 -type product() :: #product{}.
+-type user_with_optional() :: #user_with_optional{}.
 
 %% Test simple type mappings
 simple_types_test() ->
@@ -62,8 +65,8 @@ simple_types_test() ->
     ?assertEqual({ok, #{type => <<"string">>}},
                  erldantic_json_schema:type_to_schema(?MODULE, my_atom)),
 
-    %% binary (mapped to string with format)
-    ?assertEqual({ok, #{type => <<"string">>, format => <<"binary">>}},
+    %% binary (mapped to string)
+    ?assertEqual({ok, #{type => <<"string">>}},
                  erldantic_json_schema:type_to_schema(?MODULE, my_binary)),
 
     %% float
@@ -95,8 +98,8 @@ range_types_test() ->
 
 %% Test literal type mappings
 literal_types_test() ->
-    %% Literal atom
-    ?assertEqual({ok, #{enum => [hello]}},
+    %% Literal atom (converted to binary string)
+    ?assertEqual({ok, #{enum => [<<"hello">>]}},
                  erldantic_json_schema:type_to_schema(?MODULE, my_literal_atom)),
 
     %% Literal integer
@@ -122,8 +125,8 @@ union_types_test() ->
     ?assertEqual({ok, #{oneOf => [#{type => <<"integer">>}, #{type => <<"string">>}]}},
                  erldantic_json_schema:type_to_schema(?MODULE, my_union)),
 
-    %% Optional type (union with undefined)
-    ?assertEqual({ok, #{oneOf => [#{type => <<"integer">>}, #{enum => [null]}]}},
+    %% Optional type (union with undefined) - now returns just the non-undefined type
+    ?assertEqual({ok, #{type => <<"integer">>}},
                  erldantic_json_schema:type_to_schema(?MODULE, my_optional)).
 
 %% Test map type mappings
@@ -167,6 +170,19 @@ record_types_test() ->
                     properties => ExpectedProps,
                     required => [id, name, price, tags]}},
                  erldantic_json_schema:record_to_schema(?MODULE, product)).
+
+%% Test record with optional field
+record_with_optional_fields_test() ->
+    %% Record with optional email field (can be undefined)
+    %% The field appears as simple string type and is excluded from required fields
+    ?assertEqual({ok,
+                  #{type => <<"object">>,
+                    properties =>
+                        #{id => #{type => <<"integer">>},
+                          name => #{type => <<"string">>},
+                          email => #{type => <<"string">>}},
+                    required => [id, name]}},
+                 erldantic_json_schema:record_to_schema(?MODULE, user_with_optional)).
 
 %% Test error handling
 error_handling_test() ->

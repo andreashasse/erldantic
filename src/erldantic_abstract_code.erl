@@ -111,12 +111,13 @@ type_in_form({attribute, _, spec, {{FunctionName, Arity}, FunctionTypes}})
                                  lists:map(fun(Arg) ->
                                               [ArgType] =
                                                   field_info_to_type(bound_fun_substitute_vars(Arg,
-                                                                                     ConstraintMap)),
+                                                                                               ConstraintMap)),
                                               ArgType
                                            end,
                                            Args),
                              [ReturnTypeProcessed] =
-                                 field_info_to_type(bound_fun_substitute_vars(ReturnType, ConstraintMap)),
+                                 field_info_to_type(bound_fun_substitute_vars(ReturnType,
+                                                                              ConstraintMap)),
                              #ed_function_spec{args = ArgTypes, return = ReturnTypeProcessed}
                      end
                   end,
@@ -385,10 +386,10 @@ bound_fun_constraints(Constraints) ->
     lists:foldl(fun bound_fun_constraint_aux/2, #{}, Constraints).
 
 bound_fun_constraint_aux({type,
-                           _,
-                           constraint,
-                           [{atom, _, is_subtype}, [{var, _, VarName}, TypeDef]]},
-                          Acc)
+                          _,
+                          constraint,
+                          [{atom, _, is_subtype}, [{var, _, VarName}, TypeDef]]},
+                         Acc)
     when is_atom(VarName) ->
     maps:put(VarName, TypeDef, Acc);
 bound_fun_constraint_aux(Constraint, _Acc) ->

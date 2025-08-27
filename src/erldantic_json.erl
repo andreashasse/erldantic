@@ -286,7 +286,7 @@ map_fields_to_json(TypeInfo, MapFieldTypes, Data) ->
                                   {error, Errs2}
                           end;
                       error ->
-                          case can_be_undefined(TypeInfo, FieldType) of
+                          case erldantic_type:can_be_undefined(TypeInfo, FieldType) of
                               true ->
                                   {ok, {FieldsAcc, DataAcc}};
                               false ->
@@ -775,7 +775,7 @@ map_from_json(TypeInfo, MapFieldType, Json) when is_map(Json) ->
                                   {error, Errs2}
                           end;
                       error ->
-                          case can_be_undefined(TypeInfo, FieldType) of
+                          case erldantic_type:can_be_undefined(TypeInfo, FieldType) of
                               true ->
                                   {ok, {[{FieldName, undefined}] ++ FieldsAcc, JsonAcc}};
                               false ->
@@ -891,7 +891,7 @@ do_record_from_json(TypeInfo, RecordName, RecordInfo, Json) when is_map(Json) ->
                              {error, Errs2}
                      end;
                  error ->
-                     case can_be_undefined(TypeInfo, FieldType) of
+                     case erldantic_type:can_be_undefined(TypeInfo, FieldType) of
                          true ->
                              {ok, undefined};
                          false ->
@@ -910,27 +910,3 @@ do_record_from_json(_TypeInfo, RecordName, _RecordInfo, Json) ->
      [#ed_error{type = type_mismatch,
                 location = [],
                 ctx = #{record_name => RecordName, record => Json}}]}.
-
--spec can_be_undefined(TypeInfo :: erldantic:type_info(), Type :: erldantic:ed_type()) ->
-                          boolean().
-can_be_undefined(TypeInfo, Type) ->
-    case Type of
-        #ed_type_with_variables{type = Type2} ->
-            can_be_undefined(TypeInfo, Type2);
-        #ed_union{types = Types} ->
-            lists:member(#ed_literal{value = undefined}, Types);
-        #ed_literal{value = undefined} ->
-            true;
-        #ed_user_type_ref{type_name = TypeName, variables = TypeArgs} ->
-            TypeArity = length(TypeArgs),
-            case erldantic_type_info:get_type(TypeInfo, TypeName, TypeArity) of
-                {ok, Type2} ->
-                    %% infinite recursion?
-                    can_be_undefined(TypeInfo, Type2);
-                error ->
-                    %% error?
-                    false
-            end;
-        _ ->
-            false
-    end.
