@@ -36,6 +36,9 @@ jobs:
           echo "${{ github.workspace }}/bin" >> $GITHUB_PATH
           echo "ELP installed at ${{ github.workspace }}/bin/elp"
 
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v6
+
       - name: Cache rebar3 dependencies
         uses: actions/cache@v4
         with:
