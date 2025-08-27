@@ -289,20 +289,13 @@ map_fields_to_schema(TypeInfo, Fields) ->
     case process_map_fields(TypeInfo, Fields, #{}, [], false) of
         {ok, Properties, Required, HasAdditional} ->
             Schema =
-                case {Properties, HasAdditional} of
-                    {Props, false} when Props =/= #{} ->
-                        BaseSchema = #{type => <<"object">>, properties => Props},
-                        case Required of
-                            [] ->
-                                BaseSchema;
-                            _ ->
-                                BaseSchema#{required => Required}
-                        end;
-                    {#{}, true} ->
-                        #{type => <<"object">>, additionalProperties => true};
-                    _ ->
-                        #{type => <<"object">>}
-                end,
+                lists:foldl(fun({Key, Value, SkipValue}, Acc) ->
+                               map_add_if_not_value(Acc, Key, Value, SkipValue)
+                            end,
+                            #{type => <<"object">>},
+                            [{properties, Properties, #{}},
+                             {required, Required, []},
+                             {additionalProperties, HasAdditional, true}]),
             {ok, Schema};
         {error, _} = Err ->
             Err
@@ -412,3 +405,14 @@ generate_oneof_schema(TypeInfo, Types) ->
         {error, _} = Err ->
             Err
     end.
+
+%% Helper function to conditionally add key-value pairs to a map
+-spec map_add_if_not_value(Map, Key, Value, SkipValue) -> Map
+    when Map :: map(),
+         Key :: term(),
+         Value :: term(),
+         SkipValue :: term().
+map_add_if_not_value(Map, _Key, Value, SkipValue) when Value =:= SkipValue ->
+    Map;
+map_add_if_not_value(Map, Key, Value, _SkipValue) ->
+    Map#{Key => Value}.

@@ -136,7 +136,8 @@ map_types_test() ->
                   #{type => <<"object">>,
                     properties =>
                         #{name => #{type => <<"string">>}, age => #{type => <<"integer">>}},
-                    required => [age, name]}},
+                    required => [age, name],
+                    additionalProperties => false}},
                  erldantic_json_schema:type_to_schema(?MODULE, my_map)),
 
     %% Structured map with specific fields
@@ -144,7 +145,8 @@ map_types_test() ->
                   #{type => <<"object">>,
                     properties =>
                         #{config => #{type => <<"string">>}, timeout => #{type => <<"integer">>}},
-                    required => [timeout, config]}},
+                    required => [timeout, config],
+                    additionalProperties => false}},
                  erldantic_json_schema:type_to_schema(?MODULE, my_flexible_map)).
 
 %% Test record type mappings
