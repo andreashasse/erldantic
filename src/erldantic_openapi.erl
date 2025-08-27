@@ -155,9 +155,7 @@ generate_operation(Endpoint) ->
         case maps:size(Responses) > 0 of
             true ->
                 OpenAPIResponses =
-                    maps:map(fun(StatusCode, ResponseSpec) ->
-                                generate_response(StatusCode, ResponseSpec)
-                             end,
+                    maps:map(fun(_StatusCode, ResponseSpec) -> generate_response(ResponseSpec) end,
                              Responses),
                 %% Convert integer keys to binary for OpenAPI spec
                 OpenAPIResponsesBinary =
@@ -192,8 +190,8 @@ generate_operation(Endpoint) ->
             maps:put(parameters, OpenAPIParameters, OperationWithBody)
     end.
 
--spec generate_response(integer(), map()) -> map().
-generate_response(_StatusCode, ResponseSpec) ->
+-spec generate_response(map()) -> map().
+generate_response(ResponseSpec) ->
     Description = maps:get(description, ResponseSpec),
     SchemaRef = maps:get(schema, ResponseSpec),
     SchemaName = schema_ref_to_name(SchemaRef),
