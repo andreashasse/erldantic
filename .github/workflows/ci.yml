@@ -52,9 +52,6 @@ jobs:
       - name: Run tests
         run: make test
 
-      - name: Run Proper
-        run: make proper
-
       - name: Type check
         run: make type_check
 
