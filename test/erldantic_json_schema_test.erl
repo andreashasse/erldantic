@@ -30,6 +30,9 @@
 %% Map types
 -type my_map() :: #{name := string(), age := integer()}.
 -type my_flexible_map() :: #{config := string(), timeout := integer()}.
+%% Generic map types (allow additional properties)
+-type my_generic_map() :: #{atom() => integer()}.
+-type my_mixed_map() :: #{name := string(), atom() => integer()}.
 
 %% Record types
 -record(user, {id :: integer(), name :: string(), email :: string()}).
@@ -148,6 +151,20 @@ map_types_test() ->
                     required => [timeout, config],
                     additionalProperties => false}},
                  erldantic_json_schema:type_to_schema(?MODULE, my_flexible_map)).
+
+%% Test generic map types with additional properties
+generic_map_types_test() ->
+    %% Generic map with atom keys and integer values
+    ?assertEqual({ok, #{type => <<"object">>, additionalProperties => true}},
+                 erldantic_json_schema:type_to_schema(?MODULE, my_generic_map)),
+
+    %% Mixed map with both specific and generic fields
+    ?assertEqual({ok,
+                  #{type => <<"object">>,
+                    properties => #{name => #{type => <<"string">>}},
+                    required => [name],
+                    additionalProperties => true}},
+                 erldantic_json_schema:type_to_schema(?MODULE, my_mixed_map)).
 
 %% Test record type mappings
 record_types_test() ->

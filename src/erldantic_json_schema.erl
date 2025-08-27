@@ -292,10 +292,8 @@ map_fields_to_schema(TypeInfo, Fields) ->
                 lists:foldl(fun({Key, Value, SkipValue}, Acc) ->
                                map_add_if_not_value(Acc, Key, Value, SkipValue)
                             end,
-                            #{type => <<"object">>},
-                            [{properties, Properties, #{}},
-                             {required, Required, []},
-                             {additionalProperties, HasAdditional, true}]),
+                            #{type => <<"object">>, additionalProperties => HasAdditional},
+                            [{properties, Properties, #{}}, {required, Required, []}]),
             {ok, Schema};
         {error, _} = Err ->
             Err
@@ -335,17 +333,19 @@ process_map_fields(TypeInfo,
             Err
     end;
 process_map_fields(_TypeInfo,
-                   [{map_field_type_assoc, KeyType, ValueType} | _Rest],
-                   _Properties,
-                   _Required,
+                   [{map_field_type_assoc, _KeyType, _ValueType} | Rest],
+                   Properties,
+                   Required,
                    _HasAdditional) ->
-    erlang:error({type_not_supported, {map_field_type_assoc, KeyType, ValueType}});
+    %% Generic key-value map allows additional properties
+    process_map_fields(_TypeInfo, Rest, Properties, Required, true);
 process_map_fields(_TypeInfo,
-                   [{map_field_type_exact, KeyType, ValueType} | _Rest],
-                   _Properties,
-                   _Required,
+                   [{map_field_type_exact, _KeyType, _ValueType} | Rest],
+                   Properties,
+                   Required,
                    _HasAdditional) ->
-    erlang:error({type_not_supported, {map_field_type_exact, KeyType, ValueType}}).
+    %% Generic key-value map allows additional properties
+    process_map_fields(_TypeInfo, Rest, Properties, Required, true).
 
 -spec record_to_schema_internal(erldantic:type_info(), atom() | #ed_rec{}) ->
                                    {ok, map()} | {error, [erldantic:error()]}.
