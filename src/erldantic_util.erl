@@ -1,25 +1,41 @@
 -module(erldantic_util).
 
--export([not_handled_modules/0, test_abs_code/1, fold_until_error/3, map_until_error/2]).
+-export([test_abs_code/1, fold_until_error/3, map_until_error/2]).
 
--ignore_xref([not_handled_modules/0, test_abs_code/1]).
+-ignore_xref([test_abs_code/1]).
+
+-ifdef(TEST).
+
+-include_lib("eunit/include/eunit.hrl").
+
+-endif.
 
 -include_lib("erldantic/include/erldantic.hrl").
 
--spec not_handled_modules() -> [{atom(), term()}].
-not_handled_modules() ->
+-ifdef(TEST).
+
+not_handled_modules_test() ->
     Modules = erlang:loaded(),
-    lists:filtermap(fun(Module) ->
-                       case test_abs_code(Module) of
-                           {ok, _Types} ->
-                               false;
-                           {error, [#ed_error{} | _]} ->
-                               false;
-                           {error, Reason} ->
-                               {true, {Module, Reason}}
-                       end
-                    end,
-                    Modules).
+    Errors =
+        lists:filtermap(fun(Module) ->
+                           case test_abs_code(Module) of
+                               {ok, _Types} ->
+                                   false;
+                               {error, [#ed_error{} | _]} ->
+                                   false;
+                               {error, {error, {beam_lib_error, _ModuleName, _Details}, _Stack}} ->
+                                   false;
+                               {error,
+                                {error, {module_types_not_found, _ModuleName, _State}, _Stack}} ->
+                                   false;
+                               {error, Reason} ->
+                                   {true, {Module, Reason}}
+                           end
+                        end,
+                        Modules),
+    ?assertEqual([], Errors).
+
+-endif.
 
 -spec test_abs_code(module()) ->
                        {ok, erldantic:type_info()} | {error, {atom(), term(), erlang:stacktrace()}}.

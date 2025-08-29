@@ -1,7 +1,10 @@
 -module(erldantic_json).
 
 -export([type_to_json/3, type_from_json/3, record_to_json/3, record_from_json/3]).
+%% exported for test
+-export([to_json/3, from_json/3]).
 
+-ignore_xref([to_json/3, from_json/3]).
 -ignore_xref([{erldantic_json, type_to_json, 3},
               {erldantic_json, type_from_json, 3},
               {erldantic_json, record_to_json, 3},
@@ -112,7 +115,7 @@ do_to_json(TypeInfo,
 do_to_json(TypeInfo, #ed_user_type_ref{type_name = TypeName, variables = TypeArgs}, Data)
     when is_atom(TypeName) ->
     TypeArity = length(TypeArgs),
-    Type = type_info_get_type(TypeInfo, TypeName, TypeArity),
+    {ok, Type} = erldantic_type_info:get_type(TypeInfo, TypeName, TypeArity),
     TypeWithoutVars = apply_args(TypeInfo, Type, TypeArgs),
     do_to_json(TypeInfo, TypeWithoutVars, Data);
 do_to_json(_TypeInfo, #ed_simple_type{type = NotSupported} = Type, _Data)
@@ -144,14 +147,14 @@ do_to_json(TypeInfo, #ed_list{type = Type}, Data) when is_list(Data) ->
     list_to_json(TypeInfo, Type, Data);
 do_to_json(TypeInfo, {type, TypeName, TypeArity}, Data) when is_atom(TypeName) ->
     %% FIXME: For simple types without arity, default to 0
-    Type = type_info_get_type(TypeInfo, TypeName, TypeArity),
+    {ok, Type} = erldantic_type_info:get_type(TypeInfo, TypeName, TypeArity),
     do_to_json(TypeInfo, Type, Data);
 do_to_json(TypeInfo, #ed_map{} = Map, Data) ->
     map_to_json(TypeInfo, Map, Data);
 do_to_json(_TypeInfo, #ed_remote_type{mfargs = {Module, TypeName, Args}}, Data) ->
     TypeInfo = erldantic_module_types:get(Module),
     TypeArity = length(Args),
-    Type = type_info_get_type(TypeInfo, TypeName, TypeArity),
+    {ok, Type} = erldantic_type_info:get_type(TypeInfo, TypeName, TypeArity),
     TypeWithoutVars = apply_args(TypeInfo, Type, Args),
     do_to_json(TypeInfo, TypeWithoutVars, Data);
 do_to_json(_TypeInfo, #ed_maybe_improper_list{} = Type, _Data) ->
@@ -169,19 +172,14 @@ do_to_json(_TypeInfo, Type, OtherValue) ->
                 location = [],
                 ctx = #{type => Type, value => OtherValue}}]}.
 
--spec type_info_get_type(TypeInfo :: erldantic:type_info(),
-                         TypeName :: atom(),
-                         TypeArity :: non_neg_integer()) ->
-                            erldantic:ed_type().
-type_info_get_type(TypeInfo, TypeName, TypeArity) ->
-    maps:get({type, TypeName, TypeArity}, TypeInfo).
-
 -spec prim_type_to_json(Type :: erldantic:ed_type(), Value :: term()) ->
                            {ok, json:encode_value()} | {error, [erldantic:error()]}.
 prim_type_to_json(#ed_simple_type{type = Type} = T, Value) ->
     case check_type_to_json(Type, Value) of
         {true, NewValue} ->
             {ok, NewValue};
+        {error, Reason} ->
+            {error, Reason};
         false ->
             {error,
              [#ed_error{type = type_mismatch,
@@ -197,7 +195,7 @@ nonempty_list_to_json(_TypeInfo, Type, Data) ->
                 location = [],
                 ctx = #{type => {nonempty_list, Type}, value => Data}}]}.
 
--spec list_to_json(TypeInfo :: map(),
+-spec list_to_json(TypeInfo :: erldantic:type_info(),
                    Type :: erldantic:ed_type_or_ref(),
                    Data :: [term()]) ->
                       {ok, [json:encode_value()]} | {error, [erldantic:error()]}.
@@ -288,7 +286,7 @@ map_fields_to_json(TypeInfo, MapFieldTypes, Data) ->
                                   {error, Errs2}
                           end;
                       error ->
-                          case can_be_undefined(TypeInfo, FieldType) of
+                          case erldantic_type:can_be_undefined(TypeInfo, FieldType) of
                               true ->
                                   {ok, {FieldsAcc, DataAcc}};
                               false ->
@@ -339,13 +337,13 @@ map_field_type(TypeInfo, KeyType, ValueType, Data) ->
           end,
     erldantic_util:fold_until_error(Fun, {[], Data}, maps:to_list(Data)).
 
--spec record_to_json(TypeInfo :: map(),
+-spec record_to_json(TypeInfo :: erldantic:type_info(),
                      RecordName :: atom() | #ed_rec{},
                      Record :: term(),
                      TypeArgs :: [{atom(), erldantic:ed_type()}]) ->
                         {ok, #{atom() => json:encode_value()}} | {error, [erldantic:error()]}.
 record_to_json(TypeInfo, RecordName, Record, TypeArgs) when is_atom(RecordName) ->
-    RecordInfo = maps:get({record, RecordName}, TypeInfo),
+    {ok, RecordInfo} = erldantic_type_info:get_record(TypeInfo, RecordName),
     record_to_json(TypeInfo, RecordInfo, Record, TypeArgs);
 record_to_json(TypeInfo,
                #ed_rec{name = RecordName,
@@ -402,7 +400,7 @@ do_record_to_json(TypeInfo, RecFieldTypesWithData) ->
 err_append_location(Err, FieldName) ->
     Err#ed_error{location = [FieldName | Err#ed_error.location]}.
 
--spec from_json(TypeInfo :: map(),
+-spec from_json(TypeInfo :: erldantic:type_info(),
                 Type :: erldantic:ed_type_or_ref(),
                 Json :: json:decode_value()) ->
                    {ok, term()} | {error, [erldantic:error()]}.
@@ -438,6 +436,8 @@ from_json(_TypeInfo, #ed_simple_type{type = PrimaryType} = T, Json) ->
     case check_type_from_json(PrimaryType, Json) of
         {true, NewValue} ->
             {ok, NewValue};
+        {error, Reason} ->
+            {error, Reason};
         false ->
             {error,
              [#ed_error{type = type_mismatch,
@@ -465,7 +465,7 @@ from_json(_TypeInfo,
                     lower_bound = Min,
                     upper_bound = Max},
           Value)
-    when Min =< Value, Value =< Max ->
+    when Min =< Value, Value =< Max, is_integer(Value) ->
     {ok, Value};
 from_json(_TypeInfo,
           #ed_range{type = integer,
@@ -520,6 +520,7 @@ list_from_json(TypeInfo, Type, Data) when is_list(Data) ->
                      {ok, Json};
                  {error, Errs} ->
                      Errs2 = lists:map(fun(Err) -> err_append_location(Err, Nr) end, Errs),
+
                      {error, Errs2}
              end
           end,
@@ -530,14 +531,29 @@ list_from_json(_TypeInfo, Type, Data) ->
                 location = [],
                 ctx = #{type => {list, Type}, value => Data}}]}.
 
+string_from_json(Type, Json) ->
+    StringValue = unicode:characters_to_list(Json),
+    case io_lib:printable_list(StringValue) of
+        true ->
+            {true, StringValue};
+        false ->
+            {error,
+             [#ed_error{type = type_mismatch,
+                        location = [],
+                        ctx =
+                            #{type => #ed_simple_type{type = Type},
+                              value => Json,
+                              comment => "non printable"}}]}
+    end.
+
 check_type_from_json(string, Json) when is_binary(Json) ->
-    {true, unicode:characters_to_list(Json)};
+    string_from_json(string, Json);
 check_type_from_json(nonempty_string, Json) when is_binary(Json), byte_size(Json) > 0 ->
-    {true, unicode:characters_to_list(Json)};
+    string_from_json(nonempty_string, Json);
 check_type_from_json(iodata, Json) when is_binary(Json) ->
     {true, Json};
 check_type_from_json(iolist, Json) when is_binary(Json) ->
-    {true, Json};
+    {true, [Json]};
 check_type_from_json(atom, Json) when is_binary(Json) ->
     try
         {true, binary_to_existing_atom(Json, utf8)}
@@ -548,8 +564,6 @@ check_type_from_json(atom, Json) when is_binary(Json) ->
 check_type_from_json(Type, Json) ->
     check_type(Type, Json).
 
-check_type_to_json(string, Json) when is_list(Json) ->
-    {true, unicode:characters_to_binary(Json)};
 check_type_to_json(iodata, Json) when is_binary(Json) ->
     {true, Json};
 check_type_to_json(iodata, Json) when is_list(Json) ->
@@ -569,17 +583,12 @@ check_type_to_json(nonempty_string, Json) when is_list(Json), Json =/= [] ->
                               value => Json,
                               comment => "non printable"}}]}
     end;
-check_type_to_json(Type, Json) ->
-    check_type(Type, Json).
-
-check_type(integer, Json) when is_integer(Json) ->
-    {true, Json};
-check_type(string, Json) when is_list(Json) ->
+check_type_to_json(string, Json) when is_list(Json) ->
     %% All characters should be printable ASCII or it's probably not intended as a string
     %% FIXME: Document this.
     case io_lib:printable_list(Json) of
         true ->
-            {true, Json};
+            {true, unicode:characters_to_binary(Json)};
         false ->
             {error,
              [#ed_error{type = type_mismatch,
@@ -589,6 +598,11 @@ check_type(string, Json) when is_list(Json) ->
                               value => Json,
                               comment => "non printable"}}]}
     end;
+check_type_to_json(Type, Json) ->
+    check_type(Type, Json).
+
+check_type(integer, Json) when is_integer(Json) ->
+    {true, Json};
 check_type(boolean, Json) when is_boolean(Json) ->
     {true, Json};
 check_type(float, Json) when is_float(Json) ->
@@ -642,7 +656,7 @@ do_first(Fun, TypeInfo, [Type | Rest], Json) ->
                      Json :: json:decode_value()) ->
                         {ok, term()} | {error, [erldantic:error()]}.
 type_from_json(TypeInfo, TypeName, TypeArity, TypeArgs, Json) ->
-    Type = type_info_get_type(TypeInfo, TypeName, TypeArity),
+    {ok, Type} = erldantic_type_info:get_type(TypeInfo, TypeName, TypeArity),
     TypeWithoutVars = apply_args(TypeInfo, Type, TypeArgs),
     from_json(TypeInfo, TypeWithoutVars, Json).
 
@@ -695,21 +709,21 @@ type_replace_vars(TypeInfo, #ed_type_with_variables{type = Type}, NamedTypes) ->
                                   end,
                                   Fields)};
         #ed_rec_ref{record_name = RecordName, field_types = RefFieldTypes} ->
-            case TypeInfo of
-                #{{record, RecordName} := #ed_rec{fields = Fields} = Rec} ->
+            case erldantic_type_info:get_record(TypeInfo, RecordName) of
+                {ok, #ed_rec{fields = Fields} = Rec} ->
                     NewRec = Rec#ed_rec{fields = record_replace_vars(Fields, RefFieldTypes)},
                     type_replace_vars(TypeInfo, NewRec, NamedTypes);
-                #{} ->
+                error ->
                     erlang:error({missing_type, {record, RecordName}})
             end;
         #ed_remote_type{mfargs = {Module, TypeName, Args}} ->
             case erldantic_module_types:get(Module) of
                 {ok, TypeInfo} ->
                     TypeArity = length(Args),
-                    case TypeInfo of
-                        #{{type, TypeName, TypeArity} := Type} ->
+                    case erldantic_type_info:get_type(TypeInfo, TypeName, TypeArity) of
+                        {ok, Type} ->
                             type_replace_vars(TypeInfo, Type, NamedTypes);
-                        #{} ->
+                        error ->
                             erlang:error({missing_type, TypeName})
                     end;
                 {error, _} = Err ->
@@ -761,7 +775,7 @@ map_from_json(TypeInfo, MapFieldType, Json) when is_map(Json) ->
                                   {error, Errs2}
                           end;
                       error ->
-                          case can_be_undefined(TypeInfo, FieldType) of
+                          case erldantic_type:can_be_undefined(TypeInfo, FieldType) of
                               true ->
                                   {ok, {[{FieldName, undefined}] ++ FieldsAcc, JsonAcc}};
                               false ->
@@ -846,19 +860,19 @@ map_field_type_from_json(TypeInfo, KeyType, ValueType, Json) ->
                                     {[], Json},
                                     maps:to_list(Json)).
 
--spec record_from_json(TypeInfo :: map(),
+-spec record_from_json(TypeInfo :: erldantic:type_info(),
                        RecordName :: atom() | #ed_rec{},
                        Json :: json:decode_value(),
                        TypeArgs :: [erldantic:record_field()]) ->
                           {ok, term()} | {error, list()}.
 record_from_json(TypeInfo, RecordName, Json, TypeArgs) when is_atom(RecordName) ->
-    Record = maps:get({record, RecordName}, TypeInfo),
+    {ok, Record} = erldantic_type_info:get_record(TypeInfo, RecordName),
     record_from_json(TypeInfo, Record, Json, TypeArgs);
 record_from_json(TypeInfo, #ed_rec{name = RecordName} = ARec, Json, TypeArgs) ->
     RecordInfo = record_replace_vars(ARec#ed_rec.fields, TypeArgs),
     do_record_from_json(TypeInfo, RecordName, RecordInfo, Json).
 
--spec do_record_from_json(TypeInfo :: map(),
+-spec do_record_from_json(TypeInfo :: erldantic:type_info(),
                           RecordName :: atom(),
                           RecordInfo :: list(),
                           Json :: json:decode_value()) ->
@@ -877,7 +891,7 @@ do_record_from_json(TypeInfo, RecordName, RecordInfo, Json) when is_map(Json) ->
                              {error, Errs2}
                      end;
                  error ->
-                     case can_be_undefined(TypeInfo, FieldType) of
+                     case erldantic_type:can_be_undefined(TypeInfo, FieldType) of
                          true ->
                              {ok, undefined};
                          false ->
@@ -896,27 +910,3 @@ do_record_from_json(_TypeInfo, RecordName, _RecordInfo, Json) ->
      [#ed_error{type = type_mismatch,
                 location = [],
                 ctx = #{record_name => RecordName, record => Json}}]}.
-
--spec can_be_undefined(TypeInfo :: erldantic:type_info(), Type :: erldantic:ed_type()) ->
-                          boolean().
-can_be_undefined(TypeInfo, Type) ->
-    case Type of
-        #ed_type_with_variables{type = Type2} ->
-            can_be_undefined(TypeInfo, Type2);
-        #ed_union{types = Types} ->
-            lists:member(#ed_literal{value = undefined}, Types);
-        #ed_literal{value = undefined} ->
-            true;
-        #ed_user_type_ref{type_name = TypeName, variables = TypeArgs} ->
-            TypeArity = length(TypeArgs),
-            case TypeInfo of
-                #{{type, TypeName, TypeArity} := Type2} ->
-                    %% infinite recursion?
-                    can_be_undefined(TypeInfo, Type2);
-                #{} ->
-                    %% error?
-                    false
-            end;
-        _ ->
-            false
-    end.

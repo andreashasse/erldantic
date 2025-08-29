@@ -12,14 +12,15 @@
 -type person_alias() :: #person{name :: string(), age :: pos_integer()}.
 
 missing_test() ->
-    Types = erldantic_abstract_code:types_in_module(?MODULE),
+    TypeInfo = erldantic_abstract_code:types_in_module(?MODULE),
     %% arity
+    {ok, PersonRecord} = erldantic_type_info:get_record(TypeInfo, person),
     ?assertEqual(#ed_rec{name = person,
                          fields =
                              [{name, #ed_simple_type{type = string}},
                               {age, #ed_simple_type{type = pos_integer}}],
                          arity = 3},
-                 maps:get({record, person}, Types)),
+                 PersonRecord),
     ?assertEqual({ok, #{name => <<"John">>, age => 1}},
                  erldantic_json:record_to_json(?MODULE, person, #person{name = "John"}),
                  "Default value for age picked up when constructing the record, no change needed for to_json"),

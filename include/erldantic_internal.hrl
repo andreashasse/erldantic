@@ -44,3 +44,9 @@
 -record(ed_range, {type :: integer, lower_bound :: integer(), upper_bound :: integer()}).
 -record(ed_list, {type :: erldantic:ed_type()}).
 -record(ed_nonempty_list, {type :: erldantic:ed_type()}).
+-record(ed_function_spec, {args :: [erldantic:ed_type()], return :: erldantic:ed_type()}).
+%% New structured type information
+-record(type_info,
+        {types = #{} :: #{erldantic_type_info:type_key() => erldantic:ed_type()},
+         records = #{} :: #{atom() => #ed_rec{}},
+         functions = #{} :: #{erldantic_type_info:function_key() => [#ed_function_spec{}]}}).

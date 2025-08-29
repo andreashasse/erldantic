@@ -1,6 +1,5 @@
 -module(erldantic_abstract_code).
 
--include("../include/erldantic.hrl").
 -include("../include/erldantic_internal.hrl").
 
 -export([types_in_module/1]).
@@ -33,20 +32,30 @@ types_in_module(Module) ->
         FilePath ->
             case beam_lib:chunks(FilePath, [abstract_code]) of
                 {ok, {Module, [{abstract_code, {_, Forms}}]}} ->
-                    NamedTypes =
-                        lists:filtermap(fun(F) ->
-                                           %%io:format("F ~p~n", [F]),
-                                           type_in_form(F)
-                                        end,
-                                        Forms),
-                    maps:from_list(NamedTypes);
+                    NamedTypes = lists:filtermap(fun(F) -> type_in_form(F) end, Forms),
+                    build_type_info(NamedTypes);
                 {error, beam_lib, Reason} ->
                     erlang:error({beam_lib_error, Module, Reason})
             end
     end.
 
+build_type_info(NamedTypes) ->
+    lists:foldl(fun build_type_info_fold/2, erldantic_type_info:new(), NamedTypes).
+
+build_type_info_fold({{type, Name, Arity}, Type}, TypeInfo) ->
+    erldantic_type_info:add_type(TypeInfo, Name, Arity, Type);
+build_type_info_fold({{record, Name}, Record}, TypeInfo) ->
+    erldantic_type_info:add_record(TypeInfo, Name, Record);
+build_type_info_fold({{function, Name, Arity}, FuncSpec}, TypeInfo) ->
+    erldantic_type_info:add_function(TypeInfo, Name, Arity, FuncSpec).
+
 -spec type_in_form(erl_parse:abstract_form() | erl_parse:form_info()) ->
-                      false | {true, {erldantic:ed_type_reference(), erldantic:ed_type()}}.
+                      false | {true, type_form_result()}.
+-type type_form_result() ::
+    {{type, atom(), arity()}, erldantic:ed_type()} |
+    {{record, atom()}, erldantic:ed_type()} |
+    {{function, atom(), arity()}, [erldantic:ed_function_spec()]}.
+
 type_in_form({attribute, _, record, {RecordName, Fields}})
     when is_list(Fields) andalso is_atom(RecordName) ->
     FieldInfos = lists:map(fun record_field_info/1, Fields),
@@ -77,6 +86,45 @@ type_in_form({attribute, _, TypeOrOpaque, {TypeName, Type, Args}})
             {true,
              {{type, TypeName, TypeArity}, #ed_type_with_variables{type = FieldInfo, vars = Vars}}}
     end;
+type_in_form({attribute, _, spec, {{FunctionName, Arity}, FunctionTypes}})
+    when is_atom(FunctionName) andalso is_integer(Arity) andalso is_list(FunctionTypes) ->
+    ProcessedSpecs =
+        lists:map(fun(FuncType) ->
+                     case FuncType of
+                         {type, _, 'fun', [{type, _, product, Args}, ReturnType]}
+                             when is_list(Args) ->
+                             ArgTypes =
+                                 lists:map(fun(Arg) ->
+                                              [ArgType] = field_info_to_type(Arg),
+                                              ArgType
+                                           end,
+                                           Args),
+                             [ReturnTypeProcessed] = field_info_to_type(ReturnType),
+                             #ed_function_spec{args = ArgTypes, return = ReturnTypeProcessed};
+                         {type,
+                          _,
+                          bounded_fun,
+                          [{type, _, 'fun', [{type, _, product, Args}, ReturnType]}, Constraints]}
+                             when is_list(Args) andalso is_list(Constraints) ->
+                             ConstraintMap = bound_fun_constraints(Constraints),
+                             ArgTypes =
+                                 lists:map(fun(Arg) ->
+                                              [ArgType] =
+                                                  field_info_to_type(bound_fun_substitute_vars(Arg,
+                                                                                               ConstraintMap)),
+                                              ArgType
+                                           end,
+                                           Args),
+                             [ReturnTypeProcessed] =
+                                 field_info_to_type(bound_fun_substitute_vars(ReturnType,
+                                                                              ConstraintMap)),
+                             #ed_function_spec{args = ArgTypes, return = ReturnTypeProcessed}
+                     end
+                  end,
+                  FunctionTypes),
+    {true, {{function, FunctionName, Arity}, ProcessedSpecs}};
+type_in_form({attribute, _, spec, Spec}) ->
+    error({bug_spec_not_handled, Spec});
 type_in_form({attribute, _, TypeOrOpaque, _} = T)
     when TypeOrOpaque =:= opaque orelse TypeOrOpaque =:= type ->
     error({not_supported, T});
@@ -331,3 +379,23 @@ record_field_info({typed_record_field, {record_field, _, {atom, _, FieldName}, _
     when is_atom(FieldName) ->
     [TypeInfo] = field_info_to_type(Type),
     {FieldName, TypeInfo}.
+
+%% Helper functions for bounded_fun handling
+-spec bound_fun_constraints(list()) -> #{atom() => term()}.
+bound_fun_constraints(Constraints) ->
+    lists:foldl(fun bound_fun_constraint_aux/2, #{}, Constraints).
+
+bound_fun_constraint_aux({type,
+                          _,
+                          constraint,
+                          [{atom, _, is_subtype}, [{var, _, VarName}, TypeDef]]},
+                         Acc)
+    when is_atom(VarName) ->
+    maps:put(VarName, TypeDef, Acc);
+bound_fun_constraint_aux(Constraint, _Acc) ->
+    error({unsupported_constraint, Constraint}).
+
+bound_fun_substitute_vars({var, _, VarName} = Var, ConstraintMap) when is_atom(VarName) ->
+    maps:get(VarName, ConstraintMap, Var);
+bound_fun_substitute_vars(Term, _ConstraintMap) ->
+    Term.

@@ -12,20 +12,22 @@
 %-type result(OkType, ErrorType) :: OkType | ErrorType.
 
 type_in_form_test() ->
-    Types = erldantic_abstract_code:types_in_module(?MODULE),
+    TypeInfo = erldantic_abstract_code:types_in_module(?MODULE),
+    {ok, MapResultType} = erldantic_type_info:get_type(TypeInfo, map_result, 0),
     ?assertEqual(#ed_user_type_ref{type_name = result,
                                    variables =
                                        [#ed_map{fields =
                                                     [{map_field_type_assoc,
                                                       #ed_simple_type{type = atom},
                                                       #ed_simple_type{type = integer}}]}]},
-                 maps:get({type, map_result, 0}, Types)),
+                 MapResultType),
+    {ok, ResultType} = erldantic_type_info:get_type(TypeInfo, result, 1),
     ?assertEqual(#ed_type_with_variables{type =
                                              #ed_union{types =
                                                            [#ed_var{name = 'OkType'},
                                                             #ed_literal{value = error}]},
                                          vars = ['OkType']},
-                 maps:get({type, result, 1}, Types)).
+                 ResultType).
 
 map1_to_json_test() ->
     ?assertEqual({ok, #{a1 => 1}}, to_json_result_1(#{a1 => 1})),
