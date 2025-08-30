@@ -43,8 +43,7 @@ with_response(Endpoint, StatusCode, Description, Schema)
     when is_map(Endpoint) andalso is_integer(StatusCode) andalso is_list(Description) ->
     ResponseSpec = #{description => Description, schema => Schema},
     Responses = maps:get(responses, Endpoint, #{}),
-    UpdatedResponses = maps:put(StatusCode, ResponseSpec, Responses),
-    maps:put(responses, UpdatedResponses, Endpoint).
+    Endpoint#{responses => Responses#{StatusCode => ResponseSpec}}.
 
 -doc("Adds a request body specification to an endpoint.\nThis function sets the request body schema for the endpoint.\nTypically used with POST, PUT, and PATCH endpoints.\n\n### Returns\nUpdated endpoint map with request body set").
 -doc(#{params =>
@@ -53,7 +52,7 @@ with_response(Endpoint, StatusCode, Description, Schema)
 
 -spec with_request_body(Endpoint :: map(), Schema :: erldantic:ed_type_or_ref()) -> map().
 with_request_body(Endpoint, Schema) when is_map(Endpoint) ->
-    maps:put(request_body, Schema, Endpoint).
+    Endpoint#{request_body => Schema}.
 
 -doc("Adds a parameter specification to an endpoint.\nThis function adds a parameter (path, query, header, or cookie) to the endpoint.\nMultiple parameters can be added by calling this function multiple times.\n\n### Parameter Specification\nThe parameter spec should be a map with these keys:\n- name: Parameter name (string)\n- in: Parameter location (path | query | header | cookie)\n- required: Whether the parameter is required (boolean)\n- schema: Schema reference or direct type (erldantic:ed_type_or_ref())\n\n### Returns\nUpdated endpoint map with the new parameter added").
 -doc(#{params =>
@@ -64,8 +63,7 @@ with_request_body(Endpoint, Schema) when is_map(Endpoint) ->
 with_parameter(Endpoint, ParameterSpec)
     when is_map(Endpoint) andalso is_map(ParameterSpec) ->
     Parameters = maps:get(parameters, Endpoint, []),
-    UpdatedParameters = [ParameterSpec | Parameters],
-    maps:put(parameters, UpdatedParameters, Endpoint).
+    Endpoint#{parameters => [ParameterSpec | Parameters]}.
 
 -doc("Generates a complete OpenAPI 3.0 specification from a list of endpoints.\nThis function takes a list of endpoint specifications and generates a complete OpenAPI document\nwith paths, operations, and component schemas.\n\n### Returns\n{ok, OpenAPISpec} containing the complete OpenAPI 3.0 document, or {error, Errors} if generation fails").
 -doc(#{params =>
@@ -84,7 +82,7 @@ endpoints_to_openapi(Endpoints) when is_list(Endpoints) ->
             maps:fold(fun(Path, PathEndpoints, Acc) ->
                          BinaryPath = unicode:characters_to_binary(Path),
                          PathOps = generate_path_operations(PathEndpoints),
-                         maps:put(BinaryPath, PathOps, Acc)
+                         Acc#{BinaryPath => PathOps}
                       end,
                       #{},
                       PathGroups),
@@ -133,10 +131,9 @@ group_endpoints_by_path(Endpoints) ->
 
 -spec generate_path_operations([map()]) -> map().
 generate_path_operations(Endpoints) ->
-    lists:foldl(fun(Endpoint, Acc) ->
-                   Method = maps:get(method, Endpoint),
+    lists:foldl(fun(#{method := Method} = Endpoint, Acc) ->
                    Operation = generate_operation(Endpoint),
-                   maps:put(Method, Operation, Acc)
+                   Acc#{Method => Operation}
                 end,
                 #{},
                 Endpoints).
@@ -157,11 +154,11 @@ generate_operation(Endpoint) ->
                 OpenAPIResponsesBinary =
                     maps:fold(fun(K, V, NewAcc) ->
                                  BinaryKey = integer_to_binary(K),
-                                 maps:put(BinaryKey, V, NewAcc)
+                                 NewAcc#{BinaryKey => V}
                               end,
                               #{},
                               OpenAPIResponses),
-                maps:put(responses, OpenAPIResponsesBinary, Operation);
+                Operation#{responses => OpenAPIResponsesBinary};
             false ->
                 Operation
         end,
@@ -173,7 +170,7 @@ generate_operation(Endpoint) ->
                 OperationWithResponses;
             RequestBodyRef ->
                 RequestBody = generate_request_body(RequestBodyRef),
-                maps:put(requestBody, RequestBody, OperationWithResponses)
+                OperationWithResponses#{requestBody => RequestBody}
         end,
 
     %% Add parameters if present
@@ -183,13 +180,11 @@ generate_operation(Endpoint) ->
             OperationWithBody;
         _ ->
             OpenAPIParameters = lists:map(fun generate_parameter/1, Parameters),
-            maps:put(parameters, OpenAPIParameters, OperationWithBody)
+            OperationWithBody#{parameters => OpenAPIParameters}
     end.
 
 -spec generate_response(map()) -> map().
-generate_response(ResponseSpec) ->
-    Description = maps:get(description, ResponseSpec),
-    Schema = maps:get(schema, ResponseSpec),
+generate_response(#{description := Description, schema := Schema}) ->
 
     SchemaContent =
         case Schema of
@@ -235,11 +230,8 @@ generate_request_body(Schema) ->
     #{required => true, content => #{<<"application/json">> => #{schema => SchemaContent}}}.
 
 -spec generate_parameter(map()) -> map().
-generate_parameter(ParameterSpec) ->
-    Name = maps:get(name, ParameterSpec),
-    In = maps:get(in, ParameterSpec),
+generate_parameter(#{name := Name, in := In, schema := Schema} = ParameterSpec) ->
     Required = maps:get(required, ParameterSpec, false),
-    Schema = maps:get(schema, ParameterSpec),
 
     %% For parameters, always generate inline schemas (no component references)
     InlineSchema =
@@ -276,8 +268,8 @@ collect_schema_refs(Endpoints) ->
                 Endpoints).
 
 -spec collect_endpoint_schema_refs(map()) -> [erldantic:ed_type_reference()].
-collect_endpoint_schema_refs(Endpoint) ->
-    ResponseRefs = collect_response_refs(maps:get(responses, Endpoint, #{})),
+collect_endpoint_schema_refs(#{responses := Responses, parameters := Parameters} = Endpoint) ->
+    ResponseRefs = collect_response_refs(Responses),
     RequestBodyRefs =
         case maps:get(request_body, Endpoint, undefined) of
             undefined ->
@@ -290,14 +282,13 @@ collect_endpoint_schema_refs(Endpoint) ->
                         []
                 end
         end,
-    ParameterRefs = collect_parameter_refs(maps:get(parameters, Endpoint, [])),
+    ParameterRefs = collect_parameter_refs(Parameters),
 
     ResponseRefs ++ RequestBodyRefs ++ ParameterRefs.
 
 -spec collect_response_refs(map()) -> [erldantic:ed_type_reference()].
 collect_response_refs(Responses) ->
-    maps:fold(fun(_StatusCode, ResponseSpec, Acc) ->
-                 Schema = maps:get(schema, ResponseSpec),
+    maps:fold(fun(_StatusCode, #{schema := Schema}, Acc) ->
                  case erldantic_type:is_type_reference(Schema) of
                      true ->
                          [Schema | Acc];
@@ -310,8 +301,7 @@ collect_response_refs(Responses) ->
 
 -spec collect_parameter_refs([map()]) -> [erldantic:ed_type_reference()].
 collect_parameter_refs(Parameters) ->
-    lists:filtermap(fun(ParameterSpec) ->
-                       Schema = maps:get(schema, ParameterSpec),
+    lists:filtermap(fun(#{schema := Schema}) ->
                        case erldantic_type:is_type_reference(Schema) of
                            true ->
                                {true, Schema};
@@ -332,7 +322,7 @@ generate_components(SchemaRefs) ->
                                                 {ok, Schema} when is_map(Schema) ->
                                                     SchemaName =
                                                         type_ref_to_component_name(TypeRef),
-                                                    {ok, maps:put(SchemaName, Schema, Acc)}
+                                                    {ok, Acc#{SchemaName => Schema}}
                                             end
                                          end,
                                          #{},
