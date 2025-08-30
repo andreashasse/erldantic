@@ -203,3 +203,56 @@ error_handling_test() ->
     %% Should handle error gracefully
     Result = erldantic_openapi:endpoints_to_openapi([Endpoint]),
     ?assertMatch({error, _}, Result).
+
+%% Test with direct ed_type() values (inline schemas)
+endpoint_with_direct_types_test() ->
+    %% Create endpoint with direct ed_type values instead of type references
+    StringType = #ed_simple_type{type = string},
+    IntegerType = #ed_simple_type{type = integer},
+    
+    %% Create endpoint with direct types
+    Endpoint1 = erldantic_openapi:endpoint(post, "/direct-types"),
+    Endpoint2 = erldantic_openapi:with_request_body(Endpoint1, StringType),
+    Endpoint = erldantic_openapi:with_response(Endpoint2, 200, "Success", IntegerType),
+    
+    %% Should work with direct types
+    ?assertMatch(#{request_body := StringType}, Endpoint),
+    ?assertMatch(#{responses := #{200 := #{schema := IntegerType}}}, Endpoint).
+
+%% Test with mixed type references and direct types
+endpoint_with_mixed_types_test() ->
+    %% Mix of type references and direct types
+    DirectStringType = #ed_simple_type{type = string},
+    TypeRef = {type, user, 0},
+    
+    QueryParam = #{name => "filter",
+                   in => query,
+                   required => false,
+                   schema => DirectStringType},
+                   
+    Endpoint1 = erldantic_openapi:endpoint(get, "/mixed-types"),
+    Endpoint2 = erldantic_openapi:with_response(Endpoint1, 200, "User data", TypeRef),
+    Endpoint = erldantic_openapi:with_parameter(Endpoint2, QueryParam),
+    
+    %% Should handle both types correctly
+    ?assertMatch(#{responses := #{200 := #{schema := TypeRef}}}, Endpoint),
+    ?assertMatch(#{parameters := [#{schema := DirectStringType}]}, Endpoint).
+
+%% Test with complex direct types
+endpoint_with_complex_direct_types_test() ->
+    %% Create complex direct types
+    ListType = #ed_list{type = #ed_simple_type{type = string}},
+    MapType = #ed_map{fields = [{map_field_exact, name, #ed_simple_type{type = string}},
+                                {map_field_exact, age, #ed_simple_type{type = integer}}]},
+    UnionType = #ed_union{types = [#ed_simple_type{type = string}, 
+                                   #ed_simple_type{type = integer}]},
+    
+    Endpoint1 = erldantic_openapi:endpoint(post, "/complex-types"),
+    Endpoint2 = erldantic_openapi:with_request_body(Endpoint1, MapType),
+    Endpoint3 = erldantic_openapi:with_response(Endpoint2, 200, "String list", ListType),
+    Endpoint = erldantic_openapi:with_response(Endpoint3, 400, "Error", UnionType),
+    
+    %% Should handle complex types
+    ?assertMatch(#{request_body := MapType}, Endpoint),
+    ?assertMatch(#{responses := #{200 := #{schema := ListType},
+                                  400 := #{schema := UnionType}}}, Endpoint).

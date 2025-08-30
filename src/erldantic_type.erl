@@ -3,7 +3,7 @@
 -include("../include/erldantic.hrl").
 -include("../include/erldantic_internal.hrl").
 
--export([can_be_undefined/2]).
+-export([can_be_undefined/2, is_type_reference/1]).
 
 -spec can_be_undefined(TypeInfo :: erldantic:type_info(), Type :: erldantic:ed_type()) ->
                           boolean().
@@ -28,3 +28,11 @@ can_be_undefined(TypeInfo, Type) ->
         _ ->
             false
     end.
+
+-spec is_type_reference(erldantic:ed_type_or_ref()) -> boolean().
+is_type_reference({type, _, _}) ->
+    true;
+is_type_reference({record, _}) ->
+    true;
+is_type_reference(_) ->
+    false.
