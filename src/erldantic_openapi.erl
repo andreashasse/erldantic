@@ -1,17 +1,30 @@
 -module(erldantic_openapi).
 
--export([endpoint/2, with_response/4, with_request_body/2, with_parameter/2,
+-export([endpoint/2, with_response/5, with_request_body/3, with_parameter/3,
          endpoints_to_openapi/1]).
 
 -ignore_xref([{erldantic_openapi, type_to_schema, 2},
               {erldantic_openapi, record_to_schema, 2},
               {erldantic_openapi, endpoint, 2},
-              {erldantic_openapi, with_response, 4},
-              {erldantic_openapi, with_request_body, 2},
-              {erldantic_openapi, with_parameter, 2},
+              {erldantic_openapi, with_response, 5},
+              {erldantic_openapi, with_request_body, 3},
+              {erldantic_openapi, with_parameter, 3},
               {erldantic_openapi, endpoints_to_openapi, 1}]).
 
 -include("../include/erldantic.hrl").
+
+%% OpenAPI-specific types
+-type request_body_spec() :: #{schema := erldantic:ed_type_or_ref(), module := module()}.
+-type response_spec() ::
+    #{description := string(),
+      schema := erldantic:ed_type_or_ref(),
+      module := module()}.
+-type parameter_spec() ::
+    #{name := string(),
+      in := path | query | header | cookie,
+      required := boolean(),
+      schema := erldantic:ed_type_or_ref(),
+      module := module()}.
 
 %% API
 
@@ -37,11 +50,18 @@ endpoint(Method, Path) when is_atom(Method) andalso is_list(Path) ->
 -spec with_response(Endpoint :: map(),
                     StatusCode :: integer(),
                     Description :: string(),
+                    Module :: module(),
                     Schema :: erldantic:ed_type_or_ref()) ->
                        map().
-with_response(Endpoint, StatusCode, Description, Schema)
-    when is_map(Endpoint) andalso is_integer(StatusCode) andalso is_list(Description) ->
-    ResponseSpec = #{description => Description, schema => Schema},
+with_response(Endpoint, StatusCode, Description, Module, Schema)
+    when is_map(Endpoint)
+         andalso is_integer(StatusCode)
+         andalso is_list(Description)
+         andalso is_atom(Module) ->
+    ResponseSpec =
+        #{description => Description,
+          schema => Schema,
+          module => Module},
     Responses = maps:get(responses, Endpoint, #{}),
     Endpoint#{responses => Responses#{StatusCode => ResponseSpec}}.
 
@@ -50,20 +70,26 @@ with_response(Endpoint, StatusCode, Description, Schema)
            #{"Endpoint" => "Endpoint map to add the request body to",
              "Schema" => "Schema reference or direct type (erldantic:ed_type_or_ref())"}}).
 
--spec with_request_body(Endpoint :: map(), Schema :: erldantic:ed_type_or_ref()) -> map().
-with_request_body(Endpoint, Schema) when is_map(Endpoint) ->
-    Endpoint#{request_body => Schema}.
+-spec with_request_body(Endpoint :: map(),
+                        Module :: module(),
+                        Schema :: erldantic:ed_type_or_ref()) ->
+                           map().
+with_request_body(Endpoint, Module, Schema)
+    when is_map(Endpoint) andalso is_atom(Module) ->
+    Endpoint#{request_body => #{schema => Schema, module => Module}}.
 
 -doc("Adds a parameter specification to an endpoint.\nThis function adds a parameter (path, query, header, or cookie) to the endpoint.\nMultiple parameters can be added by calling this function multiple times.\n\n### Parameter Specification\nThe parameter spec should be a map with these keys:\n- name: Parameter name (string)\n- in: Parameter location (path | query | header | cookie)\n- required: Whether the parameter is required (boolean)\n- schema: Schema reference or direct type (erldantic:ed_type_or_ref())\n\n### Returns\nUpdated endpoint map with the new parameter added").
 -doc(#{params =>
            #{"Endpoint" => "Endpoint map to add the parameter to",
              "ParameterSpec" => "Parameter specification map"}}).
 
--spec with_parameter(Endpoint :: map(), ParameterSpec :: map()) -> map().
-with_parameter(Endpoint, ParameterSpec)
-    when is_map(Endpoint) andalso is_map(ParameterSpec) ->
+-spec with_parameter(Endpoint :: map(), Module :: module(), ParameterSpec :: map()) ->
+                        map().
+with_parameter(Endpoint, Module, ParameterSpec)
+    when is_map(Endpoint) andalso is_atom(Module) andalso is_map(ParameterSpec) ->
     Parameters = maps:get(parameters, Endpoint, []),
-    Endpoint#{parameters => [ParameterSpec | Parameters]}.
+    ParameterWithModule = ParameterSpec#{module => Module},
+    Endpoint#{parameters => [ParameterWithModule | Parameters]}.
 
 -doc("Generates a complete OpenAPI 3.0 specification from a list of endpoints.\nThis function takes a list of endpoint specifications and generates a complete OpenAPI document\nwith paths, operations, and component schemas.\n\n### Returns\n{ok, OpenAPISpec} containing the complete OpenAPI 3.0 document, or {error, Errors} if generation fails").
 -doc(#{params =>
@@ -183,8 +209,12 @@ generate_operation(Endpoint) ->
             OperationWithBody#{parameters => OpenAPIParameters}
     end.
 
--spec generate_response(map()) -> map().
-generate_response(#{description := Description, schema := Schema}) ->
+-spec generate_response(response_spec()) -> map().
+generate_response(#{description := Description,
+                    schema := Schema,
+                    module := Module}) ->
+    %% Get type info from the specific module
+    ModuleTypeInfo = erldantic_abstract_code:types_in_module(Module),
 
     SchemaContent =
         case Schema of
@@ -198,17 +228,17 @@ generate_response(#{description := Description, schema := Schema}) ->
                 #{'$ref' => <<"#/components/schemas/", SchemaName/binary>>};
             DirectType ->
                 %% Direct ed_type - generate inline schema
-                {ok, InlineSchema} =
-                    erldantic_json_schema:to_schema(
-                        erldantic_abstract_code:types_in_module(?MODULE), DirectType),
+                {ok, InlineSchema} = erldantic_json_schema:to_schema(ModuleTypeInfo, DirectType),
                 InlineSchema
         end,
 
     #{description => unicode:characters_to_binary(Description),
       content => #{<<"application/json">> => #{schema => SchemaContent}}}.
 
--spec generate_request_body(erldantic:ed_type_or_ref()) -> map().
-generate_request_body(Schema) ->
+-spec generate_request_body(request_body_spec()) -> map().
+generate_request_body(#{schema := Schema, module := Module}) ->
+    %% Get type info from the specific module
+    ModuleTypeInfo = erldantic_abstract_code:types_in_module(Module),
     SchemaContent =
         case Schema of
             {type, Name, Arity} ->
@@ -221,16 +251,20 @@ generate_request_body(Schema) ->
                 #{'$ref' => <<"#/components/schemas/", SchemaName/binary>>};
             DirectType ->
                 %% Direct ed_type - generate inline schema
-                {ok, InlineSchema} =
-                    erldantic_json_schema:to_schema(
-                        erldantic_abstract_code:types_in_module(?MODULE), DirectType),
+                {ok, InlineSchema} = erldantic_json_schema:to_schema(ModuleTypeInfo, DirectType),
                 InlineSchema
         end,
 
     #{required => true, content => #{<<"application/json">> => #{schema => SchemaContent}}}.
 
--spec generate_parameter(map()) -> map().
-generate_parameter(#{name := Name, in := In, schema := Schema} = ParameterSpec) ->
+-spec generate_parameter(parameter_spec()) -> map().
+generate_parameter(#{name := Name,
+                     in := In,
+                     schema := Schema,
+                     module := Module} =
+                       ParameterSpec) ->
+    %% Get type info from the specific module
+    ModuleTypeInfo = erldantic_abstract_code:types_in_module(Module),
     Required = maps:get(required, ParameterSpec, false),
 
     %% For parameters, always generate inline schemas (no component references)
@@ -238,18 +272,13 @@ generate_parameter(#{name := Name, in := In, schema := Schema} = ParameterSpec) 
         case Schema of
             {type, TypeName, Arity} ->
                 {ok, ValidSchema} =
-                    erldantic_json_schema:to_schema(
-                        erldantic_abstract_code:types_in_module(?MODULE), {type, TypeName, Arity}),
+                    erldantic_json_schema:to_schema(ModuleTypeInfo, {type, TypeName, Arity}),
                 ValidSchema;
             {record, Name} ->
-                {ok, ValidSchema} =
-                    erldantic_json_schema:to_schema(
-                        erldantic_abstract_code:types_in_module(?MODULE), {record, Name}),
+                {ok, ValidSchema} = erldantic_json_schema:to_schema(ModuleTypeInfo, {record, Name}),
                 ValidSchema;
             DirectType ->
-                {ok, ValidSchema} =
-                    erldantic_json_schema:to_schema(
-                        erldantic_abstract_code:types_in_module(?MODULE), DirectType),
+                {ok, ValidSchema} = erldantic_json_schema:to_schema(ModuleTypeInfo, DirectType),
                 ValidSchema
         end,
 
@@ -258,7 +287,7 @@ generate_parameter(#{name := Name, in := In, schema := Schema} = ParameterSpec) 
       required => Required,
       schema => InlineSchema}.
 
--spec collect_schema_refs([map()]) -> [erldantic:ed_type_reference()].
+-spec collect_schema_refs([map()]) -> [{module(), erldantic:ed_type_reference()}].
 collect_schema_refs(Endpoints) ->
     lists:foldl(fun(Endpoint, Acc) ->
                    EndpointRefs = collect_endpoint_schema_refs(Endpoint),
@@ -267,17 +296,18 @@ collect_schema_refs(Endpoints) ->
                 [],
                 Endpoints).
 
--spec collect_endpoint_schema_refs(map()) -> [erldantic:ed_type_reference()].
-collect_endpoint_schema_refs(#{responses := Responses, parameters := Parameters} = Endpoint) ->
+-spec collect_endpoint_schema_refs(map()) -> [{module(), erldantic:ed_type_reference()}].
+collect_endpoint_schema_refs(#{responses := Responses, parameters := Parameters} =
+                                 Endpoint) ->
     ResponseRefs = collect_response_refs(Responses),
     RequestBodyRefs =
         case maps:get(request_body, Endpoint, undefined) of
             undefined ->
                 [];
-            Schema ->
+            #{schema := Schema, module := Module} ->
                 case erldantic_type:is_type_reference(Schema) of
                     true ->
-                        [Schema];
+                        [{Module, Schema}];
                     false ->
                         []
                 end
@@ -286,12 +316,12 @@ collect_endpoint_schema_refs(#{responses := Responses, parameters := Parameters}
 
     ResponseRefs ++ RequestBodyRefs ++ ParameterRefs.
 
--spec collect_response_refs(map()) -> [erldantic:ed_type_reference()].
+-spec collect_response_refs(map()) -> [{module(), erldantic:ed_type_reference()}].
 collect_response_refs(Responses) ->
-    maps:fold(fun(_StatusCode, #{schema := Schema}, Acc) ->
+    maps:fold(fun(_StatusCode, #{schema := Schema, module := Module}, Acc) ->
                  case erldantic_type:is_type_reference(Schema) of
                      true ->
-                         [Schema | Acc];
+                         [{Module, Schema} | Acc];
                      false ->
                          Acc
                  end
@@ -299,24 +329,24 @@ collect_response_refs(Responses) ->
               [],
               Responses).
 
--spec collect_parameter_refs([map()]) -> [erldantic:ed_type_reference()].
+-spec collect_parameter_refs([map()]) -> [{module(), erldantic:ed_type_reference()}].
 collect_parameter_refs(Parameters) ->
-    lists:filtermap(fun(#{schema := Schema}) ->
+    lists:filtermap(fun(#{schema := Schema, module := Module}) ->
                        case erldantic_type:is_type_reference(Schema) of
                            true ->
-                               {true, Schema};
+                               {true, {Module, Schema}};
                            false ->
                                false
                        end
                     end,
                     Parameters).
 
--spec generate_components([erldantic:ed_type_reference()]) ->
+-spec generate_components([{module(), erldantic:ed_type_reference()}]) ->
                              {ok, map()} | {error, [erldantic:error()]}.
 generate_components(SchemaRefs) ->
-    case erldantic_util:fold_until_error(fun(TypeRef, Acc) ->
+    case erldantic_util:fold_until_error(fun({Module, TypeRef}, Acc) ->
                                             case erldantic_json_schema:to_schema(
-                                                     erldantic_abstract_code:types_in_module(?MODULE),
+                                                     erldantic_abstract_code:types_in_module(Module),
                                                      TypeRef)
                                             of
                                                 {ok, Schema} when is_map(Schema) ->

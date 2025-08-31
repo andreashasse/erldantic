@@ -2,6 +2,8 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
+-include("../include/erldantic_internal.hrl").
+
 -compile(nowarn_unused_type).
 
 %% Test records for OpenAPI JSON generation
@@ -19,36 +21,50 @@ openapi_json_serializable_test() ->
     %% Create a comprehensive API with multiple endpoints
     GetUsersEndpoint1 = erldantic_openapi:endpoint(get, "/users"),
     GetUsersEndpoint =
-        erldantic_openapi:with_response(GetUsersEndpoint1, 200, "List of users", {?MODULE, user}),
+        erldantic_openapi:with_response(GetUsersEndpoint1,
+                                        200,
+                                        "List of users",
+                                        ?MODULE,
+                                        {record, user}),
 
     CreateUserEndpoint1 = erldantic_openapi:endpoint(post, "/users"),
     CreateUserEndpoint2 =
-        erldantic_openapi:with_request_body(CreateUserEndpoint1, {?MODULE, create_user_request}),
+        erldantic_openapi:with_request_body(CreateUserEndpoint1,
+                                            ?MODULE,
+                                            {record, create_user_request}),
     CreateUserEndpoint3 =
         erldantic_openapi:with_response(CreateUserEndpoint2,
                                         201,
                                         "User created",
-                                        {?MODULE, user}),
+                                        ?MODULE,
+                                        {record, user}),
     CreateUserEndpoint =
         erldantic_openapi:with_response(CreateUserEndpoint3,
                                         400,
                                         "Invalid input",
-                                        {?MODULE, error_response}),
+                                        ?MODULE,
+                                        {record, error_response}),
 
     GetUserEndpoint1 = erldantic_openapi:endpoint(get, "/users/{id}"),
     GetUserEndpoint2 =
         erldantic_openapi:with_parameter(GetUserEndpoint1,
+                                         ?MODULE,
                                          #{name => "id",
                                            in => path,
                                            required => true,
-                                           schema => {erlang, integer}}),
+                                           schema => #ed_simple_type{type = integer}}),
     GetUserEndpoint3 =
-        erldantic_openapi:with_response(GetUserEndpoint2, 200, "User details", {?MODULE, user}),
+        erldantic_openapi:with_response(GetUserEndpoint2,
+                                        200,
+                                        "User details",
+                                        ?MODULE,
+                                        {record, user}),
     GetUserEndpoint =
         erldantic_openapi:with_response(GetUserEndpoint3,
                                         404,
                                         "User not found",
-                                        {?MODULE, error_response}),
+                                        ?MODULE,
+                                        {record, error_response}),
 
     Endpoints = [GetUsersEndpoint, CreateUserEndpoint, GetUserEndpoint],
 
@@ -108,7 +124,7 @@ openapi_json_serializable_test() ->
     ?assertMatch([#{name := <<"id">>,
                     in := path,
                     required := true,
-                    schema := #{type := <<"string">>}}],
+                    schema := #{type := <<"integer">>}}],
                  GetByIdParameters),
 
     #{<<"200">> := GetById200Response, <<"404">> := GetById404Response} = GetByIdResponses,
@@ -144,7 +160,7 @@ openapi_spec_completeness_test() ->
     %% Create a simple but complete spec
     Endpoint1 = erldantic_openapi:endpoint(get, "/health"),
     Endpoint =
-        erldantic_openapi:with_response(Endpoint1, 200, "Health check", {?MODULE, user}),
+        erldantic_openapi:with_response(Endpoint1, 200, "Health check", ?MODULE, {record, user}),
 
     {ok, OpenAPISpec} = erldantic_openapi:endpoints_to_openapi([Endpoint]),
 
@@ -163,16 +179,22 @@ complex_nested_structure_test() ->
     %% Test endpoint with all possible features
     Endpoint1 = erldantic_openapi:endpoint(post, "/complex"),
     Endpoint2 =
-        erldantic_openapi:with_request_body(Endpoint1, {?MODULE, create_user_request}),
-    Endpoint3 = erldantic_openapi:with_response(Endpoint2, 201, "Success", {?MODULE, user}),
+        erldantic_openapi:with_request_body(Endpoint1, ?MODULE, {record, create_user_request}),
+    Endpoint3 =
+        erldantic_openapi:with_response(Endpoint2, 201, "Success", ?MODULE, {record, user}),
     Endpoint4 =
-        erldantic_openapi:with_response(Endpoint3, 400, "Error", {?MODULE, error_response}),
+        erldantic_openapi:with_response(Endpoint3,
+                                        400,
+                                        "Error",
+                                        ?MODULE,
+                                        {record, error_response}),
     Endpoint =
         erldantic_openapi:with_parameter(Endpoint4,
+                                         ?MODULE,
                                          #{name => "debug",
                                            in => query,
                                            required => false,
-                                           schema => {erlang, boolean}}),
+                                           schema => #ed_simple_type{type = boolean}}),
 
     {ok, OpenAPISpec} = erldantic_openapi:endpoints_to_openapi([Endpoint]),
 
@@ -193,39 +215,50 @@ final_json_output_test() ->
     %% Create a realistic API specification
     GetUsersEndpoint1 = erldantic_openapi:endpoint(get, "/users"),
     GetUsersEndpoint =
-        erldantic_openapi:with_response(GetUsersEndpoint1, 200, "List of users", {?MODULE, user}),
+        erldantic_openapi:with_response(GetUsersEndpoint1,
+                                        200,
+                                        "List of users",
+                                        ?MODULE,
+                                        {record, user}),
 
     CreateUserEndpoint1 = erldantic_openapi:endpoint(post, "/users"),
     CreateUserEndpoint2 =
-        erldantic_openapi:with_request_body(CreateUserEndpoint1, {?MODULE, create_user_request}),
+        erldantic_openapi:with_request_body(CreateUserEndpoint1,
+                                            ?MODULE,
+                                            {record, create_user_request}),
     CreateUserEndpoint3 =
         erldantic_openapi:with_response(CreateUserEndpoint2,
                                         201,
                                         "User created",
-                                        {?MODULE, user}),
+                                        ?MODULE,
+                                        {record, user}),
     CreateUserEndpoint =
         erldantic_openapi:with_response(CreateUserEndpoint3,
                                         400,
                                         "Invalid input",
-                                        {?MODULE, error_response}),
+                                        ?MODULE,
+                                        {record, error_response}),
 
     GetUserByIdEndpoint1 = erldantic_openapi:endpoint(get, "/users/{id}"),
     GetUserByIdEndpoint2 =
         erldantic_openapi:with_parameter(GetUserByIdEndpoint1,
+                                         ?MODULE,
                                          #{name => "id",
                                            in => path,
                                            required => true,
-                                           schema => {erlang, integer}}),
+                                           schema => #ed_simple_type{type = integer}}),
     GetUserByIdEndpoint3 =
         erldantic_openapi:with_response(GetUserByIdEndpoint2,
                                         200,
                                         "User details",
-                                        {?MODULE, user}),
+                                        ?MODULE,
+                                        {record, user}),
     GetUserByIdEndpoint =
         erldantic_openapi:with_response(GetUserByIdEndpoint3,
                                         404,
                                         "User not found",
-                                        {?MODULE, error_response}),
+                                        ?MODULE,
+                                        {record, error_response}),
 
     Endpoints = [GetUsersEndpoint, CreateUserEndpoint, GetUserByIdEndpoint],
 
@@ -267,7 +300,7 @@ valid_openapi_test() ->
     %% Create a minimal but complete API
     Endpoint1 = erldantic_openapi:endpoint(get, "/health"),
     Endpoint =
-        erldantic_openapi:with_response(Endpoint1, 200, "Health status", {?MODULE, user}),
+        erldantic_openapi:with_response(Endpoint1, 200, "Health status", ?MODULE, {record, user}),
 
     {ok, OpenAPISpec} = erldantic_openapi:endpoints_to_openapi([Endpoint]),
 
@@ -299,39 +332,50 @@ python_openapi_validation_test() ->
     %% Generate a complete OpenAPI specification first
     GetUsersEndpoint1 = erldantic_openapi:endpoint(get, "/users"),
     GetUsersEndpoint =
-        erldantic_openapi:with_response(GetUsersEndpoint1, 200, "List of users", {?MODULE, user}),
+        erldantic_openapi:with_response(GetUsersEndpoint1,
+                                        200,
+                                        "List of users",
+                                        ?MODULE,
+                                        {record, user}),
 
     CreateUserEndpoint1 = erldantic_openapi:endpoint(post, "/users"),
     CreateUserEndpoint2 =
-        erldantic_openapi:with_request_body(CreateUserEndpoint1, {?MODULE, create_user_request}),
+        erldantic_openapi:with_request_body(CreateUserEndpoint1,
+                                            ?MODULE,
+                                            {record, create_user_request}),
     CreateUserEndpoint3 =
         erldantic_openapi:with_response(CreateUserEndpoint2,
                                         201,
                                         "User created",
-                                        {?MODULE, user}),
+                                        ?MODULE,
+                                        {record, user}),
     CreateUserEndpoint =
         erldantic_openapi:with_response(CreateUserEndpoint3,
                                         400,
                                         "Invalid input",
-                                        {?MODULE, error_response}),
+                                        ?MODULE,
+                                        {record, error_response}),
 
     GetUserByIdEndpoint1 = erldantic_openapi:endpoint(get, "/users/{id}"),
     GetUserByIdEndpoint2 =
         erldantic_openapi:with_parameter(GetUserByIdEndpoint1,
+                                         ?MODULE,
                                          #{name => "id",
                                            in => path,
                                            required => true,
-                                           schema => {erlang, integer}}),
+                                           schema => #ed_simple_type{type = integer}}),
     GetUserByIdEndpoint3 =
         erldantic_openapi:with_response(GetUserByIdEndpoint2,
                                         200,
                                         "User details",
-                                        {?MODULE, user}),
+                                        ?MODULE,
+                                        {record, user}),
     GetUserByIdEndpoint =
         erldantic_openapi:with_response(GetUserByIdEndpoint3,
                                         404,
                                         "User not found",
-                                        {?MODULE, error_response}),
+                                        ?MODULE,
+                                        {record, error_response}),
 
     Endpoints = [GetUsersEndpoint, CreateUserEndpoint, GetUserByIdEndpoint],
     {ok, OpenAPISpec} = erldantic_openapi:endpoints_to_openapi(Endpoints),

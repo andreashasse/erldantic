@@ -177,7 +177,6 @@ record_types_test() ->
                           email => #{type => <<"string">>}},
                     required => [id, name, email]}},
                  erldantic_json_schema:record_to_schema(?MODULE, user)),
-
     %% Record with array field
     ExpectedProps =
         #{id => #{type => <<"integer">>},
