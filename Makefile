@@ -6,6 +6,7 @@ compile:
 	rebar3 compile
 
 format:
+	rebar3 compile
 	rebar3 format
 
 hank:
