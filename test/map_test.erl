@@ -274,113 +274,113 @@ from_json_map_in_map_key_test() ->
 -spec to_json_mandatory_type_map(term()) ->
                                     {ok, mandatory_type_map()} | {error, [erldantic:error()]}.
 to_json_mandatory_type_map(Data) ->
-    erldantic_json:type_to_json(?MODULE, mandatory_type_map, Data).
+    erldantic_json:to_json(?MODULE, {type, mandatory_type_map, 0}, Data).
 
 -spec to_json_atom_map(term()) -> {ok, atom_map()} | {error, [erldantic:error()]}.
 to_json_atom_map(Data) ->
-    erldantic_json:type_to_json(?MODULE, atom_map, Data).
+    erldantic_json:to_json(?MODULE, {type, atom_map, 0}, Data).
 
 -spec to_json_atom_map2(term()) -> {ok, atom_map2()} | {error, [erldantic:error()]}.
 to_json_atom_map2(Data) ->
-    erldantic_json:type_to_json(?MODULE, atom_map2, Data).
+    erldantic_json:to_json(?MODULE, {type, atom_map2, 0}, Data).
 
 -spec to_json_atom_map3(term()) -> {ok, atom_map3()} | {error, [erldantic:error()]}.
 to_json_atom_map3(Data) ->
-    erldantic_json:type_to_json(?MODULE, atom_map3, Data).
+    erldantic_json:to_json(?MODULE, {type, atom_map3, 0}, Data).
 
 -spec to_json_type_shaddow_literal_map(term()) ->
                                           {ok, type_shaddow_literal_map()} |
                                           {error, [erldantic:error()]}.
 to_json_type_shaddow_literal_map(Data) ->
-    erldantic_json:type_to_json(?MODULE, type_shaddow_literal_map, Data).
+    erldantic_json:to_json(?MODULE, {type, type_shaddow_literal_map, 0}, Data).
 
 -spec from_json_atom_map(term()) -> {ok, atom_map()} | {error, [erldantic:error()]}.
 from_json_atom_map(Data) ->
-    erldantic_json:type_from_json(?MODULE, atom_map, Data).
+    erldantic_json:from_json(?MODULE, {type, atom_map, 0}, Data).
 
 -spec from_json_atom_map2(term()) -> {ok, atom_map2()} | {error, [erldantic:error()]}.
 from_json_atom_map2(Data) ->
-    erldantic_json:type_from_json(?MODULE, atom_map2, Data).
+    erldantic_json:from_json(?MODULE, {type, atom_map2, 0}, Data).
 
 -spec from_json_atom_map3(term()) -> {ok, atom_map3()} | {error, [erldantic:error()]}.
 from_json_atom_map3(Data) ->
-    erldantic_json:type_from_json(?MODULE, atom_map3, Data).
+    erldantic_json:from_json(?MODULE, {type, atom_map3, 0}, Data).
 
 -spec from_json_type_shaddow_literal_map(term()) ->
                                             {ok, type_shaddow_literal_map()} |
                                             {error, [erldantic:error()]}.
 from_json_type_shaddow_literal_map(Data) ->
-    erldantic_json:type_from_json(?MODULE, type_shaddow_literal_map, Data).
+    erldantic_json:from_json(?MODULE, {type, type_shaddow_literal_map, 0}, Data).
 
 -spec from_json_mandatory_type_map(term()) ->
                                       {ok, mandatory_type_map()} | {error, [erldantic:error()]}.
 from_json_mandatory_type_map(Data) ->
-    erldantic_json:type_from_json(?MODULE, mandatory_type_map, Data).
+    erldantic_json:from_json(?MODULE, {type, mandatory_type_map, 0}, Data).
 
 -spec to_json_empty_map(term()) -> {ok, empty_map()} | {error, [erldantic:error()]}.
 to_json_empty_map(Data) ->
-    erldantic_json:type_to_json(?MODULE, empty_map, Data).
+    erldantic_json:to_json(?MODULE, {type, empty_map, 0}, Data).
 
 -spec from_json_empty_map(term()) -> {ok, empty_map()} | {error, [erldantic:error()]}.
 from_json_empty_map(Data) ->
-    erldantic_json:type_from_json(?MODULE, empty_map, Data).
+    erldantic_json:from_json(?MODULE, {type, empty_map, 0}, Data).
 
 -spec to_json_map_with_tuple_value(term()) ->
                                       {ok, map_with_tuple_value()} | {error, [erldantic:error()]}.
 to_json_map_with_tuple_value(Data) ->
-    erldantic_json:type_to_json(?MODULE, map_with_tuple_value, Data).
+    erldantic_json:to_json(?MODULE, {type, map_with_tuple_value, 0}, Data).
 
 -spec from_json_map_with_tuple_value(term()) ->
                                         {ok, map_with_tuple_value()} | {error, [erldantic:error()]}.
 from_json_map_with_tuple_value(Data) ->
-    erldantic_json:type_from_json(?MODULE, map_with_tuple_value, Data).
+    erldantic_json:from_json(?MODULE, {type, map_with_tuple_value, 0}, Data).
 
 -spec to_json_map_with_tuple_key(term()) ->
                                     {ok, map_with_tuple_key()} | {error, [erldantic:error()]}.
 to_json_map_with_tuple_key(Data) ->
-    erldantic_json:type_to_json(?MODULE, map_with_tuple_key, Data).
+    erldantic_json:to_json(?MODULE, {type, map_with_tuple_key, 0}, Data).
 
 -spec from_json_map_with_tuple_key(term()) ->
                                       {ok, map_with_tuple_key()} | {error, [erldantic:error()]}.
 from_json_map_with_tuple_key(Data) ->
-    erldantic_json:type_from_json(?MODULE, map_with_tuple_key, Data).
+    erldantic_json:from_json(?MODULE, {type, map_with_tuple_key, 0}, Data).
 
 -spec to_json_map_with_fun_value(term()) ->
                                     {ok, map_with_fun_value()} | {error, [erldantic:error()]}.
 to_json_map_with_fun_value(Data) ->
-    erldantic_json:type_to_json(?MODULE, map_with_fun_value, Data).
+    erldantic_json:to_json(?MODULE, {type, map_with_fun_value, 0}, Data).
 
 -spec from_json_map_with_fun_value(term()) ->
                                       {ok, map_with_fun_value()} | {error, [erldantic:error()]}.
 from_json_map_with_fun_value(Data) ->
-    erldantic_json:type_from_json(?MODULE, map_with_fun_value, Data).
+    erldantic_json:from_json(?MODULE, {type, map_with_fun_value, 0}, Data).
 
 -spec to_json_map_with_fun_key(term()) ->
                                   {ok, map_with_fun_key()} | {error, [erldantic:error()]}.
 to_json_map_with_fun_key(Data) ->
-    erldantic_json:type_to_json(?MODULE, map_with_fun_key, Data).
+    erldantic_json:to_json(?MODULE, {type, map_with_fun_key, 0}, Data).
 
 -spec from_json_map_with_fun_key(term()) ->
                                     {ok, map_with_fun_key()} | {error, [erldantic:error()]}.
 from_json_map_with_fun_key(Data) ->
-    erldantic_json:type_from_json(?MODULE, map_with_fun_key, Data).
+    erldantic_json:from_json(?MODULE, {type, map_with_fun_key, 0}, Data).
 
 -spec to_json_map_in_map_value(term()) ->
                                   {ok, map_in_map_value()} | {error, [erldantic:error()]}.
 to_json_map_in_map_value(Data) ->
-    erldantic_json:type_to_json(?MODULE, map_in_map_value, Data).
+    erldantic_json:to_json(?MODULE, {type, map_in_map_value, 0}, Data).
 
 -spec from_json_map_in_map_value(term()) ->
                                     {ok, map_in_map_value()} | {error, [erldantic:error()]}.
 from_json_map_in_map_value(Data) ->
-    erldantic_json:type_from_json(?MODULE, map_in_map_value, Data).
+    erldantic_json:from_json(?MODULE, {type, map_in_map_value, 0}, Data).
 
 -spec to_json_map_in_map_key(term()) ->
                                 {ok, map_in_map_key()} | {error, [erldantic:error()]}.
 to_json_map_in_map_key(Data) ->
-    erldantic_json:type_to_json(?MODULE, map_in_map_key, Data).
+    erldantic_json:to_json(?MODULE, {type, map_in_map_key, 0}, Data).
 
 -spec from_json_map_in_map_key(term()) ->
                                   {ok, map_in_map_key()} | {error, [erldantic:error()]}.
 from_json_map_in_map_key(Data) ->
-    erldantic_json:type_from_json(?MODULE, map_in_map_key, Data).
+    erldantic_json:from_json(?MODULE, {type, map_in_map_key, 0}, Data).

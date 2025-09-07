@@ -101,17 +101,17 @@ validate_role_test() ->
 -spec to_json_non_atom_enum(non_atom_enum()) ->
                                {ok, json:encode_value()} | {error, [erldantic:error()]}.
 to_json_non_atom_enum(Data) ->
-    erldantic_json:type_to_json(?MODULE, non_atom_enum, Data).
+    erldantic_json:to_json(?MODULE, {type, non_atom_enum, 0}, Data).
 
 -spec from_json_non_atom_enum(json:encode_value()) ->
                                  {ok, non_atom_enum()} | {error, [erldantic:error()]}.
 from_json_non_atom_enum(Json) ->
-    erldantic_json:type_from_json(?MODULE, non_atom_enum, Json).
+    erldantic_json:from_json(?MODULE, {type, non_atom_enum, 0}, Json).
 
 -spec to_json_role(role()) -> {ok, json:encode_value()} | {error, [erldantic:error()]}.
 to_json_role(Data) ->
-    erldantic_json:type_to_json(?MODULE, role, Data).
+    erldantic_json:to_json(?MODULE, {type, role, 0}, Data).
 
 -spec from_json_role(json:encode_value()) -> {ok, role()} | {error, [erldantic:error()]}.
 from_json_role(Json) ->
-    erldantic_json:type_from_json(?MODULE, role, Json).
+    erldantic_json:from_json(?MODULE, {type, role, 0}, Json).

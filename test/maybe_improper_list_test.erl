@@ -62,15 +62,15 @@ erl_abstract_code_parses_maybe_improper_list_types_test() ->
 erldantic_json_handles_maybe_improper_list_data_test() ->
     Iolist1 = ["hello", <<"world">>],
     ?assertError({type_not_implemented, _},
-                 erldantic_json:type_to_json(?MODULE, iolist1, Iolist1)),
+                 erldantic_json:to_json(?MODULE, {type, iolist1, 0}, Iolist1)),
     ?assertError({type_not_implemented, _},
-                 erldantic_json:type_to_json(?MODULE, non_empty_iolist1, Iolist1)),
+                 erldantic_json:to_json(?MODULE, {type, non_empty_iolist1, 0}, Iolist1)),
     ok.
 
 erldantic_json_handles_maybe_improper_list_data_from_json_test() ->
     Data = <<"[]">>,
     ?assertError({type_not_implemented, _},
-                 erldantic_json:type_from_json(?MODULE, iolist1, Data)),
+                 erldantic_json:from_json(?MODULE, {type, iolist1, 0}, Data)),
     ?assertError({type_not_implemented, _},
-                 erldantic_json:type_from_json(?MODULE, non_empty_iolist1, Data)),
+                 erldantic_json:from_json(?MODULE, {type, non_empty_iolist1, 0}, Data)),
     ok.

@@ -26,9 +26,9 @@ invalid_int_result_from_json_test() ->
 -spec to_json_int_result(int_result()) ->
                             {ok, json:encode_value()} | {error, [erldantic:error()]}.
 to_json_int_result(Result) ->
-    erldantic_json:type_to_json(?MODULE, int_result, Result).
+    erldantic_json:to_json(?MODULE, {type, int_result, 0}, Result).
 
 -spec from_json_int_result(json:encode_value()) ->
                               {ok, int_result()} | {error, [erldantic:error()]}.
 from_json_int_result(Json) ->
-    erldantic_json:type_from_json(?MODULE, int_result, Json).
+    erldantic_json:from_json(?MODULE, {type, int_result, 0}, Json).

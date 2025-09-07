@@ -45,8 +45,8 @@ result_0_from_json_test() ->
 
 -spec from_json_result_0(term()) -> result().
 from_json_result_0(Data) ->
-    erldantic_json:type_from_json(?MODULE, result, Data).
+    erldantic_json:from_json(?MODULE, {type, result, 0}, Data).
 
 -spec to_json_result_0(result()) -> json:encode_value().
 to_json_result_0(Data) ->
-    erldantic_json:type_to_json(?MODULE, result, Data).
+    erldantic_json:to_json(?MODULE, {type, result, 0}, Data).

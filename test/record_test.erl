@@ -22,8 +22,8 @@ missing_test() ->
                          arity = 3},
                  PersonRecord),
     ?assertEqual({ok, #{name => <<"John">>, age => 1}},
-                 erldantic_json:record_to_json(?MODULE, person, #person{name = "John"}),
+                 erldantic_json:to_json(?MODULE, {record, person}, #person{name = "John"}),
                  "Default value for age picked up when constructing the record, no change needed for to_json"),
     ?assertMatch({error, [#ed_error{location = [age], type = missing_data}]},
-                 erldantic_json:record_from_json(?MODULE, person, #{<<"name">> => <<"John">>}),
+                 erldantic_json:from_json(?MODULE, {record, person}, #{<<"name">> => <<"John">>}),
                  "Default value not picked up here, should it?").

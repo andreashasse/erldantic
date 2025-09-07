@@ -60,9 +60,9 @@ validate_accesses_test() ->
 -spec to_json_accesses(accesses()) ->
                           {ok, json:encode_value()} | {error, [erldantic:error()]}.
 to_json_accesses(Data) ->
-    erldantic_json:type_to_json(?MODULE, accesses, Data).
+    erldantic_json:to_json(?MODULE, {type, accesses, 0}, Data).
 
 -spec from_json_accesses(json:encode_value()) ->
                             {ok, accesses()} | {error, [erldantic:error()]}.
 from_json_accesses(Json) ->
-    erldantic_json:type_from_json(?MODULE, accesses, Json).
+    erldantic_json:from_json(?MODULE, {type, accesses, 0}, Json).
