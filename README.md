@@ -51,12 +51,12 @@ Here's how to use erldantic for JSON serialization and deserialization:
 -spec json_to_contacts(binary()) -> {ok, contacts()} | {error, [erldantic:error()]}.
 json_to_contacts(Json) ->
     Decoded = json:decode(Json),
-    erldantic_json:type_from_json(?MODULE, contacts, Decoded).
+    erldantic_json:from_json(?MODULE, {type, contacts, 0}, Decoded).
 
 -spec contacts_to_json(contacts()) -> binary() | {error, [erldantic:error()]}.
 contacts_to_json(Contacts) ->
     maybe
-        {ok, Encodeable} ?= erldantic_json:type_to_json(?MODULE, contacts, Contacts),
+        {ok, Encodeable} ?= erldantic_json:to_json(?MODULE, {type, contacts, 0}, Contacts),
         iolist_to_binary(json:encode(Encodeable))
     end.
 ```
@@ -103,15 +103,20 @@ BadSourceJson = <<"[{\"number\":\"+1-555-123-4567\",\"verified\":{\"source\":\"a
 
 ## API
 
-These are the functions intended to be called.
+These are the main functions intended to be called:
 ```erlang
-erldantic_json:type_to_json(Module, TypeName, Value) -> {ok, json:encode_value()} | {error, [erldantic:error()]}.
-erldantic_json:type_from_json(Module, TypeName, Json) -> {ok, ... your type ...} | {error, [erldantic:error()]}.
-erldantic_json:record_to_json(Module, RecordName, Value) -> {ok, json:encode_value()} | {error, [erldantic:error()]}.
-erldantic_json:record_from_json(Module, RecordName, Json) -> {ok, ... your record ...} | {error, [erldantic:error()]}.
+erldantic_json:to_json(Module, TypeOrReference, Value) -> {ok, json:encode_value()} | {error, [erldantic:error()]}.
+erldantic_json:from_json(Module, TypeOrReference, Json) -> {ok, ... your type ...} | {error, [erldantic:error()]}.
 ```
 
-Where `Module` is the module where the type/record is defined. The type can not have any parameters.
+Where:
+- `Module` is the module where the type/record is defined
+- `TypeOrReference` can be:
+  - `{type, TypeName, Arity}` for user-defined types (e.g., `{type, my_type, 0}`)
+  - `{record, RecordName}` for records (e.g., `{record, user}`)
+  - An actual `ed_type()` structure (for advanced usage)
+
+The type cannot have any parameters (arity must be 0 for user-defined types).
 
 ## Special Handling
 
