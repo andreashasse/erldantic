@@ -36,19 +36,19 @@ validate_missing_test() ->
 -spec to_json_remote(remote()) ->
                         {ok, json:encode_value()} | {error, [erldantic:error()]}.
 to_json_remote(Data) ->
-    erldantic_json:type_to_json(?MODULE, remote, Data).
+    erldantic_json:to_json(?MODULE, {type, remote, 0}, Data).
 
 -spec from_json_remote(json:encode_value()) ->
                           {ok, remote()} | {error, [erldantic:error()]}.
 from_json_remote(Json) ->
-    erldantic_json:type_from_json(?MODULE, remote, Json).
+    erldantic_json:from_json(?MODULE, {type, remote, 0}, Json).
 
 -spec to_json_missing(missing()) ->
                          {ok, json:encode_value()} | {error, [erldantic:error()]}.
 to_json_missing(Data) ->
-    erldantic_json:type_to_json(?MODULE, missing, Data).
+    erldantic_json:to_json(?MODULE, {type, missing, 0}, Data).
 
 -spec from_json_missing(json:encode_value()) ->
                            {ok, missing()} | {error, [erldantic:error()]}.
 from_json_missing(Json) ->
-    erldantic_json:type_from_json(?MODULE, missing, Json).
+    erldantic_json:from_json(?MODULE, {type, missing, 0}, Json).

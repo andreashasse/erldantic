@@ -35,22 +35,22 @@ erldantic_json_handles_tuple_data_test() ->
     Tuple2 = {42, hello},
     Tuple3 = {a},
     ?assertError({type_not_supported, _},
-                 erldantic_json:type_to_json(?MODULE, empty_tuple, Tuple1)),
+                 erldantic_json:to_json(?MODULE, {type, empty_tuple, 0}, Tuple1)),
     ?assertError({type_not_supported, _},
-                 erldantic_json:type_to_json(?MODULE, tuple2, Tuple2)),
+                 erldantic_json:to_json(?MODULE, {type, tuple2, 0}, Tuple2)),
     ?assertError({type_not_supported, _},
-                 erldantic_json:type_to_json(?MODULE, tuple3, Tuple3)).
+                 erldantic_json:to_json(?MODULE, {type, tuple3, 0}, Tuple3)).
 
 erldantic_json_handles_tuple_data_from_json_test() ->
     Data = <<"[]">>,
     ?assertError({type_not_supported, _},
-                 erldantic_json:type_from_json(?MODULE, empty_tuple, Data)),
+                 erldantic_json:from_json(?MODULE, {type, empty_tuple, 0}, Data)),
     ?assertError({type_not_supported, _},
-                 erldantic_json:type_from_json(?MODULE, tuple2, Data)),
+                 erldantic_json:from_json(?MODULE, {type, tuple2, 0}, Data)),
     ?assertError({type_not_supported, _},
-                 erldantic_json:type_from_json(?MODULE, tuple3, Data)).
+                 erldantic_json:from_json(?MODULE, {type, tuple3, 0}, Data)).
 
 erldantic_json_error_on_record_with_tuple_field_test() ->
     Record = #with_tuple{id = 1, data = {}},
     ?assertError({type_not_supported, _},
-                 erldantic_json:record_to_json(?MODULE, with_tuple, Record)).
+                 erldantic_json:to_json(?MODULE, {record, with_tuple}, Record)).

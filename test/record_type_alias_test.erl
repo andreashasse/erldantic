@@ -135,47 +135,47 @@ from_json_address_alias_test() ->
 -spec to_json_person_new_age(person_new_age()) ->
                                 {ok, json:encode_value()} | {error, [erldantic:error()]}.
 to_json_person_new_age(Data) ->
-    erldantic_json:type_to_json(?MODULE, person_new_age, Data).
+    erldantic_json:to_json(?MODULE, {type, person_new_age, 0}, Data).
 
 -spec to_json_person_t(person_t()) ->
                           {ok, json:encode_value()} | {error, [erldantic:error()]}.
 to_json_person_t(Data) ->
-    erldantic_json:type_to_json(?MODULE, person_t, Data).
+    erldantic_json:to_json(?MODULE, {type, person_t, 0}, Data).
 
 -spec to_json_person(#person{}) ->
                         {ok, json:encode_value()} | {error, [erldantic:error()]}.
 to_json_person(Person) ->
-    erldantic_json:record_to_json(?MODULE, person, Person).
+    erldantic_json:to_json(?MODULE, {record, person}, Person).
 
 -spec from_json_person(json:decode_value()) ->
                           {ok, #person{}} | {error, [erldantic:error()]}.
 from_json_person(Person) ->
-    erldantic_json:record_from_json(?MODULE, person, Person).
+    erldantic_json:from_json(?MODULE, {record, person}, Person).
 
 -spec to_json_person_alias(term()) -> {ok, person_alias()} | {error, [erldantic:error()]}.
 to_json_person_alias(Data) ->
-    erldantic_json:type_to_json(?MODULE, person_alias, Data).
+    erldantic_json:to_json(?MODULE, {type, person_alias, 0}, Data).
 
 -spec from_json_person_new_age(term()) ->
                                   {ok, person_new_age()} | {error, [erldantic:error()]}.
 from_json_person_new_age(Data) ->
-    erldantic_json:type_from_json(?MODULE, person_new_age, Data).
+    erldantic_json:from_json(?MODULE, {type, person_new_age, 0}, Data).
 
 -spec from_json_person_t(term()) -> {ok, person_t()} | {error, [erldantic:error()]}.
 from_json_person_t(Data) ->
-    erldantic_json:type_from_json(?MODULE, person_t, Data).
+    erldantic_json:from_json(?MODULE, {type, person_t, 0}, Data).
 
 -spec from_json_person_alias(term()) ->
                                 {ok, person_alias()} | {error, [erldantic:error()]}.
 from_json_person_alias(Data) ->
-    erldantic_json:type_from_json(?MODULE, person_alias, Data).
+    erldantic_json:from_json(?MODULE, {type, person_alias, 0}, Data).
 
 -spec to_json_address_alias(term()) ->
                                {ok, address_alias()} | {error, [erldantic:error()]}.
 to_json_address_alias(Data) ->
-    erldantic_json:type_to_json(?MODULE, address_alias, Data).
+    erldantic_json:to_json(?MODULE, {type, address_alias, 0}, Data).
 
 -spec from_json_address_alias(term()) ->
                                  {ok, address_alias()} | {error, [erldantic:error()]}.
 from_json_address_alias(Data) ->
-    erldantic_json:type_from_json(?MODULE, address_alias, Data).
+    erldantic_json:from_json(?MODULE, {type, address_alias, 0}, Data).

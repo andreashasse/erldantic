@@ -49,9 +49,9 @@ validate_number_test() ->
 
 -spec to_json(number_data()) -> {ok, json:encode_value()} | {error, [erldantic:error()]}.
 to_json(Data) ->
-    erldantic_json:type_to_json(?MODULE, number_data, Data).
+    erldantic_json:to_json(?MODULE, {type, number_data, 0}, Data).
 
 -spec from_json(json:encode_value()) ->
                    {ok, number_data()} | {error, [erldantic:error()]}.
 from_json(Json) ->
-    erldantic_json:type_from_json(?MODULE, number_data, Json).
+    erldantic_json:from_json(?MODULE, {type, number_data, 0}, Json).

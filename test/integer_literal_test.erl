@@ -172,37 +172,37 @@ validate_integer_literal_test() ->
 
 -spec to_json_one(one()) -> {ok, json:encode_value()} | {error, [erldantic:error()]}.
 to_json_one(Data) ->
-    erldantic_json:type_to_json(?MODULE, one, Data).
+    erldantic_json:to_json(?MODULE, {type, one, 0}, Data).
 
 -spec to_json_courses(courses()) ->
                          {ok, json:encode_value()} | {error, [erldantic:error()]}.
 to_json_courses(Data) ->
-    erldantic_json:type_to_json(?MODULE, courses, Data).
+    erldantic_json:to_json(?MODULE, {type, courses, 0}, Data).
 
 -spec to_json_game(game_state()) ->
                       {ok, json:encode_value()} | {error, [erldantic:error()]}.
 to_json_game(Data) ->
-    erldantic_json:type_to_json(?MODULE, game_state, Data).
+    erldantic_json:to_json(?MODULE, {type, game_state, 0}, Data).
 
 -spec to_json_bor_t(bor_t()) -> {ok, json:encode_value()} | {error, [erldantic:error()]}.
 to_json_bor_t(Data) ->
-    erldantic_json:type_to_json(?MODULE, bor_t, Data).
+    erldantic_json:to_json(?MODULE, {type, bor_t, 0}, Data).
 
 -spec from_json_bor_t(json:encode_value()) ->
                          {ok, bor_t()} | {error, [erldantic:error()]}.
 from_json_bor_t(Json) ->
-    erldantic_json:type_from_json(?MODULE, bor_t, Json).
+    erldantic_json:from_json(?MODULE, {type, bor_t, 0}, Json).
 
 -spec from_json_one(json:encode_value()) -> {ok, one()} | {error, [erldantic:error()]}.
 from_json_one(Json) ->
-    erldantic_json:type_from_json(?MODULE, one, Json).
+    erldantic_json:from_json(?MODULE, {type, one, 0}, Json).
 
 -spec from_json_courses(json:encode_value()) ->
                            {ok, courses()} | {error, [erldantic:error()]}.
 from_json_courses(Json) ->
-    erldantic_json:type_from_json(?MODULE, courses, Json).
+    erldantic_json:from_json(?MODULE, {type, courses, 0}, Json).
 
 -spec from_json_game(json:encode_value()) ->
                         {ok, game_state()} | {error, [erldantic:error()]}.
 from_json_game(Json) ->
-    erldantic_json:type_from_json(?MODULE, game_state, Json).
+    erldantic_json:from_json(?MODULE, {type, game_state, 0}, Json).

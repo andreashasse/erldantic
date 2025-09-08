@@ -24,11 +24,11 @@ simple_test() ->
                               {map_field_assoc, age, #ed_simple_type{type = pos_integer}}]},
                  PersonType),
     Person = #{name => <<"John">>, age => 42},
-    ?assertEqual({ok, Person}, erldantic_json:type_to_json(?MODULE, person, Person)),
+    ?assertEqual({ok, Person}, erldantic_json:to_json(?MODULE, {type, person, 0}, Person)),
     ?assertEqual({ok, Person},
-                 erldantic_json:type_from_json(?MODULE,
-                                               person,
-                                               #{<<"name">> => <<"John">>, <<"age">> => 42})),
+                 erldantic_json:from_json(?MODULE,
+                                          {type, person, 0},
+                                          #{<<"name">> => <<"John">>, <<"age">> => 42})),
 
     %% Opaque record type
     {ok, MyRecRecord} = erldantic_type_info:get_record(TypeInfo, my_rec),
@@ -45,14 +45,12 @@ simple_test() ->
                  MyRecTType),
 
     ?assertEqual({ok, #{id => 1, data => #{name => <<"John">>, age => 42}}},
-                 erldantic_json:type_to_json(?MODULE,
-                                             my_rec_t,
-                                             #my_rec{id = 1,
-                                                     data = #{name => <<"John">>, age => 42}})),
+                 erldantic_json:to_json(?MODULE,
+                                        {type, my_rec_t, 0},
+                                        #my_rec{id = 1, data = #{name => <<"John">>, age => 42}})),
     ?assertEqual({ok, #my_rec{id = 1, data = #{name => <<"John">>, age => 42}}},
-                 erldantic_json:type_from_json(?MODULE,
-                                               my_rec_t,
-                                               #{<<"id">> => 1,
-                                                 <<"data">> =>
-                                                     #{<<"name">> => <<"John">>,
-                                                       <<"age">> => 42}})).
+                 erldantic_json:from_json(?MODULE,
+                                          {type, my_rec_t, 0},
+                                          #{<<"id">> => 1,
+                                            <<"data">> =>
+                                                #{<<"name">> => <<"John">>, <<"age">> => 42}})).

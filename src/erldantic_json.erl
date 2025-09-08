@@ -1,86 +1,21 @@
 -module(erldantic_json).
 
--export([type_to_json/3, type_from_json/3, record_to_json/3, record_from_json/3]).
-%% exported for test
 -export([to_json/3, from_json/3]).
 
 -ignore_xref([to_json/3, from_json/3]).
--ignore_xref([{erldantic_json, type_to_json, 3},
-              {erldantic_json, type_from_json, 3},
-              {erldantic_json, record_to_json, 3},
-              {erldantic_json, record_from_json, 3}]).
 
 -include("../include/erldantic.hrl").
 -include("../include/erldantic_internal.hrl").
 
 %% API
 
--doc("Converts an Erlang value to JSON format based on a type specification.\nThis function validates the given value against the specified type definition\nfrom the module and converts it to a JSON-encodable format.\nThe type must be of arity 0.\n\n### Returns\n{ok, JsonValue} if conversion succeeds, or {error, Errors} if validation fails").
--doc(#{params =>
-           #{"Module" => "The module containing the type definition",
-             "TypeName" => "The name of the type to validate against",
-             "Value" => "The Erlang value to convert to JSON"}}).
-
--spec type_to_json(Module :: module(), TypeName :: atom(), Value :: dynamic()) ->
-                      {ok, json:encode_value()} | {error, [erldantic:error()]}.
-type_to_json(Module, TypeName, Value) when is_atom(Module) andalso is_atom(TypeName) ->
-    TypeArity = 0,
-    TypeRef = {type, TypeName, TypeArity},
-    to_json_no_pt(Module, TypeRef, Value).
-
--doc("Converts a JSON value to an Erlang value based on a type specification.\nThis function validates the given JSON value against the specified type definition\nfrom the module and converts it to the corresponding Erlang value. The type must be\nof arity 0.\n\n### Returns\n{ok, ErlangValue} if conversion succeeds, or {error, Errors} if validation fails").
--doc(#{params =>
-           #{"Json" => "The JSON value to convert to Erlang format",
-             "Module" => "The module containing the type definition",
-             "TypeName" => "The name of the type to validate against"}}).
-
--spec type_from_json(Module :: module(),
-                     TypeName :: atom(),
-                     Json :: json:decode_value()) ->
-                        {ok, dynamic()} | {error, [erldantic:error()]}.
-type_from_json(Module, TypeName, Json) when is_atom(Module) andalso is_atom(TypeName) ->
-    TypeArity = 0,
-    TypeRef = {type, TypeName, TypeArity},
-    from_json_no_pt(Module, TypeRef, Json).
-
--doc("Converts an Erlang record to JSON format based on a record specification.\nThis function validates the given record value against the specified record definition\nfrom the module and converts it to a JSON object.\n\n### Returns\n{ok, JsonObject} if conversion succeeds, or {error, Errors} if validation fails").
--doc(#{params =>
-           #{"Module" => "The module containing the record definition",
-             "RecordName" => "The name of the record to validate against",
-             "Value" => "The Erlang record value to convert to JSON"}}).
-
--spec record_to_json(Module :: module(), RecordName :: atom(), Value :: dynamic()) ->
-                        {ok, json:encode_value()} | {error, [erldantic:error()]}.
-record_to_json(Module, RecordName, Value)
-    when is_atom(Module) andalso is_atom(RecordName) ->
-    to_json_no_pt(Module, {record, RecordName}, Value).
-
--doc("Converts a JSON value to an Erlang record based on a record specification.\nThis function validates the given JSON value against the specified record definition\nfrom the module and converts it to the corresponding Erlang record.\n\n### Returns\n{ok, ErlangRecord} if conversion succeeds, or {error, Errors} if validation fails").
--doc(#{params =>
-           #{"Json" => "The JSON value to convert to Erlang record format",
-             "Module" => "The module containing the record definition",
-             "RecordName" => "The name of the record to validate against"}}).
-
--spec record_from_json(Module :: module(),
-                       RecordName :: atom(),
-                       Json :: json:decode_value()) ->
-                          {ok, dynamic()} | {error, [erldantic:error()]}.
-record_from_json(Module, RecordName, Json)
-    when is_atom(Module) andalso is_atom(RecordName) ->
-    from_json_no_pt(Module, {record, RecordName}, Json).
-
-%% INTERNAL
-
--spec to_json_no_pt(Module :: module(),
-                    TypeRef :: erldantic:ed_type_reference(),
-                    Data :: dynamic()) ->
-                       {ok, json:encode_value()} | {error, [erldantic:error()]}.
-to_json_no_pt(Module, TypeRef, Data) ->
-    TypeInfo = erldantic_module_types:get(Module),
-    to_json(TypeInfo, TypeRef, Data).
-
--spec to_json(erldantic:type_info(), erldantic:ed_type_or_ref(), Data :: dynamic()) ->
+-spec to_json(erldantic:type_info() | module(),
+              erldantic:ed_type_or_ref(),
+              Data :: dynamic()) ->
                  {ok, json:encode_value()} | {error, [erldantic:error()]}.
+to_json(Module, TypeRef, Data) when is_atom(Module) ->
+    TypeInfo = erldantic_module_types:get(Module),
+    to_json(TypeInfo, TypeRef, Data);
 to_json(TypeInfo, Type, Data) ->
     case do_to_json(TypeInfo, Type, Data) of
         {ok, Json} ->
@@ -91,14 +26,7 @@ to_json(TypeInfo, Type, Data) ->
             {error, Errs}
     end.
 
--spec from_json_no_pt(Module :: module(),
-                      TypeOrRecord :: erldantic:ed_type_or_ref(),
-                      Json :: json:decode_value()) ->
-                         {ok, dynamic()} | {error, [erldantic:error()]}.
-from_json_no_pt(Module, TypeRef, Json) ->
-    TypeInfo = erldantic_module_types:get(Module),
-    from_json(TypeInfo, TypeRef, Json).
-
+%% INTERNAL
 -spec do_to_json(TypeInfo :: erldantic:type_info(),
                  Type :: erldantic:ed_type_or_ref(),
                  Data :: dynamic()) ->
@@ -400,31 +328,45 @@ do_record_to_json(TypeInfo, RecFieldTypesWithData) ->
 err_append_location(Err, FieldName) ->
     Err#ed_error{location = [FieldName | Err#ed_error.location]}.
 
--spec from_json(TypeInfo :: erldantic:type_info(),
+-spec from_json(TypeInfo :: erldantic:type_info() | module(),
                 Type :: erldantic:ed_type_or_ref(),
                 Json :: json:decode_value()) ->
                    {ok, term()} | {error, [erldantic:error()]}.
-from_json(TypeInfo, {record, RecordName}, Json) when is_atom(RecordName) ->
+from_json(Module, Type, Json) when is_atom(Module) ->
+    TypeInfo = erldantic_module_types:get(Module),
+    do_from_json(TypeInfo, Type, Json);
+from_json(TypeInfo, Type, Json) ->
+    do_from_json(TypeInfo, Type, Json).
+
+-spec do_from_json(TypeInfo :: erldantic:type_info(),
+                   Type :: erldantic:ed_type_or_ref(),
+                   Json :: json:decode_value()) ->
+                      {ok, term()} | {error, [erldantic:error()]}.
+do_from_json(TypeInfo, {record, RecordName}, Json) when is_atom(RecordName) ->
     record_from_json(TypeInfo, RecordName, Json, []);
-from_json(TypeInfo, #ed_rec{} = Rec, Json) ->
+do_from_json(TypeInfo, #ed_rec{} = Rec, Json) ->
     record_from_json(TypeInfo, Rec, Json, []);
-from_json(_TypeInfo, #ed_remote_type{mfargs = {Module, TypeName, TypeArgs}}, Json) ->
+do_from_json(_TypeInfo, #ed_remote_type{mfargs = {Module, TypeName, TypeArgs}}, Json) ->
     TypeInfo = erldantic_module_types:get(Module),
     TypeArity = length(TypeArgs),
     type_from_json(TypeInfo, TypeName, TypeArity, TypeArgs, Json);
-from_json(TypeInfo, #ed_rec_ref{record_name = RecordName, field_types = TypeArgs}, Json)
+do_from_json(TypeInfo,
+             #ed_rec_ref{record_name = RecordName, field_types = TypeArgs},
+             Json)
     when is_atom(RecordName) ->
     record_from_json(TypeInfo, RecordName, Json, TypeArgs);
-from_json(TypeInfo, #ed_map{fields = Fields}, Json) ->
+do_from_json(TypeInfo, #ed_map{fields = Fields}, Json) ->
     map_from_json(TypeInfo, Fields, Json);
-from_json(TypeInfo, #ed_user_type_ref{type_name = TypeName, variables = TypeArgs}, Json)
+do_from_json(TypeInfo,
+             #ed_user_type_ref{type_name = TypeName, variables = TypeArgs},
+             Json)
     when is_atom(TypeName) ->
     type_from_json(TypeInfo, TypeName, length(TypeArgs), TypeArgs, Json);
-from_json(TypeInfo, #ed_nonempty_list{type = Type}, Data) ->
+do_from_json(TypeInfo, #ed_nonempty_list{type = Type}, Data) ->
     nonempty_list_from_json(TypeInfo, Type, Data);
-from_json(TypeInfo, #ed_list{type = Type}, Data) ->
+do_from_json(TypeInfo, #ed_list{type = Type}, Data) ->
     list_from_json(TypeInfo, Type, Data);
-from_json(_TypeInfo, #ed_simple_type{type = NotSupported} = T, _Value)
+do_from_json(_TypeInfo, #ed_simple_type{type = NotSupported} = T, _Value)
     when NotSupported =:= pid
          orelse NotSupported =:= port
          orelse NotSupported =:= reference
@@ -432,7 +374,7 @@ from_json(_TypeInfo, #ed_simple_type{type = NotSupported} = T, _Value)
          orelse NotSupported =:= nonempty_bitstring
          orelse NotSupported =:= none ->
     erlang:error({type_not_supported, T});
-from_json(_TypeInfo, #ed_simple_type{type = PrimaryType} = T, Json) ->
+do_from_json(_TypeInfo, #ed_simple_type{type = PrimaryType} = T, Json) ->
     case check_type_from_json(PrimaryType, Json) of
         {true, NewValue} ->
             {ok, NewValue};
@@ -444,9 +386,9 @@ from_json(_TypeInfo, #ed_simple_type{type = PrimaryType} = T, Json) ->
                         location = [],
                         ctx = #{type => T, value => Json}}]}
     end;
-from_json(_TypeInfo, #ed_literal{value = Literal}, Literal) ->
+do_from_json(_TypeInfo, #ed_literal{value = Literal}, Literal) ->
     {ok, Literal};
-from_json(_TypeInfo, #ed_literal{value = Literal} = Type, Value) ->
+do_from_json(_TypeInfo, #ed_literal{value = Literal} = Type, Value) ->
     case try_convert_to_literal(Literal, Value) of
         {ok, Literal} ->
             {ok, Literal};
@@ -456,37 +398,37 @@ from_json(_TypeInfo, #ed_literal{value = Literal} = Type, Value) ->
                         location = [],
                         ctx = #{type => Type, value => Value}}]}
     end;
-from_json(TypeInfo, {type, TypeName, TypeArity}, Json) when is_atom(TypeName) ->
+do_from_json(TypeInfo, {type, TypeName, TypeArity}, Json) when is_atom(TypeName) ->
     type_from_json(TypeInfo, TypeName, TypeArity, [], Json);
-from_json(TypeInfo, #ed_union{} = Type, Json) ->
-    union(fun from_json/3, TypeInfo, Type, Json);
-from_json(_TypeInfo,
-          #ed_range{type = integer,
-                    lower_bound = Min,
-                    upper_bound = Max},
-          Value)
+do_from_json(TypeInfo, #ed_union{} = Type, Json) ->
+    union(fun do_from_json/3, TypeInfo, Type, Json);
+do_from_json(_TypeInfo,
+             #ed_range{type = integer,
+                       lower_bound = Min,
+                       upper_bound = Max},
+             Value)
     when Min =< Value, Value =< Max, is_integer(Value) ->
     {ok, Value};
-from_json(_TypeInfo,
-          #ed_range{type = integer,
-                    lower_bound = _Min,
-                    upper_bound = _Max} =
-              Range,
-          Value)
+do_from_json(_TypeInfo,
+             #ed_range{type = integer,
+                       lower_bound = _Min,
+                       upper_bound = _Max} =
+                 Range,
+             Value)
     when is_integer(Value) ->
     {error,
      [#ed_error{type = type_mismatch,
                 location = [],
                 ctx = #{type => Range, value => Value}}]};
-from_json(_TypeInfo, #ed_maybe_improper_list{} = Type, _Value) ->
+do_from_json(_TypeInfo, #ed_maybe_improper_list{} = Type, _Value) ->
     erlang:error({type_not_implemented, Type});
-from_json(_TypeInfo, #ed_nonempty_improper_list{} = Type, _Value) ->
+do_from_json(_TypeInfo, #ed_nonempty_improper_list{} = Type, _Value) ->
     erlang:error({type_not_implemented, Type});
-from_json(_TypeInfo, #ed_function{} = Type, _Value) ->
+do_from_json(_TypeInfo, #ed_function{} = Type, _Value) ->
     erlang:error({type_not_supported, Type});
-from_json(_TypeInfo, #ed_tuple{} = Type, _Value) ->
+do_from_json(_TypeInfo, #ed_tuple{} = Type, _Value) ->
     erlang:error({type_not_supported, Type});
-from_json(_TypeInfo, Type, Value) ->
+do_from_json(_TypeInfo, Type, Value) ->
     {error,
      [#ed_error{type = type_mismatch,
                 location = [],
@@ -515,7 +457,7 @@ nonempty_list_from_json(_TypeInfo, Type, Data) ->
 
 list_from_json(TypeInfo, Type, Data) when is_list(Data) ->
     Fun = fun({Nr, Item}) ->
-             case from_json(TypeInfo, Type, Item) of
+             case do_from_json(TypeInfo, Type, Item) of
                  {ok, Json} ->
                      {ok, Json};
                  {error, Errs} ->
@@ -658,7 +600,7 @@ do_first(Fun, TypeInfo, [Type | Rest], Json) ->
 type_from_json(TypeInfo, TypeName, TypeArity, TypeArgs, Json) ->
     {ok, Type} = erldantic_type_info:get_type(TypeInfo, TypeName, TypeArity),
     TypeWithoutVars = apply_args(TypeInfo, Type, TypeArgs),
-    from_json(TypeInfo, TypeWithoutVars, Json).
+    do_from_json(TypeInfo, TypeWithoutVars, Json).
 
 apply_args(TypeInfo, Type, TypeArgs) when is_list(TypeArgs) ->
     ArgNames = arg_names(Type),
@@ -750,7 +692,7 @@ map_from_json(TypeInfo, MapFieldType, Json) when is_map(Json) ->
     Fun = fun ({map_field_assoc, FieldName, FieldType}, {FieldsAcc, JsonAcc}) ->
                   case maps:take(atom_to_binary(FieldName), JsonAcc) of
                       {FieldData, NewJsonAcc} ->
-                          case from_json(TypeInfo, FieldType, FieldData) of
+                          case do_from_json(TypeInfo, FieldType, FieldData) of
                               {ok, FieldJson} ->
                                   {ok, {[{FieldName, FieldJson}] ++ FieldsAcc, NewJsonAcc}};
                               {error, Errs} ->
@@ -765,7 +707,7 @@ map_from_json(TypeInfo, MapFieldType, Json) when is_map(Json) ->
               ({map_field_exact, FieldName, FieldType}, {FieldsAcc, JsonAcc}) ->
                   case maps:take(atom_to_binary(FieldName), JsonAcc) of
                       {FieldData, NewJsonAcc} ->
-                          case from_json(TypeInfo, FieldType, FieldData) of
+                          case do_from_json(TypeInfo, FieldType, FieldData) of
                               {ok, FieldJson} ->
                                   {ok, {[{FieldName, FieldJson}] ++ FieldsAcc, NewJsonAcc}};
                               {error, Errs} ->
@@ -837,9 +779,9 @@ map_from_json(_TypeInfo, _MapFieldType, Json) ->
 
 map_field_type_from_json(TypeInfo, KeyType, ValueType, Json) ->
     erldantic_util:fold_until_error(fun({Key, Value}, {FieldsAcc, JsonAcc}) ->
-                                       case from_json(TypeInfo, KeyType, Key) of
+                                       case do_from_json(TypeInfo, KeyType, Key) of
                                            {ok, KeyJson} ->
-                                               case from_json(TypeInfo, ValueType, Value) of
+                                               case do_from_json(TypeInfo, ValueType, Value) of
                                                    {ok, ValueJson} ->
                                                        {ok,
                                                         {FieldsAcc ++ [{KeyJson, ValueJson}],
@@ -881,7 +823,7 @@ do_record_from_json(TypeInfo, RecordName, RecordInfo, Json) when is_map(Json) ->
     Fun = fun({FieldName, FieldType}) when is_atom(FieldName) ->
              case maps:find(atom_to_binary(FieldName), Json) of
                  {ok, RecordFieldData} ->
-                     case from_json(TypeInfo, FieldType, RecordFieldData) of
+                     case do_from_json(TypeInfo, FieldType, RecordFieldData) of
                          {ok, FieldJson} ->
                              {ok, FieldJson};
                          {error, Errs} ->

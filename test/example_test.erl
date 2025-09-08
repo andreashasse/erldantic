@@ -49,12 +49,12 @@ bad_source_json_test() ->
 -spec json_to_contacts(binary()) -> {ok, contacts()} | {error, [erldantic:error()]}.
 json_to_contacts(Json) ->
     Decoded = json:decode(Json),
-    erldantic_json:type_from_json(?MODULE, contacts, Decoded).
+    erldantic_json:from_json(?MODULE, {type, contacts, 0}, Decoded).
 
 -spec contacts_to_json(contacts()) -> binary() | {error, [erldantic:error()]}.
 contacts_to_json(Contacts) ->
     maybe
-        {ok, Encodeable} ?= erldantic_json:type_to_json(?MODULE, contacts, Contacts),
+        {ok, Encodeable} ?= erldantic_json:to_json(?MODULE, {type, contacts, 0}, Contacts),
         iolist_to_binary(json:encode(Encodeable))
     end.
 

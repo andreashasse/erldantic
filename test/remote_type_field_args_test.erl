@@ -180,39 +180,39 @@ mixed_requirements_from_json_test() ->
 -spec to_json_user_with_account(term()) ->
                                    {ok, json:encode_value()} | {error, [erldantic:error()]}.
 to_json_user_with_account(Data) ->
-    erldantic_json:type_to_json(?MODULE, user_with_account, Data).
+    erldantic_json:to_json(?MODULE, {type, user_with_account, 0}, Data).
 
 -spec from_json_user_with_account(json:encode_value()) ->
                                      {ok, user_with_account()} | {error, [erldantic:error()]}.
 from_json_user_with_account(Json) ->
-    erldantic_json:type_from_json(?MODULE, user_with_account, Json).
+    erldantic_json:from_json(?MODULE, {type, user_with_account, 0}, Json).
 
 -spec to_json_organization(term()) ->
                               {ok, json:encode_value()} | {error, [erldantic:error()]}.
 to_json_organization(Data) ->
-    erldantic_json:type_to_json(?MODULE, organization, Data).
+    erldantic_json:to_json(?MODULE, {type, organization, 0}, Data).
 
 -spec from_json_organization(json:encode_value()) ->
                                 {ok, organization()} | {error, [erldantic:error()]}.
 from_json_organization(Json) ->
-    erldantic_json:type_from_json(?MODULE, organization, Json).
+    erldantic_json:from_json(?MODULE, {type, organization, 0}, Json).
 
 -spec to_json_complex_data(term()) ->
                               {ok, json:encode_value()} | {error, [erldantic:error()]}.
 to_json_complex_data(Data) ->
-    erldantic_json:type_to_json(?MODULE, complex_data, Data).
+    erldantic_json:to_json(?MODULE, {type, complex_data, 0}, Data).
 
 -spec from_json_complex_data(json:encode_value()) ->
                                 {ok, complex_data()} | {error, [erldantic:error()]}.
 from_json_complex_data(Json) ->
-    erldantic_json:type_from_json(?MODULE, complex_data, Json).
+    erldantic_json:from_json(?MODULE, {type, complex_data, 0}, Json).
 
 -spec to_json_mixed_requirements(term()) ->
                                     {ok, json:encode_value()} | {error, [erldantic:error()]}.
 to_json_mixed_requirements(Data) ->
-    erldantic_json:type_to_json(?MODULE, mixed_requirements, Data).
+    erldantic_json:to_json(?MODULE, {type, mixed_requirements, 0}, Data).
 
 -spec from_json_mixed_requirements(json:encode_value()) ->
                                       {ok, mixed_requirements()} | {error, [erldantic:error()]}.
 from_json_mixed_requirements(Json) ->
-    erldantic_json:type_from_json(?MODULE, mixed_requirements, Json).
+    erldantic_json:from_json(?MODULE, {type, mixed_requirements, 0}, Json).
