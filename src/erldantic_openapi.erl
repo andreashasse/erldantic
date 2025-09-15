@@ -13,7 +13,10 @@
 
 -include("../include/erldantic.hrl").
 
-%% OpenAPI-specific types
+-type http_method() :: get | post | put | delete | patch | head | options.
+-type http_status_code() :: 100..599.
+-type parameter_location() :: path | query | header | cookie.
+-type openapi_schema() :: json:decode_value() | #{'$ref' := binary()}.
 -type request_body_spec() :: #{schema := erldantic:ed_type_or_ref(), module := module()}.
 -type response_spec() ::
     #{description := string(),
@@ -21,19 +24,42 @@
       module := module()}.
 -type parameter_spec() ::
     #{name := string(),
-      in := path | query | header | cookie,
+      in := parameter_location(),
       required := boolean(),
       schema := erldantic:ed_type_or_ref(),
       module := module()}.
-
-%% API
+-type endpoint_spec() ::
+    #{method := http_method(),
+      path := string(),
+      responses := #{http_status_code() => response_spec()},
+      parameters := [parameter_spec()],
+      request_body => request_body_spec()}.
+-type path_operations() :: #{http_method() => openapi_operation()}.
+-type openapi_operation() ::
+    #{responses => #{binary() => openapi_response()},
+      requestBody => openapi_request_body(),
+      parameters => [openapi_parameter()]}.
+-type openapi_response() ::
+    #{description := binary(), content := #{binary() => #{schema := openapi_schema()}}}.
+-type openapi_request_body() ::
+    #{required := boolean(), content := #{binary() => #{schema := openapi_schema()}}}.
+-type openapi_parameter() ::
+    #{name := binary(),
+      in := parameter_location(),
+      required := boolean(),
+      schema := openapi_schema()}.
+-type openapi_spec() ::
+    #{openapi := binary(),
+      info := #{title := binary(), version := binary()},
+      paths := #{binary() => path_operations()},
+      components => #{schemas => #{binary() => openapi_schema()}}}.
 
 -doc("Creates a basic endpoint specification.\nThis function creates the foundation for an endpoint with the specified HTTP method and path.\nAdditional details like responses, request body, and parameters can be added using the with_* functions.\n\n### Returns\nEndpoint map with method and path set").
 -doc(#{params =>
            #{"Method" => "HTTP method (get, post, put, delete, patch, head, options)",
              "Path" => "URL path for the endpoint (e.g., \"/users/{id}\")"}}).
 
--spec endpoint(Method :: atom(), Path :: string()) -> map().
+-spec endpoint(Method :: http_method(), Path :: string()) -> endpoint_spec().
 endpoint(Method, Path) when is_atom(Method) andalso is_list(Path) ->
     #{method => Method,
       path => Path,
@@ -47,12 +73,12 @@ endpoint(Method, Path) when is_atom(Method) andalso is_list(Path) ->
              "Schema" => "Schema reference or direct type (erldantic:ed_type_or_ref())",
              "StatusCode" => "HTTP status code (e.g., 200, 404, 500)"}}).
 
--spec with_response(Endpoint :: map(),
-                    StatusCode :: integer(),
+-spec with_response(Endpoint :: endpoint_spec(),
+                    StatusCode :: http_status_code(),
                     Description :: string(),
                     Module :: module(),
                     Schema :: erldantic:ed_type_or_ref()) ->
-                       map().
+                       endpoint_spec().
 with_response(Endpoint, StatusCode, Description, Module, Schema)
     when is_map(Endpoint)
          andalso is_integer(StatusCode)
@@ -70,10 +96,10 @@ with_response(Endpoint, StatusCode, Description, Module, Schema)
            #{"Endpoint" => "Endpoint map to add the request body to",
              "Schema" => "Schema reference or direct type (erldantic:ed_type_or_ref())"}}).
 
--spec with_request_body(Endpoint :: map(),
+-spec with_request_body(Endpoint :: endpoint_spec(),
                         Module :: module(),
                         Schema :: erldantic:ed_type_or_ref()) ->
-                           map().
+                           endpoint_spec().
 with_request_body(Endpoint, Module, Schema)
     when is_map(Endpoint) andalso is_atom(Module) ->
     Endpoint#{request_body => #{schema => Schema, module => Module}}.
@@ -83,8 +109,10 @@ with_request_body(Endpoint, Module, Schema)
            #{"Endpoint" => "Endpoint map to add the parameter to",
              "ParameterSpec" => "Parameter specification map"}}).
 
--spec with_parameter(Endpoint :: map(), Module :: module(), ParameterSpec :: map()) ->
-                        map().
+-spec with_parameter(Endpoint :: endpoint_spec(),
+                     Module :: module(),
+                     ParameterSpec :: parameter_spec()) ->
+                        endpoint_spec().
 with_parameter(Endpoint, Module, ParameterSpec)
     when is_map(Endpoint) andalso is_atom(Module) andalso is_map(ParameterSpec) ->
     Parameters = maps:get(parameters, Endpoint, []),
@@ -96,27 +124,21 @@ with_parameter(Endpoint, Module, ParameterSpec)
            #{"Endpoints" =>
                  "List of endpoint specifications created with endpoint/2 and with_* functions"}}).
 
--spec endpoints_to_openapi(Endpoints :: [map()]) ->
-                              {ok, map()} | {error, [erldantic:error()]}.
+-spec endpoints_to_openapi(Endpoints :: [endpoint_spec()]) ->
+                              {ok, openapi_spec()} | {error, [erldantic:error()]}.
 endpoints_to_openapi(Endpoints) when is_list(Endpoints) ->
     try
-        %% Group endpoints by path
         PathGroups = group_endpoints_by_path(Endpoints),
-
-        %% Generate paths section
         Paths =
             maps:fold(fun(Path, PathEndpoints, Acc) ->
-                         BinaryPath = unicode:characters_to_binary(Path),
+                         BinaryPath = safe_to_binary(Path),
                          PathOps = generate_path_operations(PathEndpoints),
                          Acc#{BinaryPath => PathOps}
                       end,
                       #{},
                       PathGroups),
 
-        %% Collect all schema references
         SchemaRefs = collect_schema_refs(Endpoints),
-
-        %% Generate component schemas
         Components =
             case generate_components(SchemaRefs) of
                 {ok, ComponentsResult} ->
@@ -124,8 +146,6 @@ endpoints_to_openapi(Endpoints) when is_list(Endpoints) ->
                 {error, ComponentErrors} ->
                     throw({schema_generation_failed, ComponentErrors})
             end,
-
-        %% Build complete OpenAPI spec
         OpenAPISpec =
             #{openapi => <<"3.0.0">>,
               info => #{title => <<"API Documentation">>, version => <<"1.0.0">>},
@@ -143,9 +163,7 @@ endpoints_to_openapi(Endpoints) when is_list(Endpoints) ->
                         ctx = #{reason => Reason, stacktrace => Stacktrace}}]}
     end.
 
-%% Helper functions for endpoint processing
-
--spec group_endpoints_by_path([map()]) -> #{string() => [map()]}.
+-spec group_endpoints_by_path([endpoint_spec()]) -> #{string() => [endpoint_spec()]}.
 group_endpoints_by_path(Endpoints) ->
     lists:foldl(fun(Endpoint, Acc) ->
                    Path = maps:get(path, Endpoint),
@@ -155,7 +173,7 @@ group_endpoints_by_path(Endpoints) ->
                 #{},
                 Endpoints).
 
--spec generate_path_operations([map()]) -> map().
+-spec generate_path_operations([endpoint_spec()]) -> path_operations().
 generate_path_operations(Endpoints) ->
     lists:foldl(fun(#{method := Method} = Endpoint, Acc) ->
                    Operation = generate_operation(Endpoint),
@@ -164,7 +182,7 @@ generate_path_operations(Endpoints) ->
                 #{},
                 Endpoints).
 
--spec generate_operation(map()) -> map().
+-spec generate_operation(endpoint_spec()) -> openapi_operation().
 generate_operation(Endpoint) ->
     Operation = #{},
 
@@ -176,7 +194,6 @@ generate_operation(Endpoint) ->
                 OpenAPIResponses =
                     maps:map(fun(_StatusCode, ResponseSpec) -> generate_response(ResponseSpec) end,
                              Responses),
-                %% Convert integer keys to binary for OpenAPI spec
                 OpenAPIResponsesBinary =
                     maps:fold(fun(K, V, NewAcc) ->
                                  BinaryKey = integer_to_binary(K),
@@ -189,7 +206,6 @@ generate_operation(Endpoint) ->
                 Operation
         end,
 
-    %% Add request body if present
     OperationWithBody =
         case maps:get(request_body, Endpoint, undefined) of
             undefined ->
@@ -199,7 +215,6 @@ generate_operation(Endpoint) ->
                 OperationWithResponses#{requestBody => RequestBody}
         end,
 
-    %% Add parameters if present
     Parameters = maps:get(parameters, Endpoint, []),
     case Parameters of
         [] ->
@@ -209,65 +224,55 @@ generate_operation(Endpoint) ->
             OperationWithBody#{parameters => OpenAPIParameters}
     end.
 
--spec generate_response(response_spec()) -> map().
+-spec generate_response(response_spec()) -> openapi_response().
 generate_response(#{description := Description,
                     schema := Schema,
                     module := Module}) ->
-    %% Get type info from the specific module
     ModuleTypeInfo = erldantic_abstract_code:types_in_module(Module),
 
     SchemaContent =
         case Schema of
             {type, Name, Arity} ->
-                %% ed_type_reference - use component reference
                 SchemaName = type_ref_to_component_name({type, Name, Arity}),
                 #{'$ref' => <<"#/components/schemas/", SchemaName/binary>>};
             {record, Name} ->
-                %% ed_type_reference - use component reference
                 SchemaName = type_ref_to_component_name({record, Name}),
                 #{'$ref' => <<"#/components/schemas/", SchemaName/binary>>};
             DirectType ->
-                %% Direct ed_type - generate inline schema
                 {ok, InlineSchema} = erldantic_json_schema:to_schema(ModuleTypeInfo, DirectType),
                 InlineSchema
         end,
 
-    #{description => unicode:characters_to_binary(Description),
+    #{description => safe_to_binary(Description),
       content => #{<<"application/json">> => #{schema => SchemaContent}}}.
 
--spec generate_request_body(request_body_spec()) -> map().
+-spec generate_request_body(request_body_spec()) -> openapi_request_body().
 generate_request_body(#{schema := Schema, module := Module}) ->
-    %% Get type info from the specific module
     ModuleTypeInfo = erldantic_abstract_code:types_in_module(Module),
     SchemaContent =
         case Schema of
             {type, Name, Arity} ->
-                %% ed_type_reference - use component reference
                 SchemaName = type_ref_to_component_name({type, Name, Arity}),
                 #{'$ref' => <<"#/components/schemas/", SchemaName/binary>>};
             {record, Name} ->
-                %% ed_type_reference - use component reference
                 SchemaName = type_ref_to_component_name({record, Name}),
                 #{'$ref' => <<"#/components/schemas/", SchemaName/binary>>};
             DirectType ->
-                %% Direct ed_type - generate inline schema
                 {ok, InlineSchema} = erldantic_json_schema:to_schema(ModuleTypeInfo, DirectType),
                 InlineSchema
         end,
 
     #{required => true, content => #{<<"application/json">> => #{schema => SchemaContent}}}.
 
--spec generate_parameter(parameter_spec()) -> map().
+-spec generate_parameter(parameter_spec()) -> openapi_parameter().
 generate_parameter(#{name := Name,
                      in := In,
                      schema := Schema,
                      module := Module} =
                        ParameterSpec) ->
-    %% Get type info from the specific module
     ModuleTypeInfo = erldantic_abstract_code:types_in_module(Module),
     Required = maps:get(required, ParameterSpec, false),
 
-    %% For parameters, always generate inline schemas (no component references)
     InlineSchema =
         case Schema of
             {type, TypeName, Arity} ->
@@ -282,12 +287,12 @@ generate_parameter(#{name := Name,
                 ValidSchema
         end,
 
-    #{name => unicode:characters_to_binary(Name),
+    #{name => safe_to_binary(Name),
       in => In,
       required => Required,
       schema => InlineSchema}.
 
--spec collect_schema_refs([map()]) -> [{module(), erldantic:ed_type_reference()}].
+-spec collect_schema_refs([endpoint_spec()]) -> [{module(), erldantic:ed_type_or_ref()}].
 collect_schema_refs(Endpoints) ->
     lists:foldl(fun(Endpoint, Acc) ->
                    EndpointRefs = collect_endpoint_schema_refs(Endpoint),
@@ -296,7 +301,8 @@ collect_schema_refs(Endpoints) ->
                 [],
                 Endpoints).
 
--spec collect_endpoint_schema_refs(map()) -> [{module(), erldantic:ed_type_reference()}].
+-spec collect_endpoint_schema_refs(endpoint_spec()) ->
+                                      [{module(), erldantic:ed_type_or_ref()}].
 collect_endpoint_schema_refs(#{responses := Responses, parameters := Parameters} =
                                  Endpoint) ->
     ResponseRefs = collect_response_refs(Responses),
@@ -316,7 +322,8 @@ collect_endpoint_schema_refs(#{responses := Responses, parameters := Parameters}
 
     ResponseRefs ++ RequestBodyRefs ++ ParameterRefs.
 
--spec collect_response_refs(map()) -> [{module(), erldantic:ed_type_reference()}].
+-spec collect_response_refs(#{http_status_code() => response_spec()}) ->
+                               [{module(), erldantic:ed_type_or_ref()}].
 collect_response_refs(Responses) ->
     maps:fold(fun(_StatusCode, #{schema := Schema, module := Module}, Acc) ->
                  case erldantic_type:is_type_reference(Schema) of
@@ -329,7 +336,8 @@ collect_response_refs(Responses) ->
               [],
               Responses).
 
--spec collect_parameter_refs([map()]) -> [{module(), erldantic:ed_type_reference()}].
+-spec collect_parameter_refs([parameter_spec()]) ->
+                                [{module(), erldantic:ed_type_or_ref()}].
 collect_parameter_refs(Parameters) ->
     lists:filtermap(fun(#{schema := Schema, module := Module}) ->
                        case erldantic_type:is_type_reference(Schema) of
@@ -341,8 +349,9 @@ collect_parameter_refs(Parameters) ->
                     end,
                     Parameters).
 
--spec generate_components([{module(), erldantic:ed_type_reference()}]) ->
-                             {ok, map()} | {error, [erldantic:error()]}.
+-spec generate_components([{module(), erldantic:ed_type_or_ref()}]) ->
+                             {ok, #{schemas => #{binary() => openapi_schema()}}} |
+                             {error, [erldantic:error()]}.
 generate_components(SchemaRefs) ->
     case erldantic_util:fold_until_error(fun({Module, TypeRef}, Acc) ->
                                             case erldantic_json_schema:to_schema(
@@ -373,21 +382,24 @@ generate_components(SchemaRefs) ->
 
 -spec type_ref_to_component_name(erldantic:ed_type_reference()) -> binary().
 type_ref_to_component_name({type, TypeName, Arity}) ->
-    %% Convert to PascalCase for OpenAPI convention and include arity
     TypeStr = atom_to_list(TypeName),
     Words = string:split(TypeStr, "_", all),
     PascalCase = lists:map(fun capitalize_word/1, Words),
     ArityStr = integer_to_list(Arity),
     list_to_binary(lists:flatten(PascalCase ++ [ArityStr]));
 type_ref_to_component_name({record, RecordName}) ->
-    %% Convert to PascalCase for OpenAPI convention
     TypeStr = atom_to_list(RecordName),
     Words = string:split(TypeStr, "_", all),
     PascalCase = lists:map(fun capitalize_word/1, Words),
     list_to_binary(lists:flatten(PascalCase)).
 
-%% Helper function to capitalize the first letter of a word
 capitalize_word([]) ->
     [];
 capitalize_word([First | Rest]) ->
     [string:to_upper(First) | Rest].
+
+-spec safe_to_binary(string() | binary()) -> binary().
+safe_to_binary(Data) when is_binary(Data) ->
+    Data;
+safe_to_binary(Data) when is_list(Data) ->
+    list_to_binary(Data).
