@@ -396,18 +396,10 @@ convert_type_to_binary_string(atom, Data) ->
                 location = [],
                 ctx = #{type => #ed_simple_type{type = atom}, value => Data}}]};
 convert_type_to_binary_string(string, Data) when is_list(Data) ->
-    case io_lib:printable_unicode_list(Data) of
-        true ->
-            case unicode:characters_to_list(Data) of
-                DataList when is_list(DataList) ->
-                    {ok, list_to_binary(DataList)};
-                _Other ->
-                    {error,
-                     [#ed_error{type = type_mismatch,
-                                location = [],
-                                ctx = #{type => #ed_simple_type{type = string}, value => Data}}]}
-            end;
-        false ->
+    case unicode:characters_to_list(Data) of
+        DataList when is_list(DataList) ->
+            {ok, list_to_binary(DataList)};
+        _Other ->
             {error,
              [#ed_error{type = type_mismatch,
                         location = [],
@@ -419,20 +411,14 @@ convert_type_to_binary_string(string, Data) ->
                 location = [],
                 ctx = #{type => #ed_simple_type{type = string}, value => Data}}]};
 convert_type_to_binary_string(nonempty_string, Data) when is_list(Data), Data =/= [] ->
-    case io_lib:printable_unicode_list(Data) of
-        true ->
-            try
-                Binary = erlang:iolist_to_binary(Data),
-                {ok, Binary}
-            catch
-                error:badarg ->
-                    {ok, list_to_binary(Data)}
-            end;
-        false ->
+    case unicode:characters_to_list(Data) of
+        DataList when is_list(DataList) ->
+            {ok, list_to_binary(DataList)};
+        _Other ->
             {error,
              [#ed_error{type = type_mismatch,
                         location = [],
-                        ctx = #{type => #ed_simple_type{type = nonempty_string}, value => Data}}]}
+                        ctx = #{type => #ed_simple_type{type = string}, value => Data}}]}
     end;
 convert_type_to_binary_string(nonempty_string, Data) ->
     {error,
