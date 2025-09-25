@@ -26,6 +26,7 @@
 -type my_literal_boolean() :: true.
 -type my_union() :: integer() | boolean().
 -type my_complex_union() :: 1 | 2 | true | false.
+-type my_var_integer() :: T :: integer().
 
 %% Test ed_simple_type conversions
 simple_types_test() ->
