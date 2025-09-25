@@ -391,18 +391,10 @@ convert_type_to_string(atom, Data) ->
                 location = [],
                 ctx = #{type => #ed_simple_type{type = atom}, value => Data}}]};
 convert_type_to_string(string, Data) when is_list(Data) ->
-    case io_lib:printable_unicode_list(Data) of
-        true ->
-            case unicode:characters_to_list(Data) of
-                DataList when is_list(DataList) ->
-                    {ok, DataList};
-                _Other ->
-                    {error,
-                     [#ed_error{type = type_mismatch,
-                                location = [],
-                                ctx = #{type => #ed_simple_type{type = string}, value => Data}}]}
-            end;
-        false ->
+    case unicode:characters_to_list(Data) of
+        DataList when is_list(DataList) ->
+            {ok, DataList};
+        _Other ->
             {error,
              [#ed_error{type = type_mismatch,
                         location = [],
@@ -414,20 +406,14 @@ convert_type_to_string(string, Data) ->
                 location = [],
                 ctx = #{type => #ed_simple_type{type = string}, value => Data}}]};
 convert_type_to_string(nonempty_string, Data) when is_list(Data), Data =/= [] ->
-    case io_lib:printable_unicode_list(Data) of
-        true ->
-            try
-                Binary = erlang:iolist_to_binary(Data),
-                {ok, binary_to_list(Binary)}
-            catch
-                error:badarg ->
-                    {ok, Data}
-            end;
-        false ->
+    case unicode:characters_to_list(Data) of
+        {Error, _Other, _} when Error =:= error orelse Error =:= incomplete ->
             {error,
              [#ed_error{type = type_mismatch,
                         location = [],
-                        ctx = #{type => #ed_simple_type{type = nonempty_string}, value => Data}}]}
+                        ctx = #{type => #ed_simple_type{type = nonempty_string}, value => Data}}]};
+        String ->
+            {ok, String}
     end;
 convert_type_to_string(nonempty_string, Data) ->
     {error,
