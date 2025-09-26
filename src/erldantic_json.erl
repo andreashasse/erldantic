@@ -513,32 +513,30 @@ check_type_to_json(iodata, Json) when is_list(Json) ->
 check_type_to_json(iolist, Json) when is_list(Json) ->
     {true, iolist_to_binary(Json)};
 check_type_to_json(nonempty_string, Json) when is_list(Json), Json =/= [] ->
-    case io_lib:printable_list(Json) of
-        true ->
-            {true, unicode:characters_to_binary(Json)};
-        false ->
+    case unicode:characters_to_binary(Json) of
+        {Err, _, _} when Err =:= error orelse Err =:= incomplete ->
             {error,
              [#ed_error{type = type_mismatch,
                         location = [],
                         ctx =
                             #{type => #ed_simple_type{type = string},
                               value => Json,
-                              comment => "non printable"}}]}
+                              comment => "non printable"}}]};
+        Bin when is_binary(Bin) ->
+            {true, Bin}
     end;
 check_type_to_json(string, Json) when is_list(Json) ->
-    %% All characters should be printable ASCII or it's probably not intended as a string
-    %% FIXME: Document this.
-    case io_lib:printable_list(Json) of
-        true ->
-            {true, unicode:characters_to_binary(Json)};
-        false ->
+    case unicode:characters_to_binary(Json) of
+        {Err, _, _} when Err =:= error orelse Err =:= incomplete ->
             {error,
              [#ed_error{type = type_mismatch,
                         location = [],
                         ctx =
                             #{type => #ed_simple_type{type = string},
                               value => Json,
-                              comment => "non printable"}}]}
+                              comment => "non printable"}}]};
+        Bin when is_binary(Bin) ->
+            {true, Bin}
     end;
 check_type_to_json(Type, Json) ->
     check_type(Type, Json).
