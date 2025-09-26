@@ -418,7 +418,7 @@ convert_type_to_binary_string(nonempty_string, Data) when is_list(Data), Data =/
             {error,
              [#ed_error{type = type_mismatch,
                         location = [],
-                        ctx = #{type => #ed_simple_type{type = string}, value => Data}}]}
+                        ctx = #{type => #ed_simple_type{type = nonempty_string}, value => Data}}]}
     end;
 convert_type_to_binary_string(nonempty_string, Data) ->
     {error,
