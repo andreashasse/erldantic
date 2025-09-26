@@ -1,8 +1,8 @@
 -module(erldantic_string).
 
--export([from_string/3]).
+-export([from_string/3, to_string/3]).
 
--ignore_xref([{erldantic_string, from_string, 3}]).
+-ignore_xref([{erldantic_string, from_string, 3}, {erldantic_string, to_string, 3}]).
 
 -include("../include/erldantic.hrl").
 -include("../include/erldantic_internal.hrl").
@@ -69,6 +69,67 @@ from_string(_TypeInfo, Type, String) ->
      [#ed_error{type = type_mismatch,
                 location = [],
                 ctx = #{type => Type, value => String}}]}.
+
+-doc("Converts an Erlang value to a string based on a type specification.\nThis function validates the given Erlang value against the specified type definition\nand converts it to a string representation.\n\n### Returns\n{ok, String} if conversion succeeds, or {error, Errors} if validation fails").
+-doc(#{params =>
+           #{"Data" => "The Erlang value to convert to string format",
+             "Type" => "The type specification (erldantic:ed_type_or_ref())",
+             "TypeInfo" => "The type information containing type definitions"}}).
+
+-spec to_string(TypeInfo :: erldantic:type_info(),
+                Type :: erldantic:ed_type_or_ref(),
+                Data :: term()) ->
+                   {ok, string()} | {error, [erldantic:error()]}.
+to_string(TypeInfo, {type, TypeName, TypeArity}, Data) when is_atom(TypeName) ->
+    {ok, Type} = erldantic_type_info:get_type(TypeInfo, TypeName, TypeArity),
+    to_string(TypeInfo, Type, Data);
+to_string(_TypeInfo, {record, RecordName}, Data) when is_atom(RecordName) ->
+    {error,
+     [#ed_error{type = no_match,
+                location = [],
+                ctx = #{type => {record, RecordName}, value => Data}}]};
+to_string(_TypeInfo, #ed_simple_type{type = NotSupported} = T, _Data)
+    when NotSupported =:= pid
+         orelse NotSupported =:= port
+         orelse NotSupported =:= reference
+         orelse NotSupported =:= bitstring
+         orelse NotSupported =:= nonempty_bitstring
+         orelse NotSupported =:= none ->
+    erlang:error({type_not_supported, T});
+to_string(_TypeInfo, #ed_simple_type{type = PrimaryType}, Data) ->
+    convert_type_to_string(PrimaryType, Data);
+to_string(_TypeInfo,
+          #ed_range{type = integer,
+                    lower_bound = Min,
+                    upper_bound = Max} =
+              Range,
+          Data) ->
+    case convert_type_to_string(integer, Data) of
+        {ok, String} when Min =< Data, Data =< Max ->
+            {ok, String};
+        {ok, _String} when is_integer(Data) ->
+            {error,
+             [#ed_error{type = type_mismatch,
+                        location = [],
+                        ctx = #{type => Range, value => Data}}]};
+        {error, Reason} ->
+            {error, Reason}
+    end;
+to_string(_TypeInfo, #ed_remote_type{mfargs = {Module, TypeName, Args}}, Data) ->
+    TypeInfo = erldantic_module_types:get(Module),
+    TypeArity = length(Args),
+    {ok, Type} = erldantic_type_info:get_type(TypeInfo, TypeName, TypeArity),
+    TypeWithoutVars = apply_args(TypeInfo, Type, Args),
+    to_string(TypeInfo, TypeWithoutVars, Data);
+to_string(_TypeInfo, #ed_literal{value = Literal}, Data) ->
+    try_convert_literal_to_string(Literal, Data);
+to_string(TypeInfo, #ed_union{} = Type, Data) ->
+    union_to_string(TypeInfo, Type, Data);
+to_string(_TypeInfo, Type, Data) ->
+    {error,
+     [#ed_error{type = type_mismatch,
+                location = [],
+                ctx = #{type => Type, value => Data}}]}.
 
 %% INTERNAL
 
@@ -287,3 +348,154 @@ type_replace_vars(TypeInfo, #ed_type_with_variables{type = Type}, NamedTypes) ->
     end;
 type_replace_vars(_TypeInfo, Type, _NamedTypes) ->
     Type.
+
+convert_type_to_string(integer, Data) when is_integer(Data) ->
+    {ok, integer_to_list(Data)};
+convert_type_to_string(integer, Data) ->
+    {error,
+     [#ed_error{type = type_mismatch,
+                location = [],
+                ctx = #{type => #ed_simple_type{type = integer}, value => Data}}]};
+convert_type_to_string(float, Data) when is_float(Data) ->
+    {ok, float_to_list(Data)};
+convert_type_to_string(float, Data) ->
+    {error,
+     [#ed_error{type = type_mismatch,
+                location = [],
+                ctx = #{type => #ed_simple_type{type = float}, value => Data}}]};
+convert_type_to_string(number, Data) when is_number(Data) ->
+    if is_integer(Data) ->
+           {ok, integer_to_list(Data)};
+       is_float(Data) ->
+           {ok, float_to_list(Data)}
+    end;
+convert_type_to_string(number, Data) ->
+    {error,
+     [#ed_error{type = type_mismatch,
+                location = [],
+                ctx = #{type => #ed_simple_type{type = number}, value => Data}}]};
+convert_type_to_string(boolean, true) ->
+    {ok, "true"};
+convert_type_to_string(boolean, false) ->
+    {ok, "false"};
+convert_type_to_string(boolean, Data) ->
+    {error,
+     [#ed_error{type = type_mismatch,
+                location = [],
+                ctx = #{type => #ed_simple_type{type = boolean}, value => Data}}]};
+convert_type_to_string(atom, Data) when is_atom(Data) ->
+    {ok, atom_to_list(Data)};
+convert_type_to_string(atom, Data) ->
+    {error,
+     [#ed_error{type = type_mismatch,
+                location = [],
+                ctx = #{type => #ed_simple_type{type = atom}, value => Data}}]};
+convert_type_to_string(string, Data) when is_list(Data) ->
+    case unicode:characters_to_list(Data) of
+        DataList when is_list(DataList) ->
+            {ok, DataList};
+        _Other ->
+            {error,
+             [#ed_error{type = type_mismatch,
+                        location = [],
+                        ctx = #{type => #ed_simple_type{type = string}, value => Data}}]}
+    end;
+convert_type_to_string(string, Data) ->
+    {error,
+     [#ed_error{type = type_mismatch,
+                location = [],
+                ctx = #{type => #ed_simple_type{type = string}, value => Data}}]};
+convert_type_to_string(nonempty_string, Data) when is_list(Data), Data =/= [] ->
+    case unicode:characters_to_list(Data) of
+        {Error, _Other, _} when Error =:= error orelse Error =:= incomplete ->
+            {error,
+             [#ed_error{type = type_mismatch,
+                        location = [],
+                        ctx = #{type => #ed_simple_type{type = nonempty_string}, value => Data}}]};
+        String ->
+            {ok, String}
+    end;
+convert_type_to_string(nonempty_string, Data) ->
+    {error,
+     [#ed_error{type = type_mismatch,
+                location = [],
+                ctx = #{type => #ed_simple_type{type = nonempty_string}, value => Data}}]};
+convert_type_to_string(binary, Data) when is_binary(Data) ->
+    {ok, binary_to_list(Data)};
+convert_type_to_string(binary, Data) ->
+    {error,
+     [#ed_error{type = type_mismatch,
+                location = [],
+                ctx = #{type => #ed_simple_type{type = binary}, value => Data}}]};
+convert_type_to_string(nonempty_binary, Data) when is_binary(Data), Data =/= <<>> ->
+    {ok, binary_to_list(Data)};
+convert_type_to_string(nonempty_binary, Data) ->
+    {error,
+     [#ed_error{type = type_mismatch,
+                location = [],
+                ctx = #{type => #ed_simple_type{type = nonempty_binary}, value => Data}}]};
+convert_type_to_string(non_neg_integer, Data) when is_integer(Data), Data >= 0 ->
+    {ok, integer_to_list(Data)};
+convert_type_to_string(non_neg_integer, Data) ->
+    {error,
+     [#ed_error{type = type_mismatch,
+                location = [],
+                ctx = #{type => #ed_simple_type{type = non_neg_integer}, value => Data}}]};
+convert_type_to_string(pos_integer, Data) when is_integer(Data), Data > 0 ->
+    {ok, integer_to_list(Data)};
+convert_type_to_string(pos_integer, Data) ->
+    {error,
+     [#ed_error{type = type_mismatch,
+                location = [],
+                ctx = #{type => #ed_simple_type{type = pos_integer}, value => Data}}]};
+convert_type_to_string(neg_integer, Data) when is_integer(Data), Data < 0 ->
+    {ok, integer_to_list(Data)};
+convert_type_to_string(neg_integer, Data) ->
+    {error,
+     [#ed_error{type = type_mismatch,
+                location = [],
+                ctx = #{type => #ed_simple_type{type = neg_integer}, value => Data}}]};
+convert_type_to_string(Type, Data) ->
+    {error,
+     [#ed_error{type = type_mismatch,
+                location = [],
+                ctx = #{type => Type, value => Data}}]}.
+
+-spec try_convert_literal_to_string(Literal :: term(), Data :: term()) ->
+                                       {ok, string()} | {error, [erldantic:error()]}.
+try_convert_literal_to_string(Literal, Literal) when is_atom(Literal) ->
+    {ok, atom_to_list(Literal)};
+try_convert_literal_to_string(Literal, Literal) when is_integer(Literal) ->
+    {ok, integer_to_list(Literal)};
+try_convert_literal_to_string(Literal, Literal) when is_boolean(Literal) ->
+    if Literal ->
+           {ok, "true"};
+       true ->
+           {ok, "false"}
+    end;
+try_convert_literal_to_string(Literal, Data) ->
+    {error,
+     [#ed_error{type = type_mismatch,
+                location = [],
+                ctx = #{type => #ed_literal{value = Literal}, value => Data}}]}.
+
+union_to_string(TypeInfo, #ed_union{types = Types} = T, Data) ->
+    case do_first_to_string(TypeInfo, Types, Data) of
+        {error, no_match} ->
+            {error,
+             [#ed_error{type = no_match,
+                        location = [],
+                        ctx = #{type => T, value => Data}}]};
+        Result ->
+            Result
+    end.
+
+do_first_to_string(_TypeInfo, [], _Data) ->
+    {error, no_match};
+do_first_to_string(TypeInfo, [Type | Rest], Data) ->
+    case to_string(TypeInfo, Type, Data) of
+        {ok, Result} ->
+            {ok, Result};
+        {error, _} ->
+            do_first_to_string(TypeInfo, Rest, Data)
+    end.
