@@ -1,16 +1,5 @@
-{"1.2.0",
 [{<<"eqwalizer_support">>,
   {git_subdir,"https://github.com/whatsapp/eqwalizer.git",
               {ref,"c4d1098174cec06bd124855f3a28dfd6eda0a581"},
               "eqwalizer_support"},
-  0},
- {<<"jesse">>,{pkg,<<"jesse">>,<<"1.8.1">>},0},
- {<<"proper">>,{pkg,<<"proper">>,<<"1.5.0">>},0}]}.
-[
-{pkg_hash,[
- {<<"jesse">>, <<"C9E3670C7EE40F719734E3BC716578143AABA93FC7525A02A7D5CB300B3AD71E">>},
- {<<"proper">>, <<"4A87CE8B219858E64C9AA015F4F7ED739D0AC3CA6BFD77FA62794617EE784225">>}]},
-{pkg_hash_ext,[
- {<<"jesse">>, <<"0EDED3F18623FDA2F25989804A06CF518B4ACF2E9365B18C8E8C013D7E3C906F">>},
- {<<"proper">>, <<"FBF7CF0625E5441A314514F7D8E1EAFF52090FCD94FF34B5171FF293D3F9969A">>}]}
-].
+  0}].
