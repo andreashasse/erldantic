@@ -23,11 +23,11 @@
 %% Test basic endpoint creation
 basic_endpoint_test() ->
     %% Create a simple GET endpoint
-    Endpoint = erldantic_openapi:endpoint(get, "/users"),
+    Endpoint = erldantic_openapi:endpoint(<<"get">>, <<"/users">>),
 
     %% Should return a basic endpoint structure
-    ?assertEqual(#{method => get,
-                   path => "/users",
+    ?assertEqual(#{method => <<"get">>,
+                   path => <<"/users">>,
                    responses => #{},
                    parameters => []},
                  Endpoint).
@@ -35,44 +35,49 @@ basic_endpoint_test() ->
 %% Test endpoint with response
 endpoint_with_response_test() ->
     %% Create endpoint with a response
-    Endpoint1 = erldantic_openapi:endpoint(get, "/users"),
+    Endpoint1 = erldantic_openapi:endpoint(<<"get">>, <<"/users">>),
     Endpoint =
         erldantic_openapi:with_response(Endpoint1,
                                         200,
-                                        "List of users",
+                                        <<"List of users">>,
                                         ?MODULE,
                                         {record, user_list}),
 
     %% Should have the response in the responses map
     ?assertMatch(#{responses :=
-                       #{200 := #{description := "List of users", schema := {record, user_list}}}},
+                       #{200 :=
+                             #{description := <<"List of users">>, schema := {record, user_list}}}},
                  Endpoint).
 
 %% Test endpoint with multiple responses
 endpoint_with_multiple_responses_test() ->
     %% Create endpoint with multiple responses
-    Endpoint1 = erldantic_openapi:endpoint(post, "/users"),
+    Endpoint1 = erldantic_openapi:endpoint(<<"post">>, <<"/users">>),
     Endpoint2 =
-        erldantic_openapi:with_response(Endpoint1, 201, "User created", ?MODULE, {record, user}),
+        erldantic_openapi:with_response(Endpoint1,
+                                        201,
+                                        <<"User created">>,
+                                        ?MODULE,
+                                        {record, user}),
     Endpoint =
         erldantic_openapi:with_response(Endpoint2,
                                         400,
-                                        "Invalid input",
+                                        <<"Invalid input">>,
                                         ?MODULE,
                                         {record, error_response}),
 
     %% Should have both responses
     ?assertMatch(#{responses :=
-                       #{201 := #{description := "User created", schema := {record, user}},
+                       #{201 := #{description := <<"User created">>, schema := {record, user}},
                          400 :=
-                             #{description := "Invalid input",
+                             #{description := <<"Invalid input">>,
                                schema := {record, error_response}}}},
                  Endpoint).
 
 %% Test endpoint with request body
 endpoint_with_request_body_test() ->
     %% Create endpoint with request body
-    Endpoint1 = erldantic_openapi:endpoint(post, "/users"),
+    Endpoint1 = erldantic_openapi:endpoint(<<"post">>, <<"/users">>),
     Endpoint =
         erldantic_openapi:with_request_body(Endpoint1, ?MODULE, {record, create_user_request}),
 
@@ -89,7 +94,7 @@ endpoint_with_path_parameter_test() ->
           in => path,
           required => true,
           schema => {type, user_id, 0}},
-    Endpoint1 = erldantic_openapi:endpoint(get, "/users/{id}"),
+    Endpoint1 = erldantic_openapi:endpoint(<<"get">>, <<"/users/{id}">>),
     Endpoint = erldantic_openapi:with_parameter(Endpoint1, ?MODULE, PathParam),
 
     %% Should have the parameter
@@ -108,7 +113,7 @@ endpoint_with_query_parameter_test() ->
           in => query,
           required => false,
           schema => #ed_simple_type{type = integer}},
-    Endpoint1 = erldantic_openapi:endpoint(get, "/users"),
+    Endpoint1 = erldantic_openapi:endpoint(<<"get">>, <<"/users">>),
     Endpoint = erldantic_openapi:with_parameter(Endpoint1, ?MODULE, QueryParam),
 
     %% Should have the parameter
@@ -122,11 +127,11 @@ endpoint_with_query_parameter_test() ->
 %% Test generating OpenAPI spec from single endpoint
 single_endpoint_to_openapi_test() ->
     %% Create a simple endpoint
-    Endpoint1 = erldantic_openapi:endpoint(get, "/users"),
+    Endpoint1 = erldantic_openapi:endpoint(<<"get">>, <<"/users">>),
     Endpoint =
         erldantic_openapi:with_response(Endpoint1,
                                         200,
-                                        "List of users",
+                                        <<"List of users">>,
                                         ?MODULE,
                                         {record, user_list}),
 
@@ -142,11 +147,11 @@ single_endpoint_to_openapi_test() ->
 %% Test generating OpenAPI spec from multiple endpoints
 multiple_endpoints_to_openapi_test() ->
     %% Create multiple endpoints
-    Endpoint1 = erldantic_openapi:endpoint(get, "/users"),
+    Endpoint1 = erldantic_openapi:endpoint(<<"get">>, <<"/users">>),
     Endpoint1WithResp =
         erldantic_openapi:with_response(Endpoint1,
                                         200,
-                                        "List of users",
+                                        <<"List of users">>,
                                         ?MODULE,
                                         {record, user_list}),
 
@@ -165,18 +170,18 @@ multiple_endpoints_to_openapi_test() ->
           in => path,
           required => true,
           schema => {type, user_id, 0}},
-    Endpoint3 = erldantic_openapi:endpoint(get, "/users/{id}"),
+    Endpoint3 = erldantic_openapi:endpoint(<<"get">>, <<"/users/{id}">>),
     Endpoint3WithParam = erldantic_openapi:with_parameter(Endpoint3, ?MODULE, PathParam),
     Endpoint3WithResp1 =
         erldantic_openapi:with_response(Endpoint3WithParam,
                                         200,
-                                        "User details",
+                                        <<"User details">>,
                                         ?MODULE,
                                         {record, user}),
     Endpoint3WithResp2 =
         erldantic_openapi:with_response(Endpoint3WithResp1,
                                         404,
-                                        "User not found",
+                                        <<"User not found">>,
                                         ?MODULE,
                                         {record, error_response}),
 
@@ -195,11 +200,15 @@ multiple_endpoints_to_openapi_test() ->
 %% Test OpenAPI spec includes component schemas
 openapi_with_components_test() ->
     %% Create endpoint that references schemas
-    Endpoint1 = erldantic_openapi:endpoint(post, "/users"),
+    Endpoint1 = erldantic_openapi:endpoint(<<"post">>, <<"/users">>),
     Endpoint2 =
         erldantic_openapi:with_request_body(Endpoint1, ?MODULE, {record, create_user_request}),
     Endpoint =
-        erldantic_openapi:with_response(Endpoint2, 201, "User created", ?MODULE, {record, user}),
+        erldantic_openapi:with_response(Endpoint2,
+                                        201,
+                                        <<"User created">>,
+                                        ?MODULE,
+                                        {record, user}),
 
     %% Generate OpenAPI spec
     {ok, OpenAPISpec} = erldantic_openapi:endpoints_to_openapi([Endpoint]),
@@ -218,11 +227,11 @@ openapi_with_components_test() ->
 %% Test error handling for invalid endpoints
 error_handling_test() ->
     %% Test with non-existent schema reference
-    Endpoint1 = erldantic_openapi:endpoint(get, "/users"),
+    Endpoint1 = erldantic_openapi:endpoint(<<"get">>, <<"/users">>),
     Endpoint =
         erldantic_openapi:with_response(Endpoint1,
                                         200,
-                                        "List of users",
+                                        <<"List of users">>,
                                         ?MODULE,
                                         {record, non_existent_type}),
 
@@ -237,10 +246,10 @@ endpoint_with_direct_types_test() ->
     IntegerType = #ed_simple_type{type = integer},
 
     %% Create endpoint with direct types
-    Endpoint1 = erldantic_openapi:endpoint(post, "/direct-types"),
+    Endpoint1 = erldantic_openapi:endpoint(<<"post">>, <<"/direct-types">>),
     Endpoint2 = erldantic_openapi:with_request_body(Endpoint1, ?MODULE, StringType),
     Endpoint =
-        erldantic_openapi:with_response(Endpoint2, 200, "Success", ?MODULE, IntegerType),
+        erldantic_openapi:with_response(Endpoint2, 200, <<"Success">>, ?MODULE, IntegerType),
 
     %% Should work with direct types
     ?assertMatch(#{request_body := #{schema := StringType, module := ?MODULE}}, Endpoint),
@@ -259,9 +268,9 @@ endpoint_with_mixed_types_test() ->
           required => false,
           schema => DirectStringType},
 
-    Endpoint1 = erldantic_openapi:endpoint(get, "/mixed-types"),
+    Endpoint1 = erldantic_openapi:endpoint(<<"get">>, <<"/mixed-types">>),
     Endpoint2 =
-        erldantic_openapi:with_response(Endpoint1, 200, "User data", ?MODULE, TypeRef),
+        erldantic_openapi:with_response(Endpoint1, 200, <<"User data">>, ?MODULE, TypeRef),
     Endpoint = erldantic_openapi:with_parameter(Endpoint2, ?MODULE, QueryParam),
 
     %% Should handle both types correctly
@@ -280,11 +289,12 @@ endpoint_with_complex_direct_types_test() ->
     UnionType =
         #ed_union{types = [#ed_simple_type{type = string}, #ed_simple_type{type = integer}]},
 
-    Endpoint1 = erldantic_openapi:endpoint(post, "/complex-types"),
+    Endpoint1 = erldantic_openapi:endpoint(<<"post">>, <<"/complex-types">>),
     Endpoint2 = erldantic_openapi:with_request_body(Endpoint1, ?MODULE, MapType),
     Endpoint3 =
-        erldantic_openapi:with_response(Endpoint2, 200, "String list", ?MODULE, ListType),
-    Endpoint = erldantic_openapi:with_response(Endpoint3, 400, "Error", ?MODULE, UnionType),
+        erldantic_openapi:with_response(Endpoint2, 200, <<"String list">>, ?MODULE, ListType),
+    Endpoint =
+        erldantic_openapi:with_response(Endpoint3, 400, <<"Error">>, ?MODULE, UnionType),
 
     %% Should handle complex types
     ?assertMatch(#{request_body := #{schema := MapType, module := ?MODULE}}, Endpoint),
