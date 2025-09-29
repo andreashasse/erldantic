@@ -370,7 +370,7 @@ python_openapi_validation_test() ->
     GetUserByIdEndpoint2 =
         erldantic_openapi:with_parameter(GetUserByIdEndpoint1,
                                          ?MODULE,
-                                         #{name => "id",
+                                         #{name => <<"id">>,
                                            in => path,
                                            required => true,
                                            schema => #ed_simple_type{type = integer}}),
