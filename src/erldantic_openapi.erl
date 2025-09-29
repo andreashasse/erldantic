@@ -13,24 +13,24 @@
 
 -include("../include/erldantic.hrl").
 
--type http_method() :: get | post | put | delete | patch | head | options.
+-type http_method() :: binary().
 -type http_status_code() :: 100..599.
 -type parameter_location() :: path | query | header | cookie.
 -type openapi_schema() :: json:decode_value() | #{'$ref' := binary()}.
 -type request_body_spec() :: #{schema := erldantic:ed_type_or_ref(), module := module()}.
 -type response_spec() ::
-    #{description := string(),
+    #{description := binary(),
       schema := erldantic:ed_type_or_ref(),
       module := module()}.
 -type parameter_spec() ::
-    #{name := string(),
+    #{name := binary(),
       in := parameter_location(),
       required := boolean(),
       schema := erldantic:ed_type_or_ref(),
       module := module()}.
 -type endpoint_spec() ::
     #{method := http_method(),
-      path := string(),
+      path := binary(),
       responses := #{http_status_code() => response_spec()},
       parameters := [parameter_spec()],
       request_body => request_body_spec()}.
@@ -59,8 +59,8 @@
            #{"Method" => "HTTP method (get, post, put, delete, patch, head, options)",
              "Path" => "URL path for the endpoint (e.g., \"/users/{id}\")"}}).
 
--spec endpoint(Method :: http_method(), Path :: string()) -> endpoint_spec().
-endpoint(Method, Path) when is_atom(Method) andalso is_list(Path) ->
+-spec endpoint(Method :: http_method(), Path :: binary()) -> endpoint_spec().
+endpoint(Method, Path) when is_binary(Method) andalso is_binary(Path) ->
     #{method => Method,
       path => Path,
       responses => #{},
@@ -75,14 +75,14 @@ endpoint(Method, Path) when is_atom(Method) andalso is_list(Path) ->
 
 -spec with_response(Endpoint :: endpoint_spec(),
                     StatusCode :: http_status_code(),
-                    Description :: string(),
+                    Description :: binary(),
                     Module :: module(),
                     Schema :: erldantic:ed_type_or_ref()) ->
                        endpoint_spec().
 with_response(Endpoint, StatusCode, Description, Module, Schema)
     when is_map(Endpoint)
          andalso is_integer(StatusCode)
-         andalso is_list(Description)
+         andalso is_binary(Description)
          andalso is_atom(Module) ->
     ResponseSpec =
         #{description => Description,
@@ -131,9 +131,8 @@ endpoints_to_openapi(Endpoints) when is_list(Endpoints) ->
         PathGroups = group_endpoints_by_path(Endpoints),
         Paths =
             maps:fold(fun(Path, PathEndpoints, Acc) ->
-                         BinaryPath = safe_to_binary(Path),
                          PathOps = generate_path_operations(PathEndpoints),
-                         Acc#{BinaryPath => PathOps}
+                         Acc#{Path => PathOps}
                       end,
                       #{},
                       PathGroups),
@@ -163,7 +162,7 @@ endpoints_to_openapi(Endpoints) when is_list(Endpoints) ->
                         ctx = #{reason => Reason, stacktrace => Stacktrace}}]}
     end.
 
--spec group_endpoints_by_path([endpoint_spec()]) -> #{string() => [endpoint_spec()]}.
+-spec group_endpoints_by_path([endpoint_spec()]) -> #{binary() => [endpoint_spec()]}.
 group_endpoints_by_path(Endpoints) ->
     lists:foldl(fun(Endpoint, Acc) ->
                    Path = maps:get(path, Endpoint),
@@ -243,7 +242,7 @@ generate_response(#{description := Description,
                 InlineSchema
         end,
 
-    #{description => safe_to_binary(Description),
+    #{description => Description,
       content => #{<<"application/json">> => #{schema => SchemaContent}}}.
 
 -spec generate_request_body(request_body_spec()) -> openapi_request_body().
@@ -273,21 +272,9 @@ generate_parameter(#{name := Name,
     ModuleTypeInfo = erldantic_abstract_code:types_in_module(Module),
     Required = maps:get(required, ParameterSpec, false),
 
-    InlineSchema =
-        case Schema of
-            {type, TypeName, Arity} ->
-                {ok, ValidSchema} =
-                    erldantic_json_schema:to_schema(ModuleTypeInfo, {type, TypeName, Arity}),
-                ValidSchema;
-            {record, Name} ->
-                {ok, ValidSchema} = erldantic_json_schema:to_schema(ModuleTypeInfo, {record, Name}),
-                ValidSchema;
-            DirectType ->
-                {ok, ValidSchema} = erldantic_json_schema:to_schema(ModuleTypeInfo, DirectType),
-                ValidSchema
-        end,
+    {ok, InlineSchema} = erldantic_json_schema:to_schema(ModuleTypeInfo, Schema),
 
-    #{name => safe_to_binary(Name),
+    #{name => Name,
       in => In,
       required => Required,
       schema => InlineSchema}.
@@ -397,9 +384,3 @@ capitalize_word([]) ->
     [];
 capitalize_word([First | Rest]) ->
     [string:to_upper(First) | Rest].
-
--spec safe_to_binary(string() | binary()) -> binary().
-safe_to_binary(Data) when is_binary(Data) ->
-    Data;
-safe_to_binary(Data) when is_list(Data) ->
-    list_to_binary(Data).
