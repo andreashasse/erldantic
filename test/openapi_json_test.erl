@@ -49,7 +49,7 @@ openapi_json_serializable_test() ->
     GetUserEndpoint2 =
         erldantic_openapi:with_parameter(GetUserEndpoint1,
                                          ?MODULE,
-                                         #{name => "id",
+                                         #{name => <<"id">>,
                                            in => path,
                                            required => true,
                                            schema => #ed_simple_type{type = integer}}),
@@ -122,7 +122,7 @@ openapi_json_serializable_test() ->
     %% Validate /users/{id} GET endpoint
     #{<<"get">> := #{parameters := GetByIdParameters, responses := GetByIdResponses}} =
         UsersByIdPath,
-    ?assertMatch([#{name := "id",
+    ?assertMatch([#{name := <<"id">>,
                     in := path,
                     required := true,
                     schema := #{type := <<"integer">>}}],
