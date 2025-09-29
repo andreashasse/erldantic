@@ -196,7 +196,7 @@ complex_nested_structure_test() ->
     Endpoint =
         erldantic_openapi:with_parameter(Endpoint4,
                                          ?MODULE,
-                                         #{name => "debug",
+                                         #{name => <<"debug">>,
                                            in => query,
                                            required => false,
                                            schema => #ed_simple_type{type = boolean}}),
@@ -212,7 +212,7 @@ complex_nested_structure_test() ->
                              #{<<"post">> :=
                                    #{requestBody := #{required := true},
                                      responses := #{<<"201">> := _, <<"400">> := _},
-                                     parameters := [#{name := "debug", in := query}]}}}},
+                                     parameters := [#{name := <<"debug">>, in := query}]}}}},
                  OpenAPISpec).
 
 %% Test final JSON output generation - writes actual OpenAPI JSON to file
