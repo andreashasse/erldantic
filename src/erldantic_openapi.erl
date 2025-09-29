@@ -272,19 +272,7 @@ generate_parameter(#{name := Name,
     ModuleTypeInfo = erldantic_abstract_code:types_in_module(Module),
     Required = maps:get(required, ParameterSpec, false),
 
-    InlineSchema =
-        case Schema of
-            {type, TypeName, Arity} ->
-                {ok, ValidSchema} =
-                    erldantic_json_schema:to_schema(ModuleTypeInfo, {type, TypeName, Arity}),
-                ValidSchema;
-            {record, Name} ->
-                {ok, ValidSchema} = erldantic_json_schema:to_schema(ModuleTypeInfo, {record, Name}),
-                ValidSchema;
-            DirectType ->
-                {ok, ValidSchema} = erldantic_json_schema:to_schema(ModuleTypeInfo, DirectType),
-                ValidSchema
-        end,
+    {ok, InlineSchema} = erldantic_json_schema:to_schema(ModuleTypeInfo, Schema),
 
     #{name => Name,
       in => In,
