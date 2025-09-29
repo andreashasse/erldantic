@@ -90,7 +90,7 @@ openapi_json_serializable_test() ->
         OpenAPISpec,
 
     %% Validate /users GET endpoint
-    #{get := #{responses := #{<<"200">> := GetUsersResponse}}} = UsersPath,
+    #{<<"get">> := #{responses := #{<<"200">> := GetUsersResponse}}} = UsersPath,
     ?assertMatch(#{description := <<"List of users">>,
                    content :=
                        #{<<"application/json">> :=
@@ -98,7 +98,8 @@ openapi_json_serializable_test() ->
                  GetUsersResponse),
 
     %% Validate /users POST endpoint
-    #{post := #{requestBody := PostRequestBody, responses := PostResponses}} = UsersPath,
+    #{<<"post">> := #{requestBody := PostRequestBody, responses := PostResponses}} =
+        UsersPath,
     ?assertMatch(#{required := true,
                    content :=
                        #{<<"application/json">> :=
@@ -119,9 +120,9 @@ openapi_json_serializable_test() ->
                  Post400Response),
 
     %% Validate /users/{id} GET endpoint
-    #{get := #{parameters := GetByIdParameters, responses := GetByIdResponses}} =
+    #{<<"get">> := #{parameters := GetByIdParameters, responses := GetByIdResponses}} =
         UsersByIdPath,
-    ?assertMatch([#{name := <<"id">>,
+    ?assertMatch([#{name := "id",
                     in := path,
                     required := true,
                     schema := #{type := <<"integer">>}}],
@@ -208,10 +209,10 @@ complex_nested_structure_test() ->
     %% Deep validate the nested structure
     ?assertMatch(#{paths :=
                        #{<<"/complex">> :=
-                             #{post :=
+                             #{<<"post">> :=
                                    #{requestBody := #{required := true},
                                      responses := #{<<"201">> := _, <<"400">> := _},
-                                     parameters := [#{name := <<"debug">>, in := query}]}}}},
+                                     parameters := [#{name := "debug", in := query}]}}}},
                  OpenAPISpec).
 
 %% Test final JSON output generation - writes actual OpenAPI JSON to file
@@ -328,7 +329,8 @@ valid_openapi_test() ->
     ?assert(map_size(Schemas) > 0),
 
     %% Validate specific path and operation structure
-    ?assertMatch(#{<<"/health">> := #{get := #{responses := #{<<"200">> := _}}}}, Paths).
+    ?assertMatch(#{<<"/health">> := #{<<"get">> := #{responses := #{<<"200">> := _}}}},
+                 Paths).
 
 %% Helper function to validate that a structure is JSON-serializable
 %% (no atoms as values, only as map keys)

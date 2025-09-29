@@ -141,7 +141,7 @@ single_endpoint_to_openapi_test() ->
     %% Should be valid OpenAPI 3.0 structure with complete path and operation
     ?assertMatch(#{openapi := <<"3.0.0">>,
                    info := #{title := _, version := _},
-                   paths := #{<<"/users">> := #{get := #{responses := #{<<"200">> := _}}}}},
+                   paths := #{<<"/users">> := #{<<"get">> := #{responses := #{<<"200">> := _}}}}},
                  OpenAPISpec).
 
 %% Test generating OpenAPI spec from multiple endpoints
@@ -155,13 +155,13 @@ multiple_endpoints_to_openapi_test() ->
                                         ?MODULE,
                                         {record, user_list}),
 
-    Endpoint2 = erldantic_openapi:endpoint(post, "/users"),
+    Endpoint2 = erldantic_openapi:endpoint(<<"post">>, <<"/users">>),
     Endpoint2WithBody =
         erldantic_openapi:with_request_body(Endpoint2, ?MODULE, {record, create_user_request}),
     Endpoint2WithResp =
         erldantic_openapi:with_response(Endpoint2WithBody,
                                         201,
-                                        "User created",
+                                        <<"User created">>,
                                         ?MODULE,
                                         {record, user}),
 
@@ -193,9 +193,10 @@ multiple_endpoints_to_openapi_test() ->
     %% Should have all paths with correct operations
     #{paths := #{<<"/users/{id}">> := UsersIdPath}} = OpenAPISpec,
     ?assertMatch(#{paths :=
-                       #{<<"/users">> := #{get := _, post := _}, <<"/users/{id}">> := _}},
+                       #{<<"/users">> := #{<<"get">> := _, <<"post">> := _},
+                         <<"/users/{id}">> := _}},
                  OpenAPISpec),
-    ?assertNot(is_map_key(post, UsersIdPath)).
+    ?assertNot(is_map_key(<<"post">>, UsersIdPath)).
 
 %% Test OpenAPI spec includes component schemas
 openapi_with_components_test() ->
