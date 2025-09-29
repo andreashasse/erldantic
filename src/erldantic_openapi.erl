@@ -13,7 +13,7 @@
 
 -include("../include/erldantic.hrl").
 
--type http_method() :: get | post | put | delete | patch | head | options.
+-type http_method() :: binary().
 -type http_status_code() :: 100..599.
 -type parameter_location() :: path | query | header | cookie.
 -type openapi_schema() :: json:decode_value() | #{'$ref' := binary()}.
@@ -60,7 +60,7 @@
              "Path" => "URL path for the endpoint (e.g., \"/users/{id}\")"}}).
 
 -spec endpoint(Method :: http_method(), Path :: binary()) -> endpoint_spec().
-endpoint(Method, Path) when is_atom(Method) andalso is_list(Path) ->
+endpoint(Method, Path) when is_binary(Method) andalso is_binary(Path) ->
     #{method => Method,
       path => Path,
       responses => #{},
@@ -82,7 +82,7 @@ endpoint(Method, Path) when is_atom(Method) andalso is_list(Path) ->
 with_response(Endpoint, StatusCode, Description, Module, Schema)
     when is_map(Endpoint)
          andalso is_integer(StatusCode)
-         andalso is_list(Description)
+         andalso is_binary(Description)
          andalso is_atom(Module) ->
     ResponseSpec =
         #{description => Description,
