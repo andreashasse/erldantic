@@ -14,6 +14,8 @@
 -type my_atom() :: atom().
 -type my_binary() :: binary().
 -type my_float() :: float().
+-type my_iodata() :: iodata().
+-type my_iolist() :: iolist().
 %% Range types
 -type my_range() :: 1..10.
 -type my_byte() :: byte().
@@ -74,7 +76,15 @@ simple_types_test() ->
 
     %% float
     ?assertEqual({ok, #{type => <<"number">>, format => <<"float">>}},
-                 erldantic_json_schema:type_to_schema(?MODULE, my_float)).
+                 erldantic_json_schema:type_to_schema(?MODULE, my_float)),
+
+    %% iodata (mapped to string)
+    ?assertEqual({ok, #{type => <<"string">>}},
+                 erldantic_json_schema:type_to_schema(?MODULE, my_iodata)),
+
+    %% iolist (mapped to string)
+    ?assertEqual({ok, #{type => <<"string">>}},
+                 erldantic_json_schema:type_to_schema(?MODULE, my_iolist)).
 
 %% Test range type mappings
 range_types_test() ->
