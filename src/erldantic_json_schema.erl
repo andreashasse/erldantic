@@ -1,58 +1,31 @@
 -module(erldantic_json_schema).
 
--export([type_to_schema/2, record_to_schema/2]).
-%% Exported for test
 -export([to_schema/2]).
 
 -ignore_xref([to_schema/2]).
--ignore_xref([{erldantic_json_schema, type_to_schema, 2},
-              {erldantic_json_schema, record_to_schema, 2}]).
 
 -include("../include/erldantic.hrl").
 -include("../include/erldantic_internal.hrl").
 
 %% API
 
--doc("Converts an Erlang type definition to a JSON schema.\nThis function extracts the type definition from the specified module\nand generates a corresponding JSON schema object.\nThe type must be of arity 0.\n\n### Returns\n{ok, Schema} if conversion succeeds, or {error, Errors} if the type is not found").
--doc(#{params =>
-           #{"Module" => "The module containing the type definition",
-             "TypeName" => "The name of the type to convert to JSON schema"}}).
-
--spec type_to_schema(Module :: module(), TypeName :: atom()) ->
-                        Schema :: {ok, map()} | {error, [erldantic:error()]}.
-type_to_schema(Module, TypeName) when is_atom(Module) andalso is_atom(TypeName) ->
-    TypeArity = 0,
-    TypeRef = {type, TypeName, TypeArity},
-    to_schema_no_pt(Module, TypeRef).
-
--doc("Converts an Erlang record definition to a JSON schema.\nThis function extracts the record definition from the specified module\nand generates a corresponding JSON object schema.\n\n### Returns\n{ok, Schema} if conversion succeeds, or {error, Errors} if the record is not found").
--doc(#{params =>
-           #{"Module" => "The module containing the record definition",
-             "RecordName" => "The name of the record to convert to JSON schema"}}).
-
--spec record_to_schema(Module :: module(), RecordName :: atom()) ->
-                          {ok, Schema :: map()} | {error, [erldantic:error()]}.
-record_to_schema(Module, RecordName) when is_atom(Module) andalso is_atom(RecordName) ->
-    to_schema_no_pt(Module, {record, RecordName}).
-
-%% INTERNAL
-
--spec to_schema_no_pt(Module :: module(), TypeRef :: erldantic:ed_type_reference()) ->
-                         {ok, Schema :: map()} | {error, [erldantic:error()]}.
-to_schema_no_pt(Module, TypeRef) ->
-    try
-        TypeInfo = erldantic_module_types:get(Module),
-        to_schema(TypeInfo, TypeRef)
-    catch
-        error:Reason ->
+-spec to_schema(module() | erldantic:type_info(), erldantic:ed_type_or_ref()) ->
+                   {ok, Schema :: map()} | {error, [erldantic:error()]}.
+to_schema(Module, Type) when is_atom(Module) ->
+    TypeInfo = erldantic_module_types:get(Module),
+    to_schema(TypeInfo, Type);
+%% Type references
+to_schema(TypeInfo, {type, TypeName, TypeArity}) when is_atom(TypeName) ->
+    case erldantic_type_info:get_type(TypeInfo, TypeName, TypeArity) of
+        {ok, Type} ->
+            TypeWithoutVars = apply_args(TypeInfo, Type, []),
+            do_to_schema(TypeInfo, TypeWithoutVars);
+        error ->
             {error,
              [#ed_error{type = no_match,
-                        location = [Module],
-                        ctx = #{reason => Reason, error_type => module_extraction_failed}}]}
-    end.
-
--spec to_schema(erldantic:type_info(), erldantic:ed_type_or_ref()) ->
-                   {ok, Schema :: map()} | {error, [erldantic:error()]}.
+                        location = [TypeName],
+                        ctx = #{type => TypeName, arity => TypeArity}}]}
+    end;
 to_schema(TypeInfo, Type) ->
     do_to_schema(TypeInfo, Type).
 
@@ -155,11 +128,6 @@ do_to_schema(TypeInfo, #ed_rec{} = RecordInfo) ->
 %% Record references
 do_to_schema(TypeInfo, #ed_rec_ref{record_name = RecordName}) ->
     record_to_schema_internal(TypeInfo, RecordName);
-%% Type references
-do_to_schema(TypeInfo, {type, TypeName, TypeArity}) when is_atom(TypeName) ->
-    {ok, Type} = erldantic_type_info:get_type(TypeInfo, TypeName, TypeArity),
-    TypeWithoutVars = apply_args(TypeInfo, Type, []),
-    do_to_schema(TypeInfo, TypeWithoutVars);
 %% User type references
 do_to_schema(TypeInfo, #ed_user_type_ref{type_name = TypeName, variables = TypeArgs}) ->
     TypeArity = length(TypeArgs),
@@ -354,8 +322,15 @@ process_map_fields(_TypeInfo,
 -spec record_to_schema_internal(erldantic:type_info(), atom() | #ed_rec{}) ->
                                    {ok, map()} | {error, [erldantic:error()]}.
 record_to_schema_internal(TypeInfo, RecordName) when is_atom(RecordName) ->
-    {ok, RecordInfo} = erldantic_type_info:get_record(TypeInfo, RecordName),
-    record_to_schema_internal(TypeInfo, RecordInfo);
+    case erldantic_type_info:get_record(TypeInfo, RecordName) of
+        {ok, RecordInfo} ->
+            record_to_schema_internal(TypeInfo, RecordInfo);
+        error ->
+            {error,
+             [#ed_error{type = no_match,
+                        location = [RecordName],
+                        ctx = #{type => RecordName}}]}
+    end;
 record_to_schema_internal(TypeInfo, #ed_rec{fields = Fields}) ->
     case process_record_fields(TypeInfo, Fields, #{}, []) of
         {ok, Properties, Required} ->

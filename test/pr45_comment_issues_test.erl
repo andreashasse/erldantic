@@ -17,7 +17,7 @@
 %% Issue 1: "format => <<\"binary\">>" - This can't be right?
 %% Location: src/erldantic_json_schema.erl:76
 binary_format_issue_test() ->
-    {ok, BinarySchema} = erldantic_json_schema:type_to_schema(?MODULE, my_binary),
+    {ok, BinarySchema} = erldantic_json_schema:to_schema(?MODULE, {type, my_binary, 0}),
     ?assertEqual(#{type => <<"string">>}, BinarySchema),
 
     %% FIXED: Now correctly generates simple string type for binary()
@@ -29,7 +29,7 @@ binary_format_issue_test() ->
 %% Location: src/erldantic_json_schema.erl:80
 binary_format_with_minlength_issue_test() ->
     {ok, NonEmptyBinarySchema} =
-        erldantic_json_schema:type_to_schema(?MODULE, my_nonempty_binary),
+        erldantic_json_schema:to_schema(?MODULE, {type, my_nonempty_binary, 0}),
     Expected = #{type => <<"string">>, minLength => 1},
     ?assertEqual(Expected, NonEmptyBinarySchema),
 
@@ -41,7 +41,7 @@ binary_format_with_minlength_issue_test() ->
 %% Issue 3: "Is this valid json schema?" (empty object for term type)
 %% Location: src/erldantic_json_schema.erl:103
 empty_schema_for_term_test() ->
-    {ok, TermSchema} = erldantic_json_schema:type_to_schema(?MODULE, my_term),
+    {ok, TermSchema} = erldantic_json_schema:to_schema(?MODULE, {type, my_term, 0}),
     ?assertEqual(#{}, TermSchema),
 
     %% Actually, this is CORRECT! Empty object {} in JSON Schema means "any valid JSON value"
@@ -52,7 +52,8 @@ empty_schema_for_term_test() ->
 %% Issue 4: "most literal values doesn't translate well to json"
 %% Location: src/erldantic_json_schema.erl:105
 literal_values_translation_issue_test() ->
-    {ok, AtomLiteralSchema} = erldantic_json_schema:type_to_schema(?MODULE, my_atom_literal),
+    {ok, AtomLiteralSchema} =
+        erldantic_json_schema:to_schema(?MODULE, {type, my_atom_literal, 0}),
     ?assertEqual(#{enum => [<<"ok">>]}, AtomLiteralSchema),
 
     %% FIXED: Now correctly converts atom literals to binary strings in enum
@@ -70,8 +71,8 @@ correct_schemas_test() ->
     CorrectAtomLiteralSchema = #{enum => [<<"ok">>]}, %% String, not atom
 
     %% Current implementation now matches these correct schemas
-    {ok, CurrentBinary} = erldantic_json_schema:type_to_schema(?MODULE, my_binary),
-    {ok, CurrentAtom} = erldantic_json_schema:type_to_schema(?MODULE, my_atom_literal),
+    {ok, CurrentBinary} = erldantic_json_schema:to_schema(?MODULE, {type, my_binary, 0}),
+    {ok, CurrentAtom} = erldantic_json_schema:to_schema(?MODULE, {type, my_atom_literal, 0}),
 
     ?assertEqual(CorrectBinarySchema, CurrentBinary),
     ?assertEqual(CorrectAtomLiteralSchema, CurrentAtom),
@@ -81,7 +82,7 @@ correct_schemas_test() ->
 %% Test with actual JSON Schema validator (Jesse) to show validation problems
 json_schema_validator_issues_test() ->
     %% Test atom literal with Jesse
-    {ok, AtomSchema} = erldantic_json_schema:type_to_schema(?MODULE, my_atom_literal),
+    {ok, AtomSchema} = erldantic_json_schema:to_schema(?MODULE, {type, my_atom_literal, 0}),
 
     %% Convert schema to Jesse format
     JesseSchema = json:decode(iolist_to_binary(json:encode(AtomSchema))),
