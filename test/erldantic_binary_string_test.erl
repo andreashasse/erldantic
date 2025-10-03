@@ -961,3 +961,59 @@ type_variables_test() ->
                                                             <<"not_a_number">>)),
 
     ok.
+
+%% Test from_binary_string/3 with invalid input data type (not a binary)
+from_binary_string_invalid_input_test() ->
+    TypeInfo = erldantic_abstract_code:types_in_module(?MODULE),
+
+    %% Test that passing non-binary input returns proper error
+    %% Passing string instead of binary
+    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
+                 erldantic_binary_string:from_binary_string(TypeInfo,
+                                                            #ed_simple_type{type = binary},
+                                                            "string")),
+
+    %% Passing integer instead of binary
+    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
+                 erldantic_binary_string:from_binary_string(TypeInfo,
+                                                            #ed_simple_type{type = integer},
+                                                            42)),
+
+    %% Passing atom instead of binary
+    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
+                 erldantic_binary_string:from_binary_string(TypeInfo,
+                                                            #ed_simple_type{type = atom},
+                                                            hello)),
+
+    ok.
+
+%% Test to_binary_string/3 with invalid input data type
+to_binary_string_invalid_input_test() ->
+    TypeInfo = erldantic_abstract_code:types_in_module(?MODULE),
+
+    %% These should fail with type_mismatch because the input doesn't match the expected type
+    %% Passing string when expecting to convert from binary
+    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
+                 erldantic_binary_string:to_binary_string(TypeInfo,
+                                                          #ed_simple_type{type = binary},
+                                                          "string")),
+
+    %% Passing binary when expecting to convert from string
+    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
+                 erldantic_binary_string:to_binary_string(TypeInfo,
+                                                          #ed_simple_type{type = string},
+                                                          <<"binary">>)),
+
+    %% Passing list when expecting integer
+    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
+                 erldantic_binary_string:to_binary_string(TypeInfo,
+                                                          #ed_simple_type{type = integer},
+                                                          [1, 2, 3])),
+
+    %% Passing string when expecting atom
+    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
+                 erldantic_binary_string:to_binary_string(TypeInfo,
+                                                          #ed_simple_type{type = atom},
+                                                          "hello")),
+
+    ok.
