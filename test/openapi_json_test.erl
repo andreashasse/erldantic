@@ -19,7 +19,7 @@
 %% Test that OpenAPI spec generates JSON-serializable structures
 openapi_json_serializable_test() ->
     %% Create a comprehensive API with multiple endpoints
-    GetUsersEndpoint1 = erldantic_openapi:endpoint(<<"get">>, <<"/users">>),
+    GetUsersEndpoint1 = erldantic_openapi:endpoint(get, <<"/users">>),
     GetUsersEndpoint =
         erldantic_openapi:with_response(GetUsersEndpoint1,
                                         200,
@@ -27,7 +27,7 @@ openapi_json_serializable_test() ->
                                         ?MODULE,
                                         {record, user}),
 
-    CreateUserEndpoint1 = erldantic_openapi:endpoint(<<"post">>, <<"/users">>),
+    CreateUserEndpoint1 = erldantic_openapi:endpoint(post, <<"/users">>),
     CreateUserEndpoint2 =
         erldantic_openapi:with_request_body(CreateUserEndpoint1,
                                             ?MODULE,
@@ -45,7 +45,7 @@ openapi_json_serializable_test() ->
                                         ?MODULE,
                                         {record, error_response}),
 
-    GetUserEndpoint1 = erldantic_openapi:endpoint(<<"get">>, <<"/users/{id}">>),
+    GetUserEndpoint1 = erldantic_openapi:endpoint(get, <<"/users/{id}">>),
     GetUserEndpoint2 =
         erldantic_openapi:with_parameter(GetUserEndpoint1,
                                          ?MODULE,
@@ -90,7 +90,7 @@ openapi_json_serializable_test() ->
         OpenAPISpec,
 
     %% Validate /users GET endpoint
-    #{<<"get">> := #{responses := #{<<"200">> := GetUsersResponse}}} = UsersPath,
+    #{get := #{responses := #{<<"200">> := GetUsersResponse}}} = UsersPath,
     ?assertMatch(#{description := <<"List of users">>,
                    content :=
                        #{<<"application/json">> :=
@@ -98,8 +98,7 @@ openapi_json_serializable_test() ->
                  GetUsersResponse),
 
     %% Validate /users POST endpoint
-    #{<<"post">> := #{requestBody := PostRequestBody, responses := PostResponses}} =
-        UsersPath,
+    #{post := #{requestBody := PostRequestBody, responses := PostResponses}} = UsersPath,
     ?assertMatch(#{required := true,
                    content :=
                        #{<<"application/json">> :=
@@ -120,7 +119,7 @@ openapi_json_serializable_test() ->
                  Post400Response),
 
     %% Validate /users/{id} GET endpoint
-    #{<<"get">> := #{parameters := GetByIdParameters, responses := GetByIdResponses}} =
+    #{get := #{parameters := GetByIdParameters, responses := GetByIdResponses}} =
         UsersByIdPath,
     ?assertMatch([#{name := <<"id">>,
                     in := path,
@@ -159,7 +158,7 @@ schema_json_structure_test() ->
 %% Test OpenAPI spec contains all required fields for a valid spec
 openapi_spec_completeness_test() ->
     %% Create a simple but complete spec
-    Endpoint1 = erldantic_openapi:endpoint(<<"get">>, <<"/health">>),
+    Endpoint1 = erldantic_openapi:endpoint(get, <<"/health">>),
     Endpoint =
         erldantic_openapi:with_response(Endpoint1,
                                         200,
@@ -182,7 +181,7 @@ openapi_spec_completeness_test() ->
 %% Test that complex nested structures are properly formed
 complex_nested_structure_test() ->
     %% Test endpoint with all possible features
-    Endpoint1 = erldantic_openapi:endpoint(<<"post">>, <<"/complex">>),
+    Endpoint1 = erldantic_openapi:endpoint(post, <<"/complex">>),
     Endpoint2 =
         erldantic_openapi:with_request_body(Endpoint1, ?MODULE, {record, create_user_request}),
     Endpoint3 =
@@ -209,7 +208,7 @@ complex_nested_structure_test() ->
     %% Deep validate the nested structure
     ?assertMatch(#{paths :=
                        #{<<"/complex">> :=
-                             #{<<"post">> :=
+                             #{post :=
                                    #{requestBody := #{required := true},
                                      responses := #{<<"201">> := _, <<"400">> := _},
                                      parameters := [#{name := <<"debug">>, in := query}]}}}},
@@ -218,7 +217,7 @@ complex_nested_structure_test() ->
 %% Test final JSON output generation - writes actual OpenAPI JSON to file
 final_json_output_test() ->
     %% Create a realistic API specification
-    GetUsersEndpoint1 = erldantic_openapi:endpoint(<<"get">>, <<"/users">>),
+    GetUsersEndpoint1 = erldantic_openapi:endpoint(get, <<"/users">>),
     GetUsersEndpoint =
         erldantic_openapi:with_response(GetUsersEndpoint1,
                                         200,
@@ -226,7 +225,7 @@ final_json_output_test() ->
                                         ?MODULE,
                                         {record, user}),
 
-    CreateUserEndpoint1 = erldantic_openapi:endpoint(<<"post">>, <<"/users">>),
+    CreateUserEndpoint1 = erldantic_openapi:endpoint(post, <<"/users">>),
     CreateUserEndpoint2 =
         erldantic_openapi:with_request_body(CreateUserEndpoint1,
                                             ?MODULE,
@@ -244,7 +243,7 @@ final_json_output_test() ->
                                         ?MODULE,
                                         {record, error_response}),
 
-    GetUserByIdEndpoint1 = erldantic_openapi:endpoint(<<"get">>, <<"/users/{id}">>),
+    GetUserByIdEndpoint1 = erldantic_openapi:endpoint(get, <<"/users/{id}">>),
     GetUserByIdEndpoint2 =
         erldantic_openapi:with_parameter(GetUserByIdEndpoint1,
                                          ?MODULE,
@@ -303,7 +302,7 @@ json_encoding_test() ->
 %% Test that the OpenAPI spec is valid and can be encoded to JSON
 valid_openapi_test() ->
     %% Create a minimal but complete API
-    Endpoint1 = erldantic_openapi:endpoint(<<"get">>, <<"/health">>),
+    Endpoint1 = erldantic_openapi:endpoint(get, <<"/health">>),
     Endpoint =
         erldantic_openapi:with_response(Endpoint1,
                                         200,
@@ -329,8 +328,7 @@ valid_openapi_test() ->
     ?assert(map_size(Schemas) > 0),
 
     %% Validate specific path and operation structure
-    ?assertMatch(#{<<"/health">> := #{<<"get">> := #{responses := #{<<"200">> := _}}}},
-                 Paths).
+    ?assertMatch(#{<<"/health">> := #{get := #{responses := #{<<"200">> := _}}}}, Paths).
 
 %% Helper function to validate that a structure is JSON-serializable
 %% (no atoms as values, only as map keys)
@@ -340,7 +338,7 @@ validate_json_serializable(Value) ->
 %% Test Python-based OpenAPI validation
 python_openapi_validation_test() ->
     %% Generate a complete OpenAPI specification first
-    GetUsersEndpoint1 = erldantic_openapi:endpoint(<<"get">>, <<"/users">>),
+    GetUsersEndpoint1 = erldantic_openapi:endpoint(get, <<"/users">>),
     GetUsersEndpoint =
         erldantic_openapi:with_response(GetUsersEndpoint1,
                                         200,
@@ -348,7 +346,7 @@ python_openapi_validation_test() ->
                                         ?MODULE,
                                         {record, user}),
 
-    CreateUserEndpoint1 = erldantic_openapi:endpoint(<<"post">>, <<"/users">>),
+    CreateUserEndpoint1 = erldantic_openapi:endpoint(post, <<"/users">>),
     CreateUserEndpoint2 =
         erldantic_openapi:with_request_body(CreateUserEndpoint1,
                                             ?MODULE,
@@ -366,7 +364,7 @@ python_openapi_validation_test() ->
                                         ?MODULE,
                                         {record, error_response}),
 
-    GetUserByIdEndpoint1 = erldantic_openapi:endpoint(<<"get">>, <<"/users/{id}">>),
+    GetUserByIdEndpoint1 = erldantic_openapi:endpoint(get, <<"/users/{id}">>),
     GetUserByIdEndpoint2 =
         erldantic_openapi:with_parameter(GetUserByIdEndpoint1,
                                          ?MODULE,
