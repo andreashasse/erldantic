@@ -7,17 +7,24 @@
 
 -type module_version() :: term().
 
+-define(APPLICATION, erldantic).
+
 %% API
 -spec get(Module :: module()) -> erldantic:type_info().
 get(Module) ->
-    {ok, Vsn} = module_vsn(Module),
-    case pers_type(Module) of
-        {Vsn, TypeInfo} when is_map(TypeInfo) ->
-            TypeInfo;
-        _ ->
-            TypeInfo = erldantic_abstract_code:types_in_module(Module),
-            pers_types_set(Module, Vsn, TypeInfo),
-            TypeInfo
+    case application:get_env(?APPLICATION, use_module_types_cache, false) of
+        true ->
+            {ok, Vsn} = module_vsn(Module),
+            case pers_type(Module) of
+                {Vsn, TypeInfo} when is_map(TypeInfo) ->
+                    TypeInfo;
+                _ ->
+                    TypeInfo = erldantic_abstract_code:types_in_module(Module),
+                    pers_types_set(Module, Vsn, TypeInfo),
+                    TypeInfo
+            end;
+        false ->
+            erldantic_abstract_code:types_in_module(Module)
     end.
 
 -spec clear(Module :: module()) -> ok.
@@ -53,5 +60,5 @@ module_vsn(Module) ->
                     {ok, Vsn}
             end;
         false ->
-            erlang:error({module_types_not_found, Module})
+            erlang:error({module_types_not_found, Module, non_existing})
     end.
