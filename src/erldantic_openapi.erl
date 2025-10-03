@@ -104,7 +104,7 @@ with_request_body(Endpoint, Module, Schema)
     when is_map(Endpoint) andalso is_atom(Module) ->
     Endpoint#{request_body => #{schema => Schema, module => Module}}.
 
--doc("Adds a parameter specification to an endpoint.\nThis function adds a parameter (path, query, header, or cookie) to the endpoint.\nMultiple parameters can be added by calling this function multiple times.\n\n### Parameter Specification\nThe parameter spec should be a map with these keys:\n- name: Parameter name (string)\n- in: Parameter location (path | query | header | cookie)\n- required: Whether the parameter is required (boolean)\n- schema: Schema reference or direct type (erldantic:ed_type_or_ref())\n\n### Returns\nUpdated endpoint map with the new parameter added").
+-doc("Adds a parameter specification to an endpoint.\nThis function adds a parameter (path, query, header, or cookie) to the endpoint.\nMultiple parameters can be added by calling this function multiple times.\n\n### Parameter Specification\nThe parameter spec should be a map with these keys:\n- name: Parameter name (binary)\n- in: Parameter location (path | query | header | cookie)\n- required: Whether the parameter is required (boolean)\n- schema: Schema reference or direct type (erldantic:ed_type_or_ref())\n\n### Returns\nUpdated endpoint map with the new parameter added").
 -doc(#{params =>
            #{"Endpoint" => "Endpoint map to add the parameter to",
              "ParameterSpec" => "Parameter specification map"}}).
@@ -113,8 +113,11 @@ with_request_body(Endpoint, Module, Schema)
                      Module :: module(),
                      ParameterSpec :: parameter_spec()) ->
                         endpoint_spec().
-with_parameter(Endpoint, Module, ParameterSpec)
-    when is_map(Endpoint) andalso is_atom(Module) andalso is_map(ParameterSpec) ->
+with_parameter(Endpoint, Module, #{name := Name} = ParameterSpec)
+    when is_map(Endpoint)
+         andalso is_atom(Module)
+         andalso is_map(ParameterSpec)
+         andalso is_binary(Name) ->
     Parameters = maps:get(parameters, Endpoint, []),
     ParameterWithModule = ParameterSpec#{module => Module},
     Endpoint#{parameters => [ParameterWithModule | Parameters]}.
@@ -226,7 +229,8 @@ generate_operation(Endpoint) ->
 -spec generate_response(response_spec()) -> openapi_response().
 generate_response(#{description := Description,
                     schema := Schema,
-                    module := Module}) ->
+                    module := Module})
+    when is_binary(Description) ->
     ModuleTypeInfo = erldantic_abstract_code:types_in_module(Module),
 
     SchemaContent =
@@ -268,7 +272,8 @@ generate_parameter(#{name := Name,
                      in := In,
                      schema := Schema,
                      module := Module} =
-                       ParameterSpec) ->
+                       ParameterSpec)
+    when is_binary(Name) ->
     ModuleTypeInfo = erldantic_abstract_code:types_in_module(Module),
     Required = maps:get(required, ParameterSpec, false),
 

@@ -90,7 +90,7 @@ endpoint_with_request_body_test() ->
 endpoint_with_path_parameter_test() ->
     %% Create endpoint with path parameter
     PathParam =
-        #{name => "id",
+        #{name => <<"id">>,
           in => path,
           required => true,
           schema => {type, user_id, 0}},
@@ -99,7 +99,7 @@ endpoint_with_path_parameter_test() ->
 
     %% Should have the parameter
     ?assertMatch(#{parameters :=
-                       [#{name := "id",
+                       [#{name := <<"id">>,
                           in := path,
                           required := true,
                           schema := {type, user_id, 0}}]},
@@ -109,7 +109,7 @@ endpoint_with_path_parameter_test() ->
 endpoint_with_query_parameter_test() ->
     %% Create endpoint with query parameter
     QueryParam =
-        #{name => "limit",
+        #{name => <<"limit">>,
           in => query,
           required => false,
           schema => #ed_simple_type{type = integer}},
@@ -118,7 +118,7 @@ endpoint_with_query_parameter_test() ->
 
     %% Should have the parameter
     ?assertMatch(#{parameters :=
-                       [#{name := "limit",
+                       [#{name := <<"limit">>,
                           in := query,
                           required := false,
                           schema := #ed_simple_type{type = integer}}]},
@@ -166,7 +166,7 @@ multiple_endpoints_to_openapi_test() ->
                                         {record, user}),
 
     PathParam =
-        #{name => "id",
+        #{name => <<"id">>,
           in => path,
           required => true,
           schema => {type, user_id, 0}},
@@ -264,7 +264,7 @@ endpoint_with_mixed_types_test() ->
     TypeRef = {type, user, 0},
 
     QueryParam =
-        #{name => "filter",
+        #{name => <<"filter">>,
           in => query,
           required => false,
           schema => DirectStringType},
