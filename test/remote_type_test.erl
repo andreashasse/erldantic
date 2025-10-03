@@ -27,11 +27,11 @@ validate_missing_test() ->
     ValidData = #{a => some_value},
 
     % This should return an error due to missing remote type
-    ?assertError({module_types_not_found, _}, to_json_missing(ValidData)),
+    ?assertError({module_types_not_found, _, _}, to_json_missing(ValidData)),
 
     % Test from_json as well
     Json = #{<<"a">> => <<"some_value">>},
-    ?assertError({module_types_not_found, _}, from_json_missing(Json)).
+    ?assertError({module_types_not_found, _, _}, from_json_missing(Json)).
 
 -spec to_json_remote(remote()) ->
                         {ok, json:encode_value()} | {error, [erldantic:error()]}.

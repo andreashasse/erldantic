@@ -132,10 +132,17 @@ to_string(_TypeInfo, Type, Data) ->
                 ctx = #{type => Type, value => Data}}]}.
 
 %% INTERNAL
+convert_string_to_type(Type, String) when is_atom(Type), is_list(String) ->
+    do_convert_string_to_type(Type, String);
+convert_string_to_type(Type, NotString) ->
+    {error,
+     [#ed_error{type = type_mismatch,
+                location = [],
+                ctx = #{type => Type, value => NotString}}]}.
 
--spec convert_string_to_type(Type :: atom(), String :: string()) ->
-                                {ok, term()} | {error, [erldantic:error()]}.
-convert_string_to_type(integer, String) ->
+-spec do_convert_string_to_type(Type :: atom(), String :: string()) ->
+                                   {ok, term()} | {error, [erldantic:error()]}.
+do_convert_string_to_type(integer, String) ->
     try
         {ok, list_to_integer(String)}
     catch
@@ -145,7 +152,7 @@ convert_string_to_type(integer, String) ->
                         location = [],
                         ctx = #{type => #ed_simple_type{type = integer}, value => String}}]}
     end;
-convert_string_to_type(float, String) ->
+do_convert_string_to_type(float, String) ->
     try
         {ok, list_to_float(String)}
     catch
@@ -155,23 +162,23 @@ convert_string_to_type(float, String) ->
                         location = [],
                         ctx = #{type => #ed_simple_type{type = float}, value => String}}]}
     end;
-convert_string_to_type(number, String) ->
-    case convert_string_to_type(integer, String) of
+do_convert_string_to_type(number, String) ->
+    case do_convert_string_to_type(integer, String) of
         {ok, _} = Result ->
             Result;
         {error, _} ->
-            convert_string_to_type(float, String)
+            do_convert_string_to_type(float, String)
     end;
-convert_string_to_type(boolean, "true") ->
+do_convert_string_to_type(boolean, "true") ->
     {ok, true};
-convert_string_to_type(boolean, "false") ->
+do_convert_string_to_type(boolean, "false") ->
     {ok, false};
-convert_string_to_type(boolean, String) ->
+do_convert_string_to_type(boolean, String) ->
     {error,
      [#ed_error{type = type_mismatch,
                 location = [],
                 ctx = #{type => #ed_simple_type{type = boolean}, value => String}}]};
-convert_string_to_type(atom, String) ->
+do_convert_string_to_type(atom, String) ->
     try
         {ok, list_to_existing_atom(String)}
     catch
@@ -181,26 +188,26 @@ convert_string_to_type(atom, String) ->
                         location = [],
                         ctx = #{type => #ed_simple_type{type = atom}, value => String}}]}
     end;
-convert_string_to_type(string, String) ->
+do_convert_string_to_type(string, String) ->
     {ok, String};
-convert_string_to_type(nonempty_string, String) when String =/= [] ->
+do_convert_string_to_type(nonempty_string, String) when String =/= [] ->
     {ok, String};
-convert_string_to_type(nonempty_string, []) ->
+do_convert_string_to_type(nonempty_string, []) ->
     {error,
      [#ed_error{type = type_mismatch,
                 location = [],
                 ctx = #{type => #ed_simple_type{type = nonempty_string}, value => []}}]};
-convert_string_to_type(binary, String) ->
+do_convert_string_to_type(binary, String) ->
     {ok, list_to_binary(String)};
-convert_string_to_type(nonempty_binary, String) when String =/= [] ->
+do_convert_string_to_type(nonempty_binary, String) when String =/= [] ->
     {ok, list_to_binary(String)};
-convert_string_to_type(nonempty_binary, []) ->
+do_convert_string_to_type(nonempty_binary, []) ->
     {error,
      [#ed_error{type = type_mismatch,
                 location = [],
                 ctx = #{type => #ed_simple_type{type = nonempty_binary}, value => []}}]};
-convert_string_to_type(non_neg_integer, String) ->
-    case convert_string_to_type(integer, String) of
+do_convert_string_to_type(non_neg_integer, String) ->
+    case do_convert_string_to_type(integer, String) of
         {ok, Value} when Value >= 0 ->
             {ok, Value};
         {ok, Value} ->
@@ -211,8 +218,8 @@ convert_string_to_type(non_neg_integer, String) ->
         {error, Reason} ->
             {error, Reason}
     end;
-convert_string_to_type(pos_integer, String) ->
-    case convert_string_to_type(integer, String) of
+do_convert_string_to_type(pos_integer, String) ->
+    case do_convert_string_to_type(integer, String) of
         {ok, Value} when Value > 0 ->
             {ok, Value};
         {ok, Value} ->
@@ -223,8 +230,8 @@ convert_string_to_type(pos_integer, String) ->
         {error, Reason} ->
             {error, Reason}
     end;
-convert_string_to_type(neg_integer, String) ->
-    case convert_string_to_type(integer, String) of
+do_convert_string_to_type(neg_integer, String) ->
+    case do_convert_string_to_type(integer, String) of
         {ok, Value} when Value < 0 ->
             {ok, Value};
         {ok, Value} ->
@@ -235,7 +242,7 @@ convert_string_to_type(neg_integer, String) ->
         {error, Reason} ->
             {error, Reason}
     end;
-convert_string_to_type(Type, String) ->
+do_convert_string_to_type(Type, String) ->
     {error,
      [#ed_error{type = type_mismatch,
                 location = [],

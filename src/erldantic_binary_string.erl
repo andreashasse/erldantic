@@ -138,9 +138,17 @@ to_binary_string(_TypeInfo, Type, Data) ->
 
 %% INTERNAL
 
--spec convert_binary_string_to_type(Type :: atom(), BinaryString :: binary()) ->
-                                       {ok, term()} | {error, [erldantic:error()]}.
-convert_binary_string_to_type(integer, BinaryString) ->
+convert_binary_string_to_type(Type, BinaryString) when is_binary(BinaryString) ->
+    do_convert_binary_string_to_type(Type, BinaryString);
+convert_binary_string_to_type(Type, NonBinary) ->
+    {error,
+     [#ed_error{type = type_mismatch,
+                location = [],
+                ctx = #{type => Type, value => NonBinary}}]}.
+
+-spec do_convert_binary_string_to_type(Type :: atom(), BinaryString :: binary()) ->
+                                          {ok, term()} | {error, [erldantic:error()]}.
+do_convert_binary_string_to_type(integer, BinaryString) ->
     try
         {ok, binary_to_integer(BinaryString)}
     catch
@@ -150,7 +158,7 @@ convert_binary_string_to_type(integer, BinaryString) ->
                         location = [],
                         ctx = #{type => #ed_simple_type{type = integer}, value => BinaryString}}]}
     end;
-convert_binary_string_to_type(float, BinaryString) ->
+do_convert_binary_string_to_type(float, BinaryString) ->
     try
         {ok, binary_to_float(BinaryString)}
     catch
@@ -160,23 +168,23 @@ convert_binary_string_to_type(float, BinaryString) ->
                         location = [],
                         ctx = #{type => #ed_simple_type{type = float}, value => BinaryString}}]}
     end;
-convert_binary_string_to_type(number, BinaryString) ->
-    case convert_binary_string_to_type(integer, BinaryString) of
+do_convert_binary_string_to_type(number, BinaryString) ->
+    case do_convert_binary_string_to_type(integer, BinaryString) of
         {ok, _} = Result ->
             Result;
         {error, _} ->
-            convert_binary_string_to_type(float, BinaryString)
+            do_convert_binary_string_to_type(float, BinaryString)
     end;
-convert_binary_string_to_type(boolean, <<"true">>) ->
+do_convert_binary_string_to_type(boolean, <<"true">>) ->
     {ok, true};
-convert_binary_string_to_type(boolean, <<"false">>) ->
+do_convert_binary_string_to_type(boolean, <<"false">>) ->
     {ok, false};
-convert_binary_string_to_type(boolean, BinaryString) ->
+do_convert_binary_string_to_type(boolean, BinaryString) ->
     {error,
      [#ed_error{type = type_mismatch,
                 location = [],
                 ctx = #{type => #ed_simple_type{type = boolean}, value => BinaryString}}]};
-convert_binary_string_to_type(atom, BinaryString) ->
+do_convert_binary_string_to_type(atom, BinaryString) ->
     try
         {ok, binary_to_existing_atom(BinaryString, utf8)}
     catch
@@ -186,26 +194,28 @@ convert_binary_string_to_type(atom, BinaryString) ->
                         location = [],
                         ctx = #{type => #ed_simple_type{type = atom}, value => BinaryString}}]}
     end;
-convert_binary_string_to_type(string, BinaryString) ->
+do_convert_binary_string_to_type(string, BinaryString) ->
     {ok, binary_to_list(BinaryString)};
-convert_binary_string_to_type(nonempty_string, BinaryString) when BinaryString =/= <<>> ->
+do_convert_binary_string_to_type(nonempty_string, BinaryString)
+    when BinaryString =/= <<>> ->
     {ok, binary_to_list(BinaryString)};
-convert_binary_string_to_type(nonempty_string, <<>>) ->
+do_convert_binary_string_to_type(nonempty_string, <<>>) ->
     {error,
      [#ed_error{type = type_mismatch,
                 location = [],
                 ctx = #{type => #ed_simple_type{type = nonempty_string}, value => <<>>}}]};
-convert_binary_string_to_type(binary, BinaryString) ->
+do_convert_binary_string_to_type(binary, BinaryString) ->
     {ok, BinaryString};
-convert_binary_string_to_type(nonempty_binary, BinaryString) when BinaryString =/= <<>> ->
+do_convert_binary_string_to_type(nonempty_binary, BinaryString)
+    when BinaryString =/= <<>> ->
     {ok, BinaryString};
-convert_binary_string_to_type(nonempty_binary, <<>>) ->
+do_convert_binary_string_to_type(nonempty_binary, <<>>) ->
     {error,
      [#ed_error{type = type_mismatch,
                 location = [],
                 ctx = #{type => #ed_simple_type{type = nonempty_binary}, value => <<>>}}]};
-convert_binary_string_to_type(non_neg_integer, BinaryString) ->
-    case convert_binary_string_to_type(integer, BinaryString) of
+do_convert_binary_string_to_type(non_neg_integer, BinaryString) ->
+    case do_convert_binary_string_to_type(integer, BinaryString) of
         {ok, Value} when Value >= 0 ->
             {ok, Value};
         {ok, Value} ->
@@ -216,8 +226,8 @@ convert_binary_string_to_type(non_neg_integer, BinaryString) ->
         {error, Reason} ->
             {error, Reason}
     end;
-convert_binary_string_to_type(pos_integer, BinaryString) ->
-    case convert_binary_string_to_type(integer, BinaryString) of
+do_convert_binary_string_to_type(pos_integer, BinaryString) ->
+    case do_convert_binary_string_to_type(integer, BinaryString) of
         {ok, Value} when Value > 0 ->
             {ok, Value};
         {ok, Value} ->
@@ -228,8 +238,8 @@ convert_binary_string_to_type(pos_integer, BinaryString) ->
         {error, Reason} ->
             {error, Reason}
     end;
-convert_binary_string_to_type(neg_integer, BinaryString) ->
-    case convert_binary_string_to_type(integer, BinaryString) of
+do_convert_binary_string_to_type(neg_integer, BinaryString) ->
+    case do_convert_binary_string_to_type(integer, BinaryString) of
         {ok, Value} when Value < 0 ->
             {ok, Value};
         {ok, Value} ->
@@ -240,7 +250,7 @@ convert_binary_string_to_type(neg_integer, BinaryString) ->
         {error, Reason} ->
             {error, Reason}
     end;
-convert_binary_string_to_type(Type, BinaryString) ->
+do_convert_binary_string_to_type(Type, BinaryString) ->
     {error,
      [#ed_error{type = type_mismatch,
                 location = [],
