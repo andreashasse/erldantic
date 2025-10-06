@@ -69,7 +69,10 @@ openapi_json_serializable_test() ->
     Endpoints = [GetUsersEndpoint, CreateUserEndpoint, GetUserEndpoint],
 
     %% Generate OpenAPI spec
-    {ok, OpenAPISpec} = erldantic_openapi:endpoints_to_openapi(Endpoints),
+    {ok, OpenAPISpec} =
+        erldantic_openapi:endpoints_to_openapi(#{title => <<"API Documentation">>,
+                                                 version => <<"1.0.0">>},
+                                               Endpoints),
 
     %% Validate that all values are JSON-serializable (no atoms except as map keys)
     validate_json_serializable(OpenAPISpec),
@@ -166,7 +169,10 @@ openapi_spec_completeness_test() ->
                                         ?MODULE,
                                         {record, user}),
 
-    {ok, OpenAPISpec} = erldantic_openapi:endpoints_to_openapi([Endpoint]),
+    {ok, OpenAPISpec} =
+        erldantic_openapi:endpoints_to_openapi(#{title => <<"API Documentation">>,
+                                                 version => <<"1.0.0">>},
+                                               [Endpoint]),
 
     %% Validate required OpenAPI 3.0 fields and structure
     #{paths := Paths} = OpenAPISpec,
@@ -200,7 +206,10 @@ complex_nested_structure_test() ->
                                            required => false,
                                            schema => #ed_simple_type{type = boolean}}),
 
-    {ok, OpenAPISpec} = erldantic_openapi:endpoints_to_openapi([Endpoint]),
+    {ok, OpenAPISpec} =
+        erldantic_openapi:endpoints_to_openapi(#{title => <<"API Documentation">>,
+                                                 version => <<"1.0.0">>},
+                                               [Endpoint]),
 
     %% Validate the complete structure is JSON-serializable
     validate_json_serializable(OpenAPISpec),
@@ -267,7 +276,10 @@ final_json_output_test() ->
     Endpoints = [GetUsersEndpoint, CreateUserEndpoint, GetUserByIdEndpoint],
 
     %% Generate OpenAPI spec
-    {ok, OpenAPISpec} = erldantic_openapi:endpoints_to_openapi(Endpoints),
+    {ok, OpenAPISpec} =
+        erldantic_openapi:endpoints_to_openapi(#{title => <<"API Documentation">>,
+                                                 version => <<"1.0.0">>},
+                                               Endpoints),
 
     %% Convert to actual JSON using json.erl
     JsonIoList = json:encode(OpenAPISpec),
@@ -310,7 +322,10 @@ valid_openapi_test() ->
                                         ?MODULE,
                                         {record, user}),
 
-    {ok, OpenAPISpec} = erldantic_openapi:endpoints_to_openapi([Endpoint]),
+    {ok, OpenAPISpec} =
+        erldantic_openapi:endpoints_to_openapi(#{title => <<"API Documentation">>,
+                                                 version => <<"1.0.0">>},
+                                               [Endpoint]),
 
     %% Validate that the spec can be encoded to JSON (this validates JSON compatibility)
     validate_json_serializable(OpenAPISpec),
@@ -386,7 +401,10 @@ python_openapi_validation_test() ->
                                         {record, error_response}),
 
     Endpoints = [GetUsersEndpoint, CreateUserEndpoint, GetUserByIdEndpoint],
-    {ok, OpenAPISpec} = erldantic_openapi:endpoints_to_openapi(Endpoints),
+    {ok, OpenAPISpec} =
+        erldantic_openapi:endpoints_to_openapi(#{title => <<"API Documentation">>,
+                                                 version => <<"1.0.0">>},
+                                               Endpoints),
 
     %% Convert to JSON-compatible format and write to file
     JsonIoList = json:encode(OpenAPISpec),

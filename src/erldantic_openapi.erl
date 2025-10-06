@@ -1,7 +1,7 @@
 -module(erldantic_openapi).
 
 -export([endpoint/2, with_response/5, with_request_body/3, with_parameter/3,
-         endpoints_to_openapi/1]).
+         endpoints_to_openapi/2]).
 
 -ignore_xref([{erldantic_openapi, type_to_schema, 2},
               {erldantic_openapi, record_to_schema, 2},
@@ -9,7 +9,7 @@
               {erldantic_openapi, with_response, 5},
               {erldantic_openapi, with_request_body, 3},
               {erldantic_openapi, with_parameter, 3},
-              {erldantic_openapi, endpoints_to_openapi, 1}]).
+              {erldantic_openapi, endpoints_to_openapi, 2}]).
 
 -include("../include/erldantic.hrl").
 
@@ -130,7 +130,8 @@ with_parameter(Endpoint, Module, #{name := Name} = ParameterSpec)
            #{"Endpoints" =>
                  "List of endpoint specifications created with endpoint/2 and with_* functions"}}).
 
--spec endpoints_to_openapi(MetaData :: openapi_metadata(), Endpoints :: [endpoint_spec()]) ->
+-spec endpoints_to_openapi(MetaData :: openapi_metadata(),
+                           Endpoints :: [endpoint_spec()]) ->
                               {ok, json:encode_value()} | {error, [erldantic:error()]}.
 endpoints_to_openapi(MetaData, Endpoints) when is_list(Endpoints) ->
     PathGroups = group_endpoints_by_path(Endpoints),
@@ -147,7 +148,8 @@ endpoints_to_openapi(MetaData, Endpoints) when is_list(Endpoints) ->
         {ok, ComponentsResult} ->
             OpenAPISpec =
                 #{openapi => <<"3.0.0">>,
-                  info => #{title => maps:get(MetaData, title), version => maps:get(MetaData, version)},
+                  info =>
+                      #{title => maps:get(title, MetaData), version => maps:get(version, MetaData)},
                   paths => Paths,
                   components => ComponentsResult},
             erldantic_json:to_json(?MODULE, {type, openapi_spec, 0}, OpenAPISpec);
