@@ -130,39 +130,27 @@ with_parameter(Endpoint, Module, #{name := Name} = ParameterSpec)
 -spec endpoints_to_openapi(Endpoints :: [endpoint_spec()]) ->
                               {ok, openapi_spec()} | {error, [erldantic:error()]}.
 endpoints_to_openapi(Endpoints) when is_list(Endpoints) ->
-    try
-        PathGroups = group_endpoints_by_path(Endpoints),
-        Paths =
-            maps:fold(fun(Path, PathEndpoints, Acc) ->
-                         PathOps = generate_path_operations(PathEndpoints),
-                         Acc#{Path => PathOps}
-                      end,
-                      #{},
-                      PathGroups),
+    PathGroups = group_endpoints_by_path(Endpoints),
+    Paths =
+        maps:fold(fun(Path, PathEndpoints, Acc) ->
+                     PathOps = generate_path_operations(PathEndpoints),
+                     Acc#{Path => PathOps}
+                  end,
+                  #{},
+                  PathGroups),
 
-        SchemaRefs = collect_schema_refs(Endpoints),
-        Components =
-            case generate_components(SchemaRefs) of
-                {ok, ComponentsResult} ->
-                    ComponentsResult;
-                {error, ComponentErrors} ->
-                    throw({schema_generation_failed, ComponentErrors})
-            end,
-        OpenAPISpec =
-            #{openapi => <<"3.0.0">>,
-              info => #{title => <<"API Documentation">>, version => <<"1.0.0">>},
-              paths => Paths,
-              components => Components},
+    SchemaRefs = collect_schema_refs(Endpoints),
+    case generate_components(SchemaRefs) of
+        {ok, ComponentsResult} ->
+            OpenAPISpec =
+                #{openapi => <<"3.0.0">>,
+                  info => #{title => <<"API Documentation">>, version => <<"1.0.0">>},
+                  paths => Paths,
+                  components => ComponentsResult},
 
-        {ok, OpenAPISpec}
-    catch
-        {schema_generation_failed, ThrowErrors} ->
-            {error, ThrowErrors};
-        error:Reason:Stacktrace ->
-            {error,
-             [#ed_error{type = no_match,
-                        location = [endpoints_to_openapi],
-                        ctx = #{reason => Reason, stacktrace => Stacktrace}}]}
+            {ok, OpenAPISpec};
+        {error, _} = Err ->
+            Err
     end.
 
 -spec group_endpoints_by_path([endpoint_spec()]) -> #{binary() => [endpoint_spec()]}.
@@ -353,7 +341,9 @@ generate_components(SchemaRefs) ->
                                                 {ok, Schema} when is_map(Schema) ->
                                                     SchemaName =
                                                         type_ref_to_component_name(TypeRef),
-                                                    {ok, Acc#{SchemaName => Schema}}
+                                                    {ok, Acc#{SchemaName => Schema}};
+                                                {error, _} = Error ->
+                                                    Error
                                             end
                                          end,
                                          #{},
