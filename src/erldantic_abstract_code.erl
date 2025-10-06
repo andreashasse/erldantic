@@ -27,9 +27,7 @@ types_in_module(Module) ->
         cover_compiled ->
             {_, _, FilePath} = code:get_object_code(Module),
             types_in_module_path(FilePath);
-        Error
-            when Error =:= non_existing
-                 orelse Error =:= preloaded ->
+        Error when Error =:= non_existing orelse Error =:= preloaded ->
             erlang:error({module_types_not_found, Module, Error});
         FilePath ->
             types_in_module_path(FilePath)
