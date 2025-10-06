@@ -13,10 +13,12 @@
 
 -include("../include/erldantic.hrl").
 
+-compile(nowarn_unused_type).
+
 -type http_method() :: get | put | post | delete | options | head | patch | trace.
 -type http_status_code() :: 100..599.
 -type parameter_location() :: path | query | header | cookie.
--type openapi_schema() :: json:decode_value() | #{'$ref' := binary()}.
+-type openapi_schema() :: json:encode_value() | #{'$ref' := binary()}.
 -type request_body_spec() :: #{schema := erldantic:ed_type_or_ref(), module := module()}.
 -type response_spec() ::
     #{description := binary(),
@@ -128,7 +130,7 @@ with_parameter(Endpoint, Module, #{name := Name} = ParameterSpec)
                  "List of endpoint specifications created with endpoint/2 and with_* functions"}}).
 
 -spec endpoints_to_openapi(Endpoints :: [endpoint_spec()]) ->
-                              {ok, openapi_spec()} | {error, [erldantic:error()]}.
+                              {ok, json:encode_value()} | {error, [erldantic:error()]}.
 endpoints_to_openapi(Endpoints) when is_list(Endpoints) ->
     PathGroups = group_endpoints_by_path(Endpoints),
     Paths =
@@ -147,8 +149,7 @@ endpoints_to_openapi(Endpoints) when is_list(Endpoints) ->
                   info => #{title => <<"API Documentation">>, version => <<"1.0.0">>},
                   paths => Paths,
                   components => ComponentsResult},
-
-            {ok, OpenAPISpec};
+            erldantic_json:to_json(?MODULE, {type, openapi_spec, 0}, OpenAPISpec);
         {error, _} = Err ->
             Err
     end.

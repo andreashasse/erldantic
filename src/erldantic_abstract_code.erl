@@ -24,19 +24,25 @@
 -spec types_in_module(atom()) -> erldantic:type_info().
 types_in_module(Module) ->
     case code:which(Module) of
+        cover_compiled ->
+            {_, _, FilePath} = code:get_object_code(Module),
+            types_in_module_path(FilePath);
         Error
             when Error =:= non_existing
                  orelse Error =:= cover_compiled
                  orelse Error =:= preloaded ->
             erlang:error({module_types_not_found, Module, Error});
         FilePath ->
-            case beam_lib:chunks(FilePath, [abstract_code]) of
-                {ok, {Module, [{abstract_code, {_, Forms}}]}} ->
-                    NamedTypes = lists:filtermap(fun(F) -> type_in_form(F) end, Forms),
-                    build_type_info(NamedTypes);
-                {error, beam_lib, Reason} ->
-                    erlang:error({beam_lib_error, Module, Reason})
-            end
+            types_in_module_path(FilePath)
+    end.
+
+types_in_module_path(FilePath) ->
+    case beam_lib:chunks(FilePath, [abstract_code]) of
+        {ok, {_Module, [{abstract_code, {_, Forms}}]}} ->
+            NamedTypes = lists:filtermap(fun(F) -> type_in_form(F) end, Forms),
+            build_type_info(NamedTypes);
+        {error, beam_lib, Reason} ->
+            erlang:error({beam_lib_error, FilePath, Reason})
     end.
 
 build_type_info(NamedTypes) ->
