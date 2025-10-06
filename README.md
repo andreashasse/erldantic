@@ -101,9 +101,10 @@ BadSourceJson = <<"[{\"number\":\"+1-555-123-4567\",\"verified\":{\"source\":\"a
 {error, [#ed_error{...}]} = json_to_contacts(BadSourceJson).
 ```
 
-## API
+## JSON Serialization API
 
-These are the main functions intended to be called:
+These are the main functions for JSON serialization and deserialization:
+
 ```erlang
 erldantic_json:to_json(Module, TypeOrReference, Value) -> {ok, json:encode_value()} | {error, [erldantic:error()]}.
 erldantic_json:from_json(Module, TypeOrReference, Json) -> {ok, ... your type ...} | {error, [erldantic:error()]}.
@@ -117,6 +118,169 @@ Where:
   - An actual `ed_type()` structure (for advanced usage)
 
 The type cannot have any parameters (arity must be 0 for user-defined types).
+
+## JSON Schema Generation
+
+Erldantic can generate [JSON Schema](https://json-schema.org/) specifications from your Erlang types. This is useful for API documentation, client code generation, validation in other languages, and integration with schema-based tools.
+
+### JSON Schema API
+
+```erlang
+erldantic_json_schema:to_schema(Module, TypeOrReference) -> {ok, Schema :: map()} | {error, [erldantic:error()]}.
+```
+
+### Basic Example
+
+```erlang
+-module(my_api).
+
+-export([generate_user_schema/0]).
+
+-record(user, {id :: integer(), name :: string() | undefined, email :: string()}).
+
+generate_user_schema() ->
+    {ok, Schema} = erldantic_json_schema:to_schema(?MODULE, {record, user}),
+    %% Schema will be:
+    %% #{type => <<"object">>,
+    %%   properties => #{
+    %%     id => #{type => <<"integer">>},
+    %%     name => #{type => <<"string">>},
+    %%     email => #{type => <<"string">>}
+    %%   },
+    %%   required => [id, name, email]}
+    Schema.
+
+```
+
+### Optional Fields
+
+When a type is a union with `undefined`, the schema omits the `undefined` and marks the field as not required:
+
+```erlang
+-record(user_profile, {
+    id :: integer(),
+    name :: string(),
+    bio :: string() | undefined  %% Optional field
+}).
+
+%% Generated schema will have:
+%% required => [id, name]  %% bio is NOT required
+```
+
+## OpenAPI Specification Generation
+
+Erldantic can generate complete [OpenAPI 3.0](https://spec.openapis.org/oas/v3.0.0) specifications for your REST APIs. This provides interactive documentation, client generation, and API testing tools.
+
+### OpenAPI Builder API
+
+Build endpoints using a fluent builder pattern:
+
+```erlang
+%% Create a base endpoint
+erldantic_openapi:endpoint(Method, Path) -> endpoint_spec().
+
+%% Add responses
+erldantic_openapi:with_response(Endpoint, StatusCode, Description, Module, Schema) -> endpoint_spec().
+
+%% Add request body
+erldantic_openapi:with_request_body(Endpoint, Module, Schema) -> endpoint_spec().
+
+%% Add parameters (path, query, header, cookie)
+erldantic_openapi:with_parameter(Endpoint, Module, ParameterSpec) -> endpoint_spec().
+
+%% Generate complete OpenAPI spec
+erldantic_openapi:endpoints_to_openapi(Metadata, Endpoints) -> {ok, json:encode_value()} | {error, [erldantic:error()]}.
+```
+
+### Complete Example
+
+```erlang
+-module(my_api).
+
+-record(user, {id :: integer(), name :: string(), email :: string()}).
+-record(create_user_request, {name :: string(), email :: string()}).
+-record(error_response, {message :: string(), code :: integer()}).
+
+-type user() :: #user{}.
+-type create_user_request() :: #create_user_request{}.
+-type error_response() :: #error_response{}.
+-type user_id() :: integer().
+
+generate_openapi_spec() ->
+    %% Define list users endpoint
+    ListUsers1 = erldantic_openapi:endpoint(get, <<"/users">>),
+    ListUsers = erldantic_openapi:with_response(ListUsers1,
+                                                 200,
+                                                 <<"List of all users">>,
+                                                 ?MODULE,
+                                                 #ed_list{type = {record, user}}),
+
+    %% Define create user endpoint
+    CreateUser1 = erldantic_openapi:endpoint(post, <<"/users">>),
+    CreateUser2 = erldantic_openapi:with_request_body(CreateUser1,
+                                                       ?MODULE,
+                                                       {record, create_user_request}),
+    CreateUser3 = erldantic_openapi:with_response(CreateUser2,
+                                                   201,
+                                                   <<"User created successfully">>,
+                                                   ?MODULE,
+                                                   {record, user}),
+    CreateUser = erldantic_openapi:with_response(CreateUser3,
+                                                  400,
+                                                  <<"Invalid input">>,
+                                                  ?MODULE,
+                                                  {record, error_response}),
+
+    %% Define get user endpoint
+    GetUser1 = erldantic_openapi:endpoint(get, <<"/users/{id}">>),
+    GetUser2 = erldantic_openapi:with_parameter(GetUser1,
+                                                 ?MODULE,
+                                                 #{name => <<"id">>,
+                                                   in => path,
+                                                   required => true,
+                                                   schema => {type, user_id, 0}}),
+    GetUser3 = erldantic_openapi:with_response(GetUser2,
+                                                200,
+                                                <<"User details">>,
+                                                ?MODULE,
+                                                {record, user}),
+    GetUser = erldantic_openapi:with_response(GetUser3,
+                                               404,
+                                               <<"User not found">>,
+                                               ?MODULE,
+                                               {record, error_response}),
+
+    %% Generate complete OpenAPI spec
+    {ok, OpenAPISpec} = erldantic_openapi:endpoints_to_openapi(
+        #{title => <<"My API">>, version => <<"1.0.0">>},
+        [ListUsers, CreateUser, GetUser]
+    ),
+
+    %% OpenAPISpec can now be serialized to JSON and served
+    json:encode(OpenAPISpec).
+```
+
+### Component Schemas
+
+The `endpoints_to_openapi/2` function automatically:
+- Collects all type references used in endpoints
+- Generates JSON schemas for each referenced type
+- Creates a `components.schemas` section with reusable schemas
+- Uses `$ref` to reference schemas in the spec
+
+### Schema References
+
+You can use either:
+- **Type references**: `{type, TypeName, Arity}` or `{record, RecordName}` - These create reusable component schemas
+- **Direct types**: `#ed_simple_type{}`, `#ed_list{}`, etc. - These create inline schemas
+
+```erlang
+%% Using type reference (creates reusable component)
+erldantic_openapi:with_response(Endpoint, 200, <<"Success">>, ?MODULE, {record, user})
+
+%% Using direct type (inline schema)
+erldantic_openapi:with_response(Endpoint, 200, <<"Success">>, ?MODULE, #ed_simple_type{type = string})
+```
 
 ## Special Handling
 

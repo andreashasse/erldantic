@@ -1,7 +1,7 @@
 -module(erldantic_openapi).
 
 -export([endpoint/2, with_response/5, with_request_body/3, with_parameter/3,
-         endpoints_to_openapi/1]).
+         endpoints_to_openapi/2]).
 
 -ignore_xref([{erldantic_openapi, type_to_schema, 2},
               {erldantic_openapi, record_to_schema, 2},
@@ -9,14 +9,16 @@
               {erldantic_openapi, with_response, 5},
               {erldantic_openapi, with_request_body, 3},
               {erldantic_openapi, with_parameter, 3},
-              {erldantic_openapi, endpoints_to_openapi, 1}]).
+              {erldantic_openapi, endpoints_to_openapi, 2}]).
 
 -include("../include/erldantic.hrl").
+
+-compile(nowarn_unused_type).
 
 -type http_method() :: get | put | post | delete | options | head | patch | trace.
 -type http_status_code() :: 100..599.
 -type parameter_location() :: path | query | header | cookie.
--type openapi_schema() :: json:decode_value() | #{'$ref' := binary()}.
+-type openapi_schema() :: json:encode_value() | #{'$ref' := binary()}.
 -type request_body_spec() :: #{schema := erldantic:ed_type_or_ref(), module := module()}.
 -type response_spec() ::
     #{description := binary(),
@@ -28,6 +30,7 @@
       required := boolean(),
       schema := erldantic:ed_type_or_ref(),
       module := module()}.
+-type openapi_metadata() :: #{title := binary(), version := binary()}.
 -type endpoint_spec() ::
     #{method := http_method(),
       path := binary(),
@@ -127,42 +130,31 @@ with_parameter(Endpoint, Module, #{name := Name} = ParameterSpec)
            #{"Endpoints" =>
                  "List of endpoint specifications created with endpoint/2 and with_* functions"}}).
 
--spec endpoints_to_openapi(Endpoints :: [endpoint_spec()]) ->
-                              {ok, openapi_spec()} | {error, [erldantic:error()]}.
-endpoints_to_openapi(Endpoints) when is_list(Endpoints) ->
-    try
-        PathGroups = group_endpoints_by_path(Endpoints),
-        Paths =
-            maps:fold(fun(Path, PathEndpoints, Acc) ->
-                         PathOps = generate_path_operations(PathEndpoints),
-                         Acc#{Path => PathOps}
-                      end,
-                      #{},
-                      PathGroups),
+-spec endpoints_to_openapi(MetaData :: openapi_metadata(),
+                           Endpoints :: [endpoint_spec()]) ->
+                              {ok, json:encode_value()} | {error, [erldantic:error()]}.
+endpoints_to_openapi(MetaData, Endpoints) when is_list(Endpoints) ->
+    PathGroups = group_endpoints_by_path(Endpoints),
+    Paths =
+        maps:fold(fun(Path, PathEndpoints, Acc) ->
+                     PathOps = generate_path_operations(PathEndpoints),
+                     Acc#{Path => PathOps}
+                  end,
+                  #{},
+                  PathGroups),
 
-        SchemaRefs = collect_schema_refs(Endpoints),
-        Components =
-            case generate_components(SchemaRefs) of
-                {ok, ComponentsResult} ->
-                    ComponentsResult;
-                {error, ComponentErrors} ->
-                    throw({schema_generation_failed, ComponentErrors})
-            end,
-        OpenAPISpec =
-            #{openapi => <<"3.0.0">>,
-              info => #{title => <<"API Documentation">>, version => <<"1.0.0">>},
-              paths => Paths,
-              components => Components},
-
-        {ok, OpenAPISpec}
-    catch
-        {schema_generation_failed, ThrowErrors} ->
-            {error, ThrowErrors};
-        error:Reason:Stacktrace ->
-            {error,
-             [#ed_error{type = no_match,
-                        location = [endpoints_to_openapi],
-                        ctx = #{reason => Reason, stacktrace => Stacktrace}}]}
+    SchemaRefs = collect_schema_refs(Endpoints),
+    case generate_components(SchemaRefs) of
+        {ok, ComponentsResult} ->
+            OpenAPISpec =
+                #{openapi => <<"3.0.0">>,
+                  info =>
+                      #{title => maps:get(title, MetaData), version => maps:get(version, MetaData)},
+                  paths => Paths,
+                  components => ComponentsResult},
+            erldantic_json:to_json(?MODULE, {type, openapi_spec, 0}, OpenAPISpec);
+        {error, _} = Err ->
+            Err
     end.
 
 -spec group_endpoints_by_path([endpoint_spec()]) -> #{binary() => [endpoint_spec()]}.
@@ -353,7 +345,9 @@ generate_components(SchemaRefs) ->
                                                 {ok, Schema} when is_map(Schema) ->
                                                     SchemaName =
                                                         type_ref_to_component_name(TypeRef),
-                                                    {ok, Acc#{SchemaName => Schema}}
+                                                    {ok, Acc#{SchemaName => Schema}};
+                                                {error, _} = Error ->
+                                                    Error
                                             end
                                          end,
                                          #{},

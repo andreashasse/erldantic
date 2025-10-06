@@ -136,7 +136,10 @@ single_endpoint_to_openapi_test() ->
                                         {record, user_list}),
 
     %% Generate OpenAPI spec
-    {ok, OpenAPISpec} = erldantic_openapi:endpoints_to_openapi([Endpoint]),
+    {ok, OpenAPISpec} =
+        erldantic_openapi:endpoints_to_openapi(#{title => <<"API Documentation">>,
+                                                 version => <<"1.0.0">>},
+                                               [Endpoint]),
 
     %% Should be valid OpenAPI 3.0 structure with complete path and operation
     ?assertMatch(#{openapi := <<"3.0.0">>,
@@ -188,7 +191,10 @@ multiple_endpoints_to_openapi_test() ->
     Endpoints = [Endpoint1WithResp, Endpoint2WithResp, Endpoint3WithResp2],
 
     %% Generate OpenAPI spec
-    {ok, OpenAPISpec} = erldantic_openapi:endpoints_to_openapi(Endpoints),
+    {ok, OpenAPISpec} =
+        erldantic_openapi:endpoints_to_openapi(#{title => <<"API Documentation">>,
+                                                 version => <<"1.0.0">>},
+                                               Endpoints),
 
     %% Should have all paths with correct operations
     #{paths := #{<<"/users/{id}">> := UsersIdPath}} = OpenAPISpec,
@@ -211,7 +217,10 @@ openapi_with_components_test() ->
                                         {record, user}),
 
     %% Generate OpenAPI spec
-    {ok, OpenAPISpec} = erldantic_openapi:endpoints_to_openapi([Endpoint]),
+    {ok, OpenAPISpec} =
+        erldantic_openapi:endpoints_to_openapi(#{title => <<"API Documentation">>,
+                                                 version => <<"1.0.0">>},
+                                               [Endpoint]),
 
     %% Should have components section with schemas
     ?assertMatch(#{components := #{schemas := _}}, OpenAPISpec),
@@ -236,7 +245,10 @@ error_handling_test() ->
                                         {record, non_existent_type}),
 
     %% Should handle error gracefully
-    Result = erldantic_openapi:endpoints_to_openapi([Endpoint]),
+    Result =
+        erldantic_openapi:endpoints_to_openapi(#{title => <<"API Documentation">>,
+                                                 version => <<"1.0.0">>},
+                                               [Endpoint]),
     ?assertMatch({error, _}, Result).
 
 %% Test with direct ed_type() values (inline schemas)
