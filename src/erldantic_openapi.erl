@@ -30,6 +30,7 @@
       required := boolean(),
       schema := erldantic:ed_type_or_ref(),
       module := module()}.
+-type openapi_metadata() :: #{title := binary(), version := binary()}.
 -type endpoint_spec() ::
     #{method := http_method(),
       path := binary(),
@@ -129,9 +130,9 @@ with_parameter(Endpoint, Module, #{name := Name} = ParameterSpec)
            #{"Endpoints" =>
                  "List of endpoint specifications created with endpoint/2 and with_* functions"}}).
 
--spec endpoints_to_openapi(Endpoints :: [endpoint_spec()]) ->
+-spec endpoints_to_openapi(MetaData :: openapi_metadata(), Endpoints :: [endpoint_spec()]) ->
                               {ok, json:encode_value()} | {error, [erldantic:error()]}.
-endpoints_to_openapi(Endpoints) when is_list(Endpoints) ->
+endpoints_to_openapi(MetaData, Endpoints) when is_list(Endpoints) ->
     PathGroups = group_endpoints_by_path(Endpoints),
     Paths =
         maps:fold(fun(Path, PathEndpoints, Acc) ->
@@ -146,7 +147,7 @@ endpoints_to_openapi(Endpoints) when is_list(Endpoints) ->
         {ok, ComponentsResult} ->
             OpenAPISpec =
                 #{openapi => <<"3.0.0">>,
-                  info => #{title => <<"API Documentation">>, version => <<"1.0.0">>},
+                  info => #{title => maps:get(MetaData, title), version => maps:get(MetaData, version)},
                   paths => Paths,
                   components => ComponentsResult},
             erldantic_json:to_json(?MODULE, {type, openapi_spec, 0}, OpenAPISpec);
