@@ -29,7 +29,6 @@ types_in_module(Module) ->
             types_in_module_path(FilePath);
         Error
             when Error =:= non_existing
-                 orelse Error =:= cover_compiled
                  orelse Error =:= preloaded ->
             erlang:error({module_types_not_found, Module, Error});
         FilePath ->
