@@ -345,9 +345,6 @@ map_field_info({TypeOfType, _, Type, TypeAttrs}) ->
     case {TypeOfType, Type} of
         {type, map_field_assoc} ->
             case TypeAttrs of
-                [{atom, _, '__struct__'}, _FieldInfo] ->
-                    %% FIXME: Can __struct__ really be an assoc? doesn't hurt I guess.
-                    [];
                 [{atom, _, MapFieldName}, FieldInfo] when is_atom(MapFieldName) ->
                     [AType] = field_info_to_type(FieldInfo),
                     [{map_field_assoc, MapFieldName, AType}];
@@ -358,8 +355,6 @@ map_field_info({TypeOfType, _, Type, TypeAttrs}) ->
             end;
         {type, map_field_exact} ->
             case TypeAttrs of
-                [{atom, _, '__struct__'}, _FieldInfo] ->
-                    [];
                 [{atom, _, MapFieldName}, FieldInfo] ->
                     %%                    beam_core_to_ssa:format_error(Arg1),
                     true = is_atom(MapFieldName),
