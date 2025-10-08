@@ -412,6 +412,7 @@ bound_fun_substitute_vars(Term, _ConstraintMap) ->
 -spec extract_struct_name([erldantic:map_field()]) ->
                              {undefined | atom(), [erldantic:map_field()]}.
 extract_struct_name(MapFields) ->
+    io:format("MapFields ~p", [MapFields]),
     case lists:partition(fun ({map_field_exact, '__struct__', _}) ->
                                  true;
                              ({map_field_assoc, '__struct__', _}) ->
