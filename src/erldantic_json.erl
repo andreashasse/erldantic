@@ -98,7 +98,6 @@ do_to_json(_TypeInfo, #ed_remote_type{mfargs = {Module, TypeName, Args}}, Data) 
     TypeArity = length(Args),
     {ok, Type} = erldantic_type_info:get_type(TypeInfo, TypeName, TypeArity),
     TypeWithoutVars = apply_args(TypeInfo, Type, Args),
-    io:format("remote map type ~p: ~p", [TypeInfo, TypeWithoutVars]),
     do_to_json(TypeInfo, TypeWithoutVars, Data);
 do_to_json(_TypeInfo, #ed_maybe_improper_list{} = Type, _Data) ->
     erlang:error({type_not_implemented, Type});
@@ -374,7 +373,6 @@ do_from_json(_TypeInfo, #ed_remote_type{mfargs = {Module, TypeName, Args}}, Data
     TypeArity = length(Args),
     {ok, Type} = erldantic_type_info:get_type(TypeInfo, TypeName, TypeArity),
     TypeWithoutVars = apply_args(TypeInfo, Type, Args),
-    io:format("remote map type ~p: ~p", [TypeInfo, TypeWithoutVars]),
     do_from_json(TypeInfo, TypeWithoutVars, Data);
 do_from_json(TypeInfo,
              #ed_rec_ref{record_name = RecordName, field_types = TypeArgs},
@@ -659,7 +657,6 @@ type_replace_vars(TypeInfo, #ed_type_with_variables{type = Type}, NamedTypes) ->
                                     end,
                                     UnionTypes)};
         #ed_map{fields = Fields, struct_name = StructName} ->
-            io:format("remote map type ~p: ~p", [StructName, Fields]),
             #ed_map{fields =
                         lists:map(fun ({map_field_assoc, FieldName, FieldType}) ->
                                           {map_field_assoc,
