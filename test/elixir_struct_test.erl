@@ -15,6 +15,9 @@ to_json_excludes_struct_field_test() ->
                      email => <<"john@example.com">>}),
 
     %% Create a type definition based on the struct fields (excluding __struct__)
+    %% Note: We manually define the type instead of using erldantic_abstract_code:types_in_module/1
+    %% because Elixir beam files use a different backend (elixir_erl) that's incompatible
+    %% with Erlang's beam_lib:chunks/2 for abstract code extraction
     StructType =
         #ed_map{fields =
                     [{map_field_exact, name, #ed_simple_type{type = binary}},
@@ -39,6 +42,7 @@ from_json_adds_struct_field_test() ->
           <<"email">> => <<"john@example.com">>},
 
     %% Create type definition with struct name
+    %% Note: Manual type definition required due to Elixir/Erlang beam compatibility issues
     StructType =
         #ed_map{fields =
                     [{map_field_exact, name, #ed_simple_type{type = binary}},
