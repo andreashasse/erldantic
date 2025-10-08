@@ -169,10 +169,9 @@ field_info_to_type({remote_type, _, [{atom, _, Module}, {atom, _, Type}, Args]})
                   Args),
     [#ed_remote_type{mfargs = {Module, Type, MyArgs}}];
 field_info_to_type({Type, _, map, any}) when Type =:= type orelse Type =:= opaque ->
-    [#ed_map{fields =
-                 [{map_field_type_assoc,
-                   #ed_simple_type{type = term},
-                   #ed_simple_type{type = term}}]}];
+    MapFields =
+        [{map_field_type_assoc, #ed_simple_type{type = term}, #ed_simple_type{type = term}}],
+    [#ed_map{fields = MapFields, struct_name = undefined}];
 field_info_to_type({Type, _, tuple, any}) when Type =:= type orelse Type =:= opaque ->
     [#ed_tuple{fields = any}];
 field_info_to_type({user_type, _, Type, TypeAttrs})
@@ -187,7 +186,8 @@ field_info_to_type({TypeOrOpaque, _, Type, TypeAttrs})
             [#ed_rec_ref{record_name = SubTypeRecordName, field_types = FieldTypes}];
         map ->
             MapFields = lists:flatmap(fun map_field_info/1, TypeAttrs),
-            [#ed_map{fields = MapFields}];
+            {StructName, NewMapFields} = extract_struct_name(MapFields),
+            [#ed_map{fields = NewMapFields, struct_name = StructName}];
         tuple ->
             TupleFields = lists:flatmap(fun field_info_to_type/1, TypeAttrs),
             [#ed_tuple{fields = TupleFields}];
@@ -402,3 +402,22 @@ bound_fun_substitute_vars({var, _, VarName} = Var, ConstraintMap) when is_atom(V
     maps:get(VarName, ConstraintMap, Var);
 bound_fun_substitute_vars(Term, _ConstraintMap) ->
     Term.
+
+%% Helper function to extract struct name from map fields for Elixir structs
+-spec extract_struct_name([erldantic:map_field()]) ->
+                             {undefined | atom(), [erldantic:map_field()]}.
+extract_struct_name(MapFields) ->
+    case lists:partition(fun ({map_field_exact, '__struct__', _}) ->
+                                 true;
+                             ({map_field_assoc, '__struct__', _}) ->
+                                 true;
+                             (_) ->
+                                 false
+                         end,
+                         MapFields)
+    of
+        {[{_, '__struct__', #ed_literal{value = SName}}], OtherMapFields} when is_atom(SName) ->
+            {SName, OtherMapFields};
+        {[], _} ->
+            {undefined, MapFields}
+    end.
