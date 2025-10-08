@@ -23,7 +23,7 @@
              none |
              map}).
 -record(ed_tuple, {fields :: any | [erldantic:ed_type()]}).
--record(ed_map, {fields :: [erldantic:map_field()]}).
+-record(ed_map, {fields :: [erldantic:map_field()], struct_name :: undefined | atom()}).
 -record(ed_rec,
         {name :: atom(), fields :: [{atom(), erldantic:ed_type()}], arity :: pos_integer()}).
 -record(ed_type_with_variables, {type :: erldantic:ed_type(), vars :: [atom()]}).

@@ -77,8 +77,22 @@ do_to_json(TypeInfo, {type, TypeName, TypeArity}, Data) when is_atom(TypeName) -
     %% FIXME: For simple types without arity, default to 0
     {ok, Type} = erldantic_type_info:get_type(TypeInfo, TypeName, TypeArity),
     do_to_json(TypeInfo, Type, Data);
-do_to_json(TypeInfo, #ed_map{} = Map, Data) ->
-    map_to_json(TypeInfo, Map, Data);
+do_to_json(TypeInfo, #ed_map{struct_name = StructName} = Map, Data) ->
+    case StructName of
+        undefined ->
+            map_to_json(TypeInfo, Map, Data);
+        _ ->
+            %% For Elixir structs, we expect the data to have the __struct__ field
+            case maps:get('__struct__', Data, undefined) of
+                StructName ->
+                    map_to_json(TypeInfo, Map, Data);
+                _ ->
+                    {error,
+                     [#ed_error{type = type_mismatch,
+                                location = [],
+                                ctx = #{expected_struct => StructName, value => Data}}]}
+            end
+    end;
 do_to_json(_TypeInfo, #ed_remote_type{mfargs = {Module, TypeName, Args}}, Data) ->
     TypeInfo = erldantic_module_types:get(Module),
     TypeArity = length(Args),
@@ -145,7 +159,15 @@ list_to_json(TypeInfo, Type, Data) when is_list(Data) ->
                                    lists:enumerate(Data)).
 
 map_to_json(TypeInfo, #ed_map{fields = Fields}, Data) when is_map(Data) ->
-    case map_fields_to_json(TypeInfo, Fields, Data) of
+    %% Check if this is an Elixir struct and remove __struct__ field for JSON serialization
+    DataWithoutStruct =
+        case maps:take('__struct__', Data) of
+            {_StructName, CleanData} ->
+                CleanData;
+            error ->
+                Data
+        end,
+    case map_fields_to_json(TypeInfo, Fields, DataWithoutStruct) of
         {ok, MapFields} ->
             {ok, maps:from_list(MapFields)};
         {error, Errors} ->
@@ -355,8 +377,14 @@ do_from_json(TypeInfo,
              Json)
     when is_atom(RecordName) ->
     record_from_json(TypeInfo, RecordName, Json, TypeArgs);
-do_from_json(TypeInfo, #ed_map{fields = Fields}, Json) ->
-    map_from_json(TypeInfo, Fields, Json);
+do_from_json(TypeInfo, #ed_map{fields = Fields, struct_name = StructName}, Json) ->
+    case map_from_json(TypeInfo, Fields, Json) of
+        {ok, MapResult} when StructName =/= undefined ->
+            %% Add back the __struct__ field for Elixir structs
+            {ok, maps:put('__struct__', StructName, MapResult)};
+        Result ->
+            Result
+    end;
 do_from_json(TypeInfo,
              #ed_user_type_ref{type_name = TypeName, variables = TypeArgs},
              Json)
@@ -626,7 +654,7 @@ type_replace_vars(TypeInfo, #ed_type_with_variables{type = Type}, NamedTypes) ->
                                        type_replace_vars(TypeInfo, UnionType, NamedTypes)
                                     end,
                                     UnionTypes)};
-        #ed_map{fields = Fields} ->
+        #ed_map{fields = Fields, struct_name = StructName} ->
             #ed_map{fields =
                         lists:map(fun ({map_field_assoc, FieldName, FieldType}) ->
                                           {map_field_assoc,
@@ -647,7 +675,8 @@ type_replace_vars(TypeInfo, #ed_type_with_variables{type = Type}, NamedTypes) ->
                                            type_replace_vars(TypeInfo, KeyType, NamedTypes),
                                            type_replace_vars(TypeInfo, ValueType, NamedTypes)}
                                   end,
-                                  Fields)};
+                                  Fields),
+                    struct_name = StructName};
         #ed_rec_ref{record_name = RecordName, field_types = RefFieldTypes} ->
             case erldantic_type_info:get_record(TypeInfo, RecordName) of
                 {ok, #ed_rec{fields = Fields} = Rec} ->

@@ -3,6 +3,12 @@
 all: compile format test cover
 
 compile:
+	@if command -v elixirc >/dev/null 2>&1; then \
+		echo "Compiling Elixir files..."; \
+		cd test && elixirc *.ex; \
+	else \
+		echo "Elixir not found, skipping Elixir compilation"; \
+	fi
 	rebar3 compile
 
 format:
