@@ -302,6 +302,27 @@ Some Erlang types are not supported for JSON conversion:
 - `tuple()`, `bitstring()`, `nonempty_bitstring()` - Not JSON-compatible
 - Function types - Cannot be serialized
 
+## Configuration
+
+### Application Environment Variables
+
+You can configure erldantic behavior using application environment variables:
+
+#### `use_module_types_cache`
+- **Type**: `boolean()`
+- **Default**: `false`
+- **Description**: When set to `true`, enables caching of extracted type information for modules using persistent terms. This can improve performance when repeatedly processing the same modules.
+- **Note**: When only changing types and not code, the module vsn (used for caching) is not updated, so the types will not be updated.
+- **Recommendation**: Enable this in production systems where no hot code reloading is done.
+
+Example configuration in `sys.config`:
+
+```erlang
+{erldantic, [
+    {use_module_types_cache, true}
+]}.
+```
+
 ## Error Types
 
 `#error{}` contains:
