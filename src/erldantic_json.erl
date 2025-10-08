@@ -98,6 +98,7 @@ do_to_json(_TypeInfo, #ed_remote_type{mfargs = {Module, TypeName, Args}}, Data) 
     TypeArity = length(Args),
     {ok, Type} = erldantic_type_info:get_type(TypeInfo, TypeName, TypeArity),
     TypeWithoutVars = apply_args(TypeInfo, Type, Args),
+    io:format("remote map type ~p: ~p", [TypeInfo, TypeWithoutVars]),
     do_to_json(TypeInfo, TypeWithoutVars, Data);
 do_to_json(_TypeInfo, #ed_maybe_improper_list{} = Type, _Data) ->
     erlang:error({type_not_implemented, Type});
@@ -368,11 +369,13 @@ do_from_json(TypeInfo, {record, RecordName}, Json) when is_atom(RecordName) ->
     record_from_json(TypeInfo, RecordName, Json, []);
 do_from_json(TypeInfo, #ed_rec{} = Rec, Json) ->
     record_from_json(TypeInfo, Rec, Json, []);
-do_from_json(_TypeInfo, #ed_remote_type{mfargs = {Module, TypeName, TypeArgs}}, Json) ->
+do_from_json(_TypeInfo, #ed_remote_type{mfargs = {Module, TypeName, Args}}, Data) ->
     TypeInfo = erldantic_module_types:get(Module),
-    TypeArity = length(TypeArgs),
-    io:format("remote map type ~p: ~p", [TypeInfo, {Module, TypeName, TypeArgs}]),
-    type_from_json(TypeInfo, TypeName, TypeArity, TypeArgs, Json);
+    TypeArity = length(Args),
+    {ok, Type} = erldantic_type_info:get_type(TypeInfo, TypeName, TypeArity),
+    TypeWithoutVars = apply_args(TypeInfo, Type, Args),
+    io:format("remote map type ~p: ~p", [TypeInfo, TypeWithoutVars]),
+    do_from_json(TypeInfo, TypeWithoutVars, Data);
 do_from_json(TypeInfo,
              #ed_rec_ref{record_name = RecordName, field_types = TypeArgs},
              Json)
