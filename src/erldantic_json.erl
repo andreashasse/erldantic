@@ -655,6 +655,7 @@ type_replace_vars(TypeInfo, #ed_type_with_variables{type = Type}, NamedTypes) ->
                                     end,
                                     UnionTypes)};
         #ed_map{fields = Fields, struct_name = StructName} ->
+            io:format("remote map type ~p: ~p", [StructName, Fields]),
             #ed_map{fields =
                         lists:map(fun ({map_field_assoc, FieldName, FieldType}) ->
                                           {map_field_assoc,
