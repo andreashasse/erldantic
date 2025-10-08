@@ -371,6 +371,7 @@ do_from_json(TypeInfo, #ed_rec{} = Rec, Json) ->
 do_from_json(_TypeInfo, #ed_remote_type{mfargs = {Module, TypeName, TypeArgs}}, Json) ->
     TypeInfo = erldantic_module_types:get(Module),
     TypeArity = length(TypeArgs),
+    io:format("remote map type ~p: ~p", [TypeInfo, {Module, TypeName, TypeArgs}]),
     type_from_json(TypeInfo, TypeName, TypeArity, TypeArgs, Json);
 do_from_json(TypeInfo,
              #ed_rec_ref{record_name = RecordName, field_types = TypeArgs},
