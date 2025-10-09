@@ -406,9 +406,9 @@ convert_type_to_binary_string(atom, Data) ->
                 location = [],
                 ctx = #{type => #ed_simple_type{type = atom}, value => Data}}]};
 convert_type_to_binary_string(string, Data) when is_list(Data) ->
-    case unicode:characters_to_list(Data) of
-        DataList when is_list(DataList) ->
-            {ok, list_to_binary(DataList)};
+    case unicode:characters_to_binary(Data) of
+        DataBinary when is_binary(DataBinary) ->
+            {ok, DataBinary};
         _Other ->
             {error,
              [#ed_error{type = type_mismatch,
@@ -421,9 +421,9 @@ convert_type_to_binary_string(string, Data) ->
                 location = [],
                 ctx = #{type => #ed_simple_type{type = string}, value => Data}}]};
 convert_type_to_binary_string(nonempty_string, Data) when is_list(Data), Data =/= [] ->
-    case unicode:characters_to_list(Data) of
-        DataList when is_list(DataList) ->
-            {ok, list_to_binary(DataList)};
+    case unicode:characters_to_binary(Data) of
+        DataBinary when is_binary(DataBinary) ->
+            {ok, DataBinary};
         _Other ->
             {error,
              [#ed_error{type = type_mismatch,

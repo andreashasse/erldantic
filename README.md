@@ -315,11 +315,19 @@ You can configure erldantic behavior using application environment variables:
 - **Note**: When only changing types and not code, the module vsn (used for caching) is not updated, so the types will not be updated.
 - **Recommendation**: Enable this in production systems where no hot code reloading is done.
 
+#### `check_unicode`
+- **Type**: `boolean()`
+- **Default**: `false`
+- **Description**: When set to `true`, enables additional Unicode validation for string data. This validates that list-type string data contains valid Unicode characters. When disabled, string conversion still works correctly but skips the additional validation step for better performance.
+- **Note**: Required type conversions (e.g., binary to list, list to binary) always use Unicode functions regardless of this setting.
+- **Recommendation**: Enable this if you need strict Unicode validation, or keep disabled for better performance when Unicode validity is guaranteed by other means.
+
 Example configuration in `sys.config`:
 
 ```erlang
 {erldantic, [
-    {use_module_types_cache, true}
+    {use_module_types_cache, true},
+    {check_unicode, false}
 ]}.
 ```
 
@@ -330,6 +338,11 @@ Example configuration in `sys.config`:
 - `location` - List showing the path to where the error occurred
 - `type` - Error type: `type_mismatch`, `no_match`, `missing_data`, `missing_type`, `type_not_supported`, `not_matched_fields`, `not_implemented`
 - `ctx` - Context information about the error
+
+## Related Projects
+
+- **[elli_openapi](https://github.com/andreashasse/elli_openapi)** - Elli middleware for automatic OpenAPI spec generation and validation using erldantic
+- **[exdantic](https://github.com/andreashasse/exdantic)** - Elixir port of erldantic for data validation and JSON serialization
 
 ## Development Status
 

@@ -504,18 +504,17 @@ list_from_json(_TypeInfo, Type, Data) ->
                 ctx = #{type => {list, Type}, value => Data}}]}.
 
 string_from_json(Type, Json) ->
-    StringValue = unicode:characters_to_list(Json),
-    case io_lib:printable_list(StringValue) of
-        true ->
+    case unicode:characters_to_list(Json) of
+        StringValue when is_list(StringValue) ->
             {true, StringValue};
-        false ->
+        _Other ->
             {error,
              [#ed_error{type = type_mismatch,
                         location = [],
                         ctx =
                             #{type => #ed_simple_type{type = Type},
                               value => Json,
-                              comment => "non printable"}}]}
+                              comment => "unicode conversion failed"}}]}
     end.
 
 check_type_from_json(string, Json) when is_binary(Json) ->

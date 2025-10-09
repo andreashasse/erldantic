@@ -4,7 +4,7 @@
   {vsn, "0.1.0"},
   {registered, []},
   {applications, [kernel, stdlib]},
-  {env, []},
+  {env, [{check_unicode, false}]},
   {modules, []},
   {licenses, ["Apache-2.0"]},
   {links, []}]}.

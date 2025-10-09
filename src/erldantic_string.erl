@@ -398,14 +398,19 @@ convert_type_to_string(atom, Data) ->
                 location = [],
                 ctx = #{type => #ed_simple_type{type = atom}, value => Data}}]};
 convert_type_to_string(string, Data) when is_list(Data) ->
-    case unicode:characters_to_list(Data) of
-        DataList when is_list(DataList) ->
-            {ok, DataList};
-        _Other ->
-            {error,
-             [#ed_error{type = type_mismatch,
-                        location = [],
-                        ctx = #{type => #ed_simple_type{type = string}, value => Data}}]}
+    case application:get_env(erldantic, check_unicode, false) of
+        true ->
+            case unicode:characters_to_list(Data) of
+                DataList when is_list(DataList) ->
+                    {ok, DataList};
+                _Other ->
+                    {error,
+                     [#ed_error{type = type_mismatch,
+                                location = [],
+                                ctx = #{type => #ed_simple_type{type = string}, value => Data}}]}
+            end;
+        false ->
+            {ok, Data}
     end;
 convert_type_to_string(string, Data) ->
     {error,
@@ -413,14 +418,21 @@ convert_type_to_string(string, Data) ->
                 location = [],
                 ctx = #{type => #ed_simple_type{type = string}, value => Data}}]};
 convert_type_to_string(nonempty_string, Data) when is_list(Data), Data =/= [] ->
-    case unicode:characters_to_list(Data) of
-        {Error, _Other, _} when Error =:= error orelse Error =:= incomplete ->
-            {error,
-             [#ed_error{type = type_mismatch,
-                        location = [],
-                        ctx = #{type => #ed_simple_type{type = nonempty_string}, value => Data}}]};
-        String ->
-            {ok, String}
+    case application:get_env(erldantic, check_unicode, false) of
+        true ->
+            case unicode:characters_to_list(Data) of
+                {Error, _Other, _} when Error =:= error orelse Error =:= incomplete ->
+                    {error,
+                     [#ed_error{type = type_mismatch,
+                                location = [],
+                                ctx =
+                                    #{type => #ed_simple_type{type = nonempty_string},
+                                      value => Data}}]};
+                String ->
+                    {ok, String}
+            end;
+        false ->
+            {ok, Data}
     end;
 convert_type_to_string(nonempty_string, Data) ->
     {error,
