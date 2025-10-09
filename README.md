@@ -94,17 +94,7 @@ Json = contacts_to_json(Contacts),
 {ok, Contacts} = json_to_contacts(Json).
 ```
 
-### Error Handling
-
-Erldantic provides detailed error messages when data doesn't match your type specifications:
-
-```erlang
-BadSourceJson = <<"[{\"number\":\"+1-555-123-4567\",\"verified\":{\"source\":\"a_bad_source\",\"confidence\":\"high\"},\"sms_capable\":true}]">>.
-
-{error, [#ed_error{...}]} = json_to_contacts(BadSourceJson).
-```
-
-## JSON Serialization API
+### JSON Serialization API
 
 These are the main functions for JSON serialization and deserialization:
 
@@ -121,6 +111,16 @@ Where:
   - An actual `ed_type()` structure (for advanced usage)
 
 The type cannot have any parameters (arity must be 0 for user-defined types).
+
+### Error Handling
+
+Erldantic provides detailed error messages when data doesn't match your type specifications:
+
+```erlang
+BadSourceJson = <<"[{\"number\":\"+1-555-123-4567\",\"verified\":{\"source\":\"a_bad_source\",\"confidence\":\"high\"},\"sms_capable\":true}]">>.
+
+{error, [#ed_error{...}]} = json_to_contacts(BadSourceJson).
+```
 
 ## JSON Schema Generation
 
