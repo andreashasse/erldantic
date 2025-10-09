@@ -122,39 +122,39 @@ undefined_scalar_test() ->
     ?assertEqual("another string", StringFromJson).
 
 %% Helper functions for record type
--spec to_json(#undefined_test_record{}) -> {ok, map()} | {error, [erldantic:error()]}.
+-spec to_json(#undefined_test_record{}) -> {ok, map()} | {error, [impala:error()]}.
 to_json(Record) ->
-    erldantic_json:to_json(?MODULE, {record, undefined_test_record}, Record).
+    impala_json:to_json(?MODULE, {record, undefined_test_record}, Record).
 
--spec from_json(map()) -> {ok, #undefined_test_record{}} | {error, [erldantic:error()]}.
+-spec from_json(map()) -> {ok, #undefined_test_record{}} | {error, [impala:error()]}.
 from_json(Json) ->
-    erldantic_json:from_json(?MODULE, {record, undefined_test_record}, Json).
+    impala_json:from_json(?MODULE, {record, undefined_test_record}, Json).
 
 %% Helper functions for map type
--spec to_json_map(test_map()) -> {ok, map()} | {error, [erldantic:error()]}.
+-spec to_json_map(test_map()) -> {ok, map()} | {error, [impala:error()]}.
 to_json_map(Map) ->
-    erldantic_json:to_json(?MODULE, {type, test_map, 0}, Map).
+    impala_json:to_json(?MODULE, {type, test_map, 0}, Map).
 
--spec from_json_map(map()) -> {ok, test_map()} | {error, [erldantic:error()]}.
+-spec from_json_map(map()) -> {ok, test_map()} | {error, [impala:error()]}.
 from_json_map(Json) ->
-    erldantic_json:from_json(?MODULE, {type, test_map, 0}, Json).
+    impala_json:from_json(?MODULE, {type, test_map, 0}, Json).
 
 %% Helper functions for list type
--spec to_json_list(maybe_int_list()) -> {ok, list()} | {error, [erldantic:error()]}.
+-spec to_json_list(maybe_int_list()) -> {ok, list()} | {error, [impala:error()]}.
 to_json_list(List) ->
-    erldantic_json:to_json(?MODULE, {type, maybe_int_list, 0}, List).
+    impala_json:to_json(?MODULE, {type, maybe_int_list, 0}, List).
 
--spec from_json_list(list()) -> {ok, maybe_int_list()} | {error, [erldantic:error()]}.
+-spec from_json_list(list()) -> {ok, maybe_int_list()} | {error, [impala:error()]}.
 from_json_list(Json) ->
-    erldantic_json:from_json(?MODULE, {type, maybe_int_list, 0}, Json).
+    impala_json:from_json(?MODULE, {type, maybe_int_list, 0}, Json).
 
 %% Helper functions for maybe_string type
 -spec to_json_maybe_string(maybe_string()) ->
-                              {ok, binary() | undefined} | {error, [erldantic:error()]}.
+                              {ok, binary() | undefined} | {error, [impala:error()]}.
 to_json_maybe_string(MaybeString) ->
-    erldantic_json:to_json(?MODULE, {type, maybe_string, 0}, MaybeString).
+    impala_json:to_json(?MODULE, {type, maybe_string, 0}, MaybeString).
 
 -spec from_json_maybe_string(binary() | undefined) ->
-                                {ok, maybe_string()} | {error, [erldantic:error()]}.
+                                {ok, maybe_string()} | {error, [impala:error()]}.
 from_json_maybe_string(Json) ->
-    erldantic_json:from_json(?MODULE, {type, maybe_string, 0}, Json).
+    impala_json:from_json(?MODULE, {type, maybe_string, 0}, Json).

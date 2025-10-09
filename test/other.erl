@@ -6,8 +6,8 @@
 
 -spec account_to_json(account()) -> json:encode_value().
 account_to_json(Account) ->
-    erldantic_json:to_json(?MODULE, {type, account, 0}, Account).
+    impala_json:to_json(?MODULE, {type, account, 0}, Account).
 
 -spec account_from_json(json:decode_value()) -> account().
 account_from_json(Json) ->
-    erldantic_json:from_json(?MODULE, {type, account, 0}, Json).
+    impala_json:from_json(?MODULE, {type, account, 0}, Json).

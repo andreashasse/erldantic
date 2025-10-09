@@ -1,4 +1,4 @@
--module(erldantic_module_types).
+-module(impala_module_types).
 
 -export([get/1, clear/1]).
 
@@ -7,10 +7,10 @@
 
 -type module_version() :: term().
 
--define(APPLICATION, erldantic).
+-define(APPLICATION, impala).
 
 %% API
--spec get(Module :: module()) -> erldantic:type_info().
+-spec get(Module :: module()) -> impala:type_info().
 get(Module) ->
     case application:get_env(?APPLICATION, use_module_types_cache, false) of
         true ->
@@ -19,12 +19,12 @@ get(Module) ->
                 {Vsn, TypeInfo} when is_map(TypeInfo) ->
                     TypeInfo;
                 _ ->
-                    TypeInfo = erldantic_abstract_code:types_in_module(Module),
+                    TypeInfo = impala_abstract_code:types_in_module(Module),
                     pers_types_set(Module, Vsn, TypeInfo),
                     TypeInfo
             end;
         false ->
-            erldantic_abstract_code:types_in_module(Module)
+            impala_abstract_code:types_in_module(Module)
     end.
 
 -spec clear(Module :: module()) -> ok.
@@ -34,14 +34,13 @@ clear(Module) ->
 
 %% INTERNAL
 
--spec pers_type(Module :: module()) ->
-                   {module_version(), erldantic:type_info()} | undefined.
+-spec pers_type(Module :: module()) -> {module_version(), impala:type_info()} | undefined.
 pers_type(Module) ->
     persistent_term:get({?MODULE, pers_types, Module}, undefined).
 
 -spec pers_types_set(Module :: module(),
                      Vsn :: module_version(),
-                     TypeInfo :: erldantic:type_info()) ->
+                     TypeInfo :: impala:type_info()) ->
                         ok.
 pers_types_set(Module, Vsn, TypeInfo) ->
     persistent_term:put({?MODULE, pers_types, Module}, {Vsn, TypeInfo}).
@@ -50,7 +49,7 @@ ensure_module(Module) ->
     erlang:module_loaded(Module) orelse code:which(Module) =/= non_existing.
 
 -spec module_vsn(Module :: module()) ->
-                    {ok, Version :: module_version()} | {error, [erldantic:error()]}.
+                    {ok, Version :: module_version()} | {error, [impala:error()]}.
 module_vsn(Module) ->
     case ensure_module(Module) of
         true ->

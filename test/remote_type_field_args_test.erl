@@ -178,41 +178,41 @@ mixed_requirements_from_json_test() ->
 %% JSON conversion functions
 
 -spec to_json_user_with_account(term()) ->
-                                   {ok, json:encode_value()} | {error, [erldantic:error()]}.
+                                   {ok, json:encode_value()} | {error, [impala:error()]}.
 to_json_user_with_account(Data) ->
-    erldantic_json:to_json(?MODULE, {type, user_with_account, 0}, Data).
+    impala_json:to_json(?MODULE, {type, user_with_account, 0}, Data).
 
 -spec from_json_user_with_account(json:encode_value()) ->
-                                     {ok, user_with_account()} | {error, [erldantic:error()]}.
+                                     {ok, user_with_account()} | {error, [impala:error()]}.
 from_json_user_with_account(Json) ->
-    erldantic_json:from_json(?MODULE, {type, user_with_account, 0}, Json).
+    impala_json:from_json(?MODULE, {type, user_with_account, 0}, Json).
 
 -spec to_json_organization(term()) ->
-                              {ok, json:encode_value()} | {error, [erldantic:error()]}.
+                              {ok, json:encode_value()} | {error, [impala:error()]}.
 to_json_organization(Data) ->
-    erldantic_json:to_json(?MODULE, {type, organization, 0}, Data).
+    impala_json:to_json(?MODULE, {type, organization, 0}, Data).
 
 -spec from_json_organization(json:encode_value()) ->
-                                {ok, organization()} | {error, [erldantic:error()]}.
+                                {ok, organization()} | {error, [impala:error()]}.
 from_json_organization(Json) ->
-    erldantic_json:from_json(?MODULE, {type, organization, 0}, Json).
+    impala_json:from_json(?MODULE, {type, organization, 0}, Json).
 
 -spec to_json_complex_data(term()) ->
-                              {ok, json:encode_value()} | {error, [erldantic:error()]}.
+                              {ok, json:encode_value()} | {error, [impala:error()]}.
 to_json_complex_data(Data) ->
-    erldantic_json:to_json(?MODULE, {type, complex_data, 0}, Data).
+    impala_json:to_json(?MODULE, {type, complex_data, 0}, Data).
 
 -spec from_json_complex_data(json:encode_value()) ->
-                                {ok, complex_data()} | {error, [erldantic:error()]}.
+                                {ok, complex_data()} | {error, [impala:error()]}.
 from_json_complex_data(Json) ->
-    erldantic_json:from_json(?MODULE, {type, complex_data, 0}, Json).
+    impala_json:from_json(?MODULE, {type, complex_data, 0}, Json).
 
 -spec to_json_mixed_requirements(term()) ->
-                                    {ok, json:encode_value()} | {error, [erldantic:error()]}.
+                                    {ok, json:encode_value()} | {error, [impala:error()]}.
 to_json_mixed_requirements(Data) ->
-    erldantic_json:to_json(?MODULE, {type, mixed_requirements, 0}, Data).
+    impala_json:to_json(?MODULE, {type, mixed_requirements, 0}, Data).
 
 -spec from_json_mixed_requirements(json:encode_value()) ->
-                                      {ok, mixed_requirements()} | {error, [erldantic:error()]}.
+                                      {ok, mixed_requirements()} | {error, [impala:error()]}.
 from_json_mixed_requirements(Json) ->
-    erldantic_json:from_json(?MODULE, {type, mixed_requirements, 0}, Json).
+    impala_json:from_json(?MODULE, {type, mixed_requirements, 0}, Json).

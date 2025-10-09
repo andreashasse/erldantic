@@ -2,8 +2,8 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--include("../include/erldantic.hrl").
--include("../include/erldantic_internal.hrl").
+-include("../include/impala.hrl").
+-include("../include/impala_internal.hrl").
 
 -type map_result() :: result(#{atom() => integer()}).
 %-type map_result_2() :: result(#{atom() => integer()}, atom()).
@@ -12,20 +12,20 @@
 %-type result(OkType, ErrorType) :: OkType | ErrorType.
 
 type_in_form_test() ->
-    TypeInfo = erldantic_abstract_code:types_in_module(?MODULE),
-    {ok, MapResultType} = erldantic_type_info:get_type(TypeInfo, map_result, 0),
-    ?assertEqual(#ed_user_type_ref{type_name = result,
+    TypeInfo = impala_abstract_code:types_in_module(?MODULE),
+    {ok, MapResultType} = impala_type_info:get_type(TypeInfo, map_result, 0),
+    ?assertEqual(#im_user_type_ref{type_name = result,
                                    variables =
-                                       [#ed_map{fields =
+                                       [#im_map{fields =
                                                     [{map_field_type_assoc,
-                                                      #ed_simple_type{type = atom},
-                                                      #ed_simple_type{type = integer}}]}]},
+                                                      #im_simple_type{type = atom},
+                                                      #im_simple_type{type = integer}}]}]},
                  MapResultType),
-    {ok, ResultType} = erldantic_type_info:get_type(TypeInfo, result, 1),
-    ?assertEqual(#ed_type_with_variables{type =
-                                             #ed_union{types =
-                                                           [#ed_var{name = 'OkType'},
-                                                            #ed_literal{value = error}]},
+    {ok, ResultType} = impala_type_info:get_type(TypeInfo, result, 1),
+    ?assertEqual(#im_type_with_variables{type =
+                                             #im_union{types =
+                                                           [#im_var{name = 'OkType'},
+                                                            #im_literal{value = error}]},
                                          vars = ['OkType']},
                  ResultType).
 
@@ -39,68 +39,68 @@ map1_from_json_test() ->
 
 map1_to_json_bad_test() ->
     ?assertEqual({error,
-                  [#ed_error{location = [],
+                  [#im_error{location = [],
                              type = no_match,
                              ctx =
                                  #{type =>
-                                       #ed_union{types =
-                                                     [#ed_map{fields =
+                                       #im_union{types =
+                                                     [#im_map{fields =
                                                                   [{map_field_type_assoc,
-                                                                    #ed_simple_type{type = atom},
-                                                                    #ed_simple_type{type =
+                                                                    #im_simple_type{type = atom},
+                                                                    #im_simple_type{type =
                                                                                         integer}}]},
-                                                      #ed_literal{value = error}]},
+                                                      #im_literal{value = error}]},
                                    value => #{a1 => hej}}}]},
                  to_json_result_1(#{a1 => hej})),
     ?assertEqual({error,
-                  [#ed_error{location = [],
+                  [#im_error{location = [],
                              type = no_match,
                              ctx =
                                  #{type =>
-                                       #ed_union{types =
-                                                     [#ed_map{fields =
+                                       #im_union{types =
+                                                     [#im_map{fields =
                                                                   [{map_field_type_assoc,
-                                                                    #ed_simple_type{type = atom},
-                                                                    #ed_simple_type{type =
+                                                                    #im_simple_type{type = atom},
+                                                                    #im_simple_type{type =
                                                                                         integer}}]},
-                                                      #ed_literal{value = error}]},
+                                                      #im_literal{value = error}]},
                                    value => pelle}}]},
                  to_json_result_1(pelle)).
 
 map1_from_json_bad_test() ->
     ?assertEqual({error,
-                  [#ed_error{location = [],
+                  [#im_error{location = [],
                              type = no_match,
                              ctx =
                                  #{type =>
-                                       #ed_union{types =
-                                                     [#ed_map{fields =
+                                       #im_union{types =
+                                                     [#im_map{fields =
                                                                   [{map_field_type_assoc,
-                                                                    #ed_simple_type{type = atom},
-                                                                    #ed_simple_type{type =
+                                                                    #im_simple_type{type = atom},
+                                                                    #im_simple_type{type =
                                                                                         integer}}]},
-                                                      #ed_literal{value = error}]},
+                                                      #im_literal{value = error}]},
                                    value => #{a1 => hej}}}]},
                  from_json_result_1(#{a1 => hej})),
     ?assertEqual({error,
-                  [#ed_error{location = [],
+                  [#im_error{location = [],
                              type = no_match,
                              ctx =
                                  #{type =>
-                                       #ed_union{types =
-                                                     [#ed_map{fields =
+                                       #im_union{types =
+                                                     [#im_map{fields =
                                                                   [{map_field_type_assoc,
-                                                                    #ed_simple_type{type = atom},
-                                                                    #ed_simple_type{type =
+                                                                    #im_simple_type{type = atom},
+                                                                    #im_simple_type{type =
                                                                                         integer}}]},
-                                                      #ed_literal{value = error}]},
+                                                      #im_literal{value = error}]},
                                    value => pelle}}]},
                  from_json_result_1(pelle)).
 
 -spec from_json_result_1(term()) -> map_result().
 from_json_result_1(Data) ->
-    erldantic_json:from_json(?MODULE, {type, map_result, 0}, Data).
+    impala_json:from_json(?MODULE, {type, map_result, 0}, Data).
 
 -spec to_json_result_1(map_result()) -> json:encode_value().
 to_json_result_1(Data) ->
-    erldantic_json:to_json(?MODULE, {type, map_result, 0}, Data).
+    impala_json:to_json(?MODULE, {type, map_result, 0}, Data).

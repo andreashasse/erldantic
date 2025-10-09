@@ -7,8 +7,8 @@
 
 -spec name_to_json(name()) -> json:encode_value().
 name_to_json(Name) ->
-    erldantic_json:to_json(no_parse_trans, name, Name).
+    impala_json:to_json(no_parse_trans, name, Name).
 
 -spec name_from_json(json:encode_value()) -> name().
 name_from_json(Json) ->
-    erldantic_json:from_json(no_parse_trans, name, Json).
+    impala_json:from_json(no_parse_trans, name, Json).

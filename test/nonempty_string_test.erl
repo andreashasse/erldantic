@@ -2,8 +2,8 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--include("../include/erldantic.hrl").
--include("../include/erldantic_internal.hrl").
+-include("../include/impala.hrl").
+-include("../include/impala_internal.hrl").
 
 -type nonempty_user() :: #{name := nonempty_string(), email := nonempty_string()}.
 
@@ -17,7 +17,7 @@ validate_nonempty_string_test() ->
     ?assertMatch(#{name := <<"John">>, email := <<"john@example.com">>}, Json),
 
     {error, Errors} = to_json(InvalidUser),
-    ?assertMatch([#ed_error{type = type_mismatch}], Errors),
+    ?assertMatch([#im_error{type = type_mismatch}], Errors),
 
     % Test JSON conversion using from_json
     ValidJson = #{<<"name">> => <<"Jane">>, <<"email">> => <<"jane@example.com">>},
@@ -27,17 +27,15 @@ validate_nonempty_string_test() ->
     ?assertEqual(#{name => "Jane", email => "jane@example.com"}, User),
 
     {error, FromErrors} = from_json(InvalidJson),
-    ?assertMatch([#ed_error{type = type_mismatch,
+    ?assertMatch([#im_error{type = type_mismatch,
                             ctx =
-                                #{type := #ed_simple_type{type = nonempty_string}, value := <<>>}}],
+                                #{type := #im_simple_type{type = nonempty_string}, value := <<>>}}],
                  FromErrors).
 
--spec to_json(nonempty_user()) ->
-                 {ok, json:encode_value()} | {error, [erldantic:error()]}.
+-spec to_json(nonempty_user()) -> {ok, json:encode_value()} | {error, [impala:error()]}.
 to_json(User) ->
-    erldantic_json:to_json(?MODULE, {type, nonempty_user, 0}, User).
+    impala_json:to_json(?MODULE, {type, nonempty_user, 0}, User).
 
--spec from_json(json:encode_value()) ->
-                   {ok, nonempty_user()} | {error, [erldantic:error()]}.
+-spec from_json(json:encode_value()) -> {ok, nonempty_user()} | {error, [impala:error()]}.
 from_json(Json) ->
-    erldantic_json:from_json(?MODULE, {type, nonempty_user, 0}, Json).
+    impala_json:from_json(?MODULE, {type, nonempty_user, 0}, Json).

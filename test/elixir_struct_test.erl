@@ -2,8 +2,8 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--include("../include/erldantic.hrl").
--include("../include/erldantic_internal.hrl").
+-include("../include/impala.hrl").
+-include("../include/impala_internal.hrl").
 
 to_json_excludes_struct_field_test() ->
     %% Skip test if Elixir module is not available
@@ -29,18 +29,18 @@ run_to_json() ->
                      email => <<"john@example.com">>}),
 
     %% Create a type definition based on the struct fields (excluding __struct__)
-    %% Note: We manually define the type instead of using erldantic_abstract_code:types_in_module/1
+    %% Note: We manually define the type instead of using impala_abstract_code:types_in_module/1
     %% because Elixir beam files use a different backend (elixir_erl) that's incompatible
     %% with Erlang's beam_lib:chunks/2 for abstract code extraction
     StructType =
-        #ed_map{fields =
-                    [{map_field_exact, name, #ed_simple_type{type = binary}},
-                     {map_field_exact, age, #ed_simple_type{type = non_neg_integer}},
-                     {map_field_exact, email, #ed_simple_type{type = binary}}],
+        #im_map{fields =
+                    [{map_field_exact, name, #im_simple_type{type = binary}},
+                     {map_field_exact, age, #im_simple_type{type = non_neg_integer}},
+                     {map_field_exact, email, #im_simple_type{type = binary}}],
                 struct_name = 'Elixir.TestUserStruct'},
 
     %% Convert to JSON - should exclude __struct__ field
-    {ok, Json} = erldantic_json:to_json(#{}, StructType, StructData),
+    {ok, Json} = impala_json:to_json(#{}, StructType, StructData),
 
     %% Verify __struct__ field is not in JSON
     ?assertEqual(false, maps:is_key('__struct__', Json)),
@@ -72,14 +72,14 @@ run_from_json() ->
     %% Create type definition with struct name
     %% Note: Manual type definition required due to Elixir/Erlang beam compatibility issues
     StructType =
-        #ed_map{fields =
-                    [{map_field_exact, name, #ed_simple_type{type = binary}},
-                     {map_field_exact, age, #ed_simple_type{type = non_neg_integer}},
-                     {map_field_exact, email, #ed_simple_type{type = binary}}],
+        #im_map{fields =
+                    [{map_field_exact, name, #im_simple_type{type = binary}},
+                     {map_field_exact, age, #im_simple_type{type = non_neg_integer}},
+                     {map_field_exact, email, #im_simple_type{type = binary}}],
                 struct_name = 'Elixir.TestUserStruct'},
 
     %% Convert from JSON - should add back __struct__ field
-    {ok, Result} = erldantic_json:from_json(#{}, StructType, Json),
+    {ok, Result} = impala_json:from_json(#{}, StructType, Json),
 
     %% Verify __struct__ field is added back
     ?assertEqual('Elixir.TestUserStruct', maps:get('__struct__', Result)),

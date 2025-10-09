@@ -1,20 +1,20 @@
-# Erldantic
+# Impala
 
-A data validation library for Erlang inspired by Pydantic. Point it to your erlang types (records and type specs) and it will validate and convert JSON data to/from your types, generate json schemas and help you generate openapi schemas.
+A data serialization and validation library for Erlang inspired by Pydantic. Point it to your erlang types (records and type specs) and it will validate and convert JSON data to/from your types, generate json schemas and help you generate openapi schemas.
 
 ## Installation
 
-Add erldantic to your rebar.config dependencies:
+Add impala to your rebar.config dependencies:
 
 ```erlang
 {deps, [
-    {erldantic, ".*", {git, "https://github.com/andreashasse/erldantic.git", {branch, "main"}}}
+    {impala, ".*", {git, "https://github.com/andreashasse/impala.git", {branch, "main"}}}
 ]}.
 ```
 
 ## Type-safe Json serialization / deserialization
 
-Erldantic provides type-safe JSON serialization and deserialization for Erlang records and all Erlang types that can be converted to JSON.
+Impala provides type-safe JSON serialization and deserialization for Erlang records and all Erlang types that can be converted to JSON.
 
 - **Type-safe JSON conversion**: Convert typed erlang values to/from JSON, making sure the data conforms to the type.
 - **Detailed errors**: Get error messages with location information when validation fails
@@ -26,7 +26,7 @@ Hopefully easy to add support for Elixir and Gleam in the future.
 
 ### Basic Usage
 
-Here's how to use erldantic for JSON serialization and deserialization:
+Here's how to use impala for JSON serialization and deserialization:
 (The same code is available in `test/example_test.erl`)
 
 #### 1. Define your types:
@@ -51,15 +51,15 @@ Here's how to use erldantic for JSON serialization and deserialization:
 #### 2. Optionally, create helper functions:
 
 ```erlang
--spec json_to_contacts(binary()) -> {ok, contacts()} | {error, [erldantic:error()]}.
+-spec json_to_contacts(binary()) -> {ok, contacts()} | {error, [impala:error()]}.
 json_to_contacts(Json) ->
     Decoded = json:decode(Json),
-    erldantic_json:from_json(?MODULE, {type, contacts, 0}, Decoded).
+    impala_json:from_json(?MODULE, {type, contacts, 0}, Decoded).
 
--spec contacts_to_json(contacts()) -> binary() | {error, [erldantic:error()]}.
+-spec contacts_to_json(contacts()) -> binary() | {error, [impala:error()]}.
 contacts_to_json(Contacts) ->
     maybe
-        {ok, Encodeable} ?= erldantic_json:to_json(?MODULE, {type, contacts, 0}, Contacts),
+        {ok, Encodeable} ?= impala_json:to_json(?MODULE, {type, contacts, 0}, Contacts),
         iolist_to_binary(json:encode(Encodeable))
     end.
 ```
@@ -94,13 +94,13 @@ Json = contacts_to_json(Contacts),
 {ok, Contacts} = json_to_contacts(Json).
 ```
 
-### JSON Serialization API
+# JSON Serialization API
 
 These are the main functions for JSON serialization and deserialization:
 
 ```erlang
-erldantic_json:to_json(Module, TypeOrReference, Value) -> {ok, json:encode_value()} | {error, [erldantic:error()]}.
-erldantic_json:from_json(Module, TypeOrReference, Json) -> {ok, ... your type ...} | {error, [erldantic:error()]}.
+impala_json:to_json(Module, TypeOrReference, Value) -> {ok, json:encode_value()} | {error, [impala:error()]}.
+impala_json:from_json(Module, TypeOrReference, Json) -> {ok, ... your type ...} | {error, [impala:error()]}.
 ```
 
 Where:
@@ -108,13 +108,13 @@ Where:
 - `TypeOrReference` can be:
   - `{type, TypeName, Arity}` for user-defined types (e.g., `{type, my_type, 0}`)
   - `{record, RecordName}` for records (e.g., `{record, user}`)
-  - An actual `ed_type()` structure (for advanced usage)
+  - An actual `im_type()` structure (for advanced usage)
 
 The type cannot have any parameters (arity must be 0 for user-defined types).
 
 ### Error Handling
 
-Erldantic provides detailed error messages when data doesn't match your type specifications:
+Impala provides detailed error messages when data doesn't match your type specifications:
 
 ```erlang
 BadSourceJson = <<"[{\"number\":\"+1-555-123-4567\",\"verified\":{\"source\":\"a_bad_source\",\"confidence\":\"high\"},\"sms_capable\":true}]">>.
@@ -124,12 +124,12 @@ BadSourceJson = <<"[{\"number\":\"+1-555-123-4567\",\"verified\":{\"source\":\"a
 
 ## JSON Schema Generation
 
-Erldantic can generate [JSON Schema](https://json-schema.org/) specifications from your Erlang types. This is useful for API documentation, client code generation, validation in other languages, and integration with schema-based tools.
+Impala can generate [JSON Schema](https://json-schema.org/) specifications from your Erlang types. This is useful for API documentation, client code generation, validation in other languages, and integration with schema-based tools.
 
 ### JSON Schema API
 
 ```erlang
-erldantic_json_schema:to_schema(Module, TypeOrReference) -> {ok, Schema :: map()} | {error, [erldantic:error()]}.
+impala_json_schema:to_schema(Module, TypeOrReference) -> {ok, Schema :: map()} | {error, [impala:error()]}.
 ```
 
 ### Basic Example
@@ -142,7 +142,7 @@ erldantic_json_schema:to_schema(Module, TypeOrReference) -> {ok, Schema :: map()
 -record(user, {id :: integer(), name :: string() | undefined, email :: string()}).
 
 generate_user_schema() ->
-    {ok, Schema} = erldantic_json_schema:to_schema(?MODULE, {record, user}),
+    {ok, Schema} = impala_json_schema:to_schema(?MODULE, {record, user}),
     %% Schema will be:
     %% #{type => <<"object">>,
     %%   properties => #{
@@ -172,7 +172,7 @@ When a type is a union with `undefined`, the schema omits the `undefined` and ma
 
 ## OpenAPI Specification Generation
 
-Erldantic can generate complete [OpenAPI 3.0](https://spec.openapis.org/oas/v3.0.0) specifications for your REST APIs. This provides interactive documentation, client generation, and API testing tools.
+Impala can generate complete [OpenAPI 3.0](https://spec.openapis.org/oas/v3.0.0) specifications for your REST APIs. This provides interactive documentation, client generation, and API testing tools.
 
 ### OpenAPI Builder API
 
@@ -180,23 +180,115 @@ Build endpoints using a fluent builder pattern:
 
 ```erlang
 %% Create a base endpoint
-erldantic_openapi:endpoint(Method, Path) -> endpoint_spec().
+impala_openapi:endpoint(Method, Path) -> endpoint_spec().
 
 %% Add responses
-erldantic_openapi:with_response(Endpoint, StatusCode, Description, Module, Schema) -> endpoint_spec().
+impala_openapi:with_response(Endpoint, StatusCode, Description, Module, Schema) -> endpoint_spec().
 
 %% Add request body
-erldantic_openapi:with_request_body(Endpoint, Module, Schema) -> endpoint_spec().
+impala_openapi:with_request_body(Endpoint, Module, Schema) -> endpoint_spec().
 
 %% Add parameters (path, query, header, cookie)
-erldantic_openapi:with_parameter(Endpoint, Module, ParameterSpec) -> endpoint_spec().
+impala_openapi:with_parameter(Endpoint, Module, ParameterSpec) -> endpoint_spec().
 
 %% Generate complete OpenAPI spec
-erldantic_openapi:endpoints_to_openapi(Metadata, Endpoints) -> {ok, json:encode_value()} | {error, [erldantic:error()]}.
+impala_openapi:endpoints_to_openapi(Metadata, Endpoints) -> {ok, json:encode_value()} | {error, [impala:error()]}.
 ```
 
+<<<<<<< HEAD
 This API is meant to be used by developers of web severs / web frameworks.
 See [elli_openapi](https://github.com/andreashasse/elli_openapi) for an example of how to use it in a web server.
+=======
+### Complete Example
+
+```erlang
+-module(my_api).
+
+-record(user, {id :: integer(), name :: string(), email :: string()}).
+-record(create_user_request, {name :: string(), email :: string()}).
+-record(error_response, {message :: string(), code :: integer()}).
+
+-type user() :: #user{}.
+-type create_user_request() :: #create_user_request{}.
+-type error_response() :: #error_response{}.
+-type user_id() :: integer().
+
+generate_openapi_spec() ->
+    %% Define list users endpoint
+    ListUsers1 = impala_openapi:endpoint(get, <<"/users">>),
+    ListUsers = impala_openapi:with_response(ListUsers1,
+                                                 200,
+                                                 <<"List of all users">>,
+                                                 ?MODULE,
+                                                 #im_list{type = {record, user}}),
+
+    %% Define create user endpoint
+    CreateUser1 = impala_openapi:endpoint(post, <<"/users">>),
+    CreateUser2 = impala_openapi:with_request_body(CreateUser1,
+                                                       ?MODULE,
+                                                       {record, create_user_request}),
+    CreateUser3 = impala_openapi:with_response(CreateUser2,
+                                                   201,
+                                                   <<"User created successfully">>,
+                                                   ?MODULE,
+                                                   {record, user}),
+    CreateUser = impala_openapi:with_response(CreateUser3,
+                                                  400,
+                                                  <<"Invalid input">>,
+                                                  ?MODULE,
+                                                  {record, error_response}),
+
+    %% Define get user endpoint
+    GetUser1 = impala_openapi:endpoint(get, <<"/users/{id}">>),
+    GetUser2 = impala_openapi:with_parameter(GetUser1,
+                                                 ?MODULE,
+                                                 #{name => <<"id">>,
+                                                   in => path,
+                                                   required => true,
+                                                   schema => {type, user_id, 0}}),
+    GetUser3 = impala_openapi:with_response(GetUser2,
+                                                200,
+                                                <<"User details">>,
+                                                ?MODULE,
+                                                {record, user}),
+    GetUser = impala_openapi:with_response(GetUser3,
+                                               404,
+                                               <<"User not found">>,
+                                               ?MODULE,
+                                               {record, error_response}),
+
+    %% Generate complete OpenAPI spec
+    {ok, OpenAPISpec} = impala_openapi:endpoints_to_openapi(
+        #{title => <<"My API">>, version => <<"1.0.0">>},
+        [ListUsers, CreateUser, GetUser]
+    ),
+
+    %% OpenAPISpec can now be serialized to JSON and served
+    json:encode(OpenAPISpec).
+```
+
+### Component Schemas
+
+The `endpoints_to_openapi/2` function automatically:
+- Collects all type references used in endpoints
+- Generates JSON schemas for each referenced type
+- Creates a `components.schemas` section with reusable schemas
+- Uses `$ref` to reference schemas in the spec
+
+### Schema References
+
+You can use either:
+- **Type references**: `{type, TypeName, Arity}` or `{record, RecordName}` - These create reusable component schemas
+- **Direct types**: `#im_simple_type{}`, `#im_list{}`, etc. - These create inline schemas
+
+```erlang
+%% Using type reference (creates reusable component)
+impala_openapi:with_response(Endpoint, 200, <<"Success">>, ?MODULE, {record, user})
+
+%% Using direct type (inline schema)
+impala_openapi:with_response(Endpoint, 200, <<"Success">>, ?MODULE, #im_simple_type{type = string})
+```
+>>>>>>> 32f0d63 (Rename project to impala)
 
 ## Special Handling
 
@@ -208,7 +300,7 @@ For example, `integer() | undefined` will become `undefined` in records and maps
 
 ### `term()` | `any()`
 
-When using types with `term`, `erldantic_json` will not reject any data, which means it can return data that `json.erl` cannot convert to JSON.
+When using types with `term`, `impala_json` will not reject any data, which means it can return data that `json.erl` cannot convert to JSON.
 
 ### Unsupported Types
 
@@ -222,7 +314,7 @@ Some Erlang types are not supported for JSON conversion:
 
 ### Application Environment Variables
 
-You can configure erldantic behavior using application environment variables:
+You can configure impala behavior using application environment variables:
 
 #### `use_module_types_cache`
 - **Type**: `boolean()`
@@ -241,7 +333,7 @@ You can configure erldantic behavior using application environment variables:
 Example configuration in `sys.config`:
 
 ```erlang
-{erldantic, [
+{impala, [
     {use_module_types_cache, true},
     {check_unicode, false}
 ]}.
@@ -252,13 +344,13 @@ Example configuration in `sys.config`:
 `#error{}` contains:
 
 - `location` - List showing the path to where the error occurred
-- `type` - Error type: `type_mismatch`, `no_match`, `missing_data`, `missing_type`, `type_not_supported`, `not_matched_fields`, `not_implemented`
+- `type` - Error type: `type_mismatch`, `no_match`, `missing_data`, `missing_type`, `type_not_supported`, `not_matchim_fields`, `not_implemented`
 - `ctx` - Context information about the error
 
 ## Related Projects
 
-- **[elli_openapi](https://github.com/andreashasse/elli_openapi)** - Elli middleware for automatic OpenAPI spec generation and validation using erldantic
-- **[exdantic](https://github.com/andreashasse/exdantic)** - Elixir port of erldantic for data validation and JSON serialization
+- **[elli_openapi](https://github.com/andreashasse/elli_openapi)** - Elli middleware for automatic OpenAPI spec generation and validation using impala
+- **[exdantic](https://github.com/andreashasse/exdantic)** - Elixir port of impala for data validation and JSON serialization
 
 ## Development Status
 

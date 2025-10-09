@@ -2,8 +2,8 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--include("../include/erldantic.hrl").
--include("../include/erldantic_internal.hrl").
+-include("../include/impala.hrl").
+-include("../include/impala_internal.hrl").
 
 -compile(nowarn_unused_type).
 -compile(nowarn_unused_function).
@@ -113,198 +113,196 @@ external_type_func(_) ->
     ok.
 
 function_spec_extraction_test() ->
-    TypeInfo = erldantic_abstract_code:types_in_module(?MODULE),
+    TypeInfo = impala_abstract_code:types_in_module(?MODULE),
 
     %% Test my_function/2 spec extraction
-    {ok, [MyFunctionSpec]} = erldantic_type_info:get_function(TypeInfo, my_function, 2),
-    ?assertMatch(#ed_function_spec{args =
-                                       [#ed_simple_type{type = integer},
-                                        #ed_simple_type{type = string}],
-                                   return = #ed_simple_type{type = boolean}},
+    {ok, [MyFunctionSpec]} = impala_type_info:get_function(TypeInfo, my_function, 2),
+    ?assertMatch(#im_function_spec{args =
+                                       [#im_simple_type{type = integer},
+                                        #im_simple_type{type = string}],
+                                   return = #im_simple_type{type = boolean}},
                  MyFunctionSpec),
 
     %% Test simple_func/1 spec extraction
-    {ok, [SimpleFuncSpec]} = erldantic_type_info:get_function(TypeInfo, simple_func, 1),
-    ?assertMatch(#ed_function_spec{args = [#ed_simple_type{type = atom}],
-                                   return = #ed_simple_type{type = term}},
+    {ok, [SimpleFuncSpec]} = impala_type_info:get_function(TypeInfo, simple_func, 1),
+    ?assertMatch(#im_function_spec{args = [#im_simple_type{type = atom}],
+                                   return = #im_simple_type{type = term}},
                  SimpleFuncSpec),
 
     %% Test no_arg_func/0 spec extraction
-    {ok, [NoArgFuncSpec]} = erldantic_type_info:get_function(TypeInfo, no_arg_func, 0),
-    ?assertMatch(#ed_function_spec{args = [], return = #ed_simple_type{type = integer}},
+    {ok, [NoArgFuncSpec]} = impala_type_info:get_function(TypeInfo, no_arg_func, 0),
+    ?assertMatch(#im_function_spec{args = [], return = #im_simple_type{type = integer}},
                  NoArgFuncSpec),
 
     %% Test complex_func/2 spec extraction - more complex types
-    {ok, [ComplexFuncSpec]} = erldantic_type_info:get_function(TypeInfo, complex_func, 2),
-    ?assertMatch(#ed_function_spec{args =
-                                       [#ed_list{type = #ed_simple_type{type = integer}},
-                                        #ed_map{fields =
+    {ok, [ComplexFuncSpec]} = impala_type_info:get_function(TypeInfo, complex_func, 2),
+    ?assertMatch(#im_function_spec{args =
+                                       [#im_list{type = #im_simple_type{type = integer}},
+                                        #im_map{fields =
                                                     [{map_field_type_assoc,
-                                                      #ed_simple_type{type = atom},
-                                                      #ed_simple_type{type = binary}}]}],
+                                                      #im_simple_type{type = atom},
+                                                      #im_simple_type{type = binary}}]}],
                                    return =
-                                       #ed_union{types =
-                                                     [#ed_tuple{fields =
-                                                                    [#ed_literal{value = ok},
-                                                                     #ed_simple_type{type = pid}]},
-                                                      #ed_tuple{fields =
-                                                                    [#ed_literal{value = error},
-                                                                     #ed_simple_type{type =
+                                       #im_union{types =
+                                                     [#im_tuple{fields =
+                                                                    [#im_literal{value = ok},
+                                                                     #im_simple_type{type = pid}]},
+                                                      #im_tuple{fields =
+                                                                    [#im_literal{value = error},
+                                                                     #im_simple_type{type =
                                                                                          atom}]}]}},
                  ComplexFuncSpec).
 
 user_defined_types_test() ->
-    TypeInfo = erldantic_abstract_code:types_in_module(?MODULE),
+    TypeInfo = impala_abstract_code:types_in_module(?MODULE),
 
     %% Test function with user-defined record argument
-    {ok, [ProcessUserSpec]} = erldantic_type_info:get_function(TypeInfo, process_user, 1),
-    ?assertMatch(#ed_function_spec{args = [#ed_rec_ref{record_name = user}],
-                                   return = #ed_user_type_ref{type_name = my_custom_type}},
+    {ok, [ProcessUserSpec]} = impala_type_info:get_function(TypeInfo, process_user, 1),
+    ?assertMatch(#im_function_spec{args = [#im_rec_ref{record_name = user}],
+                                   return = #im_user_type_ref{type_name = my_custom_type}},
                  ProcessUserSpec),
 
     %% Test function returning user-defined record
-    {ok, [CreateUserSpec]} = erldantic_type_info:get_function(TypeInfo, create_user, 2),
-    ?assertMatch(#ed_function_spec{args =
-                                       [#ed_user_type_ref{type_name = my_id},
-                                        #ed_simple_type{type = string}],
-                                   return = #ed_rec_ref{record_name = user}},
+    {ok, [CreateUserSpec]} = impala_type_info:get_function(TypeInfo, create_user, 2),
+    ?assertMatch(#im_function_spec{args =
+                                       [#im_user_type_ref{type_name = my_id},
+                                        #im_simple_type{type = string}],
+                                   return = #im_rec_ref{record_name = user}},
                  CreateUserSpec),
 
     %% Test function with record argument and tuple return
-    {ok, [HandleResponseSpec]} =
-        erldantic_type_info:get_function(TypeInfo, handle_response, 1),
-    ?assertMatch(#ed_function_spec{args = [#ed_rec_ref{record_name = response}],
+    {ok, [HandleResponseSpec]} = impala_type_info:get_function(TypeInfo, handle_response, 1),
+    ?assertMatch(#im_function_spec{args = [#im_rec_ref{record_name = response}],
                                    return =
-                                       #ed_tuple{fields =
-                                                     [#ed_simple_type{type = integer},
-                                                      #ed_simple_type{type = term}]}},
+                                       #im_tuple{fields =
+                                                     [#im_simple_type{type = integer},
+                                                      #im_simple_type{type = term}]}},
                  HandleResponseSpec),
 
     %% Test function using remote types
-    {ok, [GetKeysSpec]} = erldantic_type_info:get_function(TypeInfo, get_keys, 1),
-    ?assertMatch(#ed_function_spec{args =
-                                       [#ed_map{fields =
+    {ok, [GetKeysSpec]} = impala_type_info:get_function(TypeInfo, get_keys, 1),
+    ?assertMatch(#im_function_spec{args =
+                                       [#im_map{fields =
                                                     [{map_field_type_assoc,
-                                                      #ed_simple_type{type = term},
-                                                      #ed_simple_type{type = term}}]}],
+                                                      #im_simple_type{type = term},
+                                                      #im_simple_type{type = term}}]}],
                                    return =
-                                       #ed_list{type = #ed_remote_type{mfargs = {maps, key, []}}}},
+                                       #im_list{type = #im_remote_type{mfargs = {maps, key, []}}}},
                  GetKeysSpec),
 
     %% Test function with remote type argument
-    {ok, [FormatDatetimeSpec]} =
-        erldantic_type_info:get_function(TypeInfo, format_datetime, 1),
-    ?assertMatch(#ed_function_spec{args =
-                                       [#ed_remote_type{mfargs = {calendar, datetime, []}}],
-                                   return = #ed_simple_type{type = string}},
+    {ok, [FormatDatetimeSpec]} = impala_type_info:get_function(TypeInfo, format_datetime, 1),
+    ?assertMatch(#im_function_spec{args =
+                                       [#im_remote_type{mfargs = {calendar, datetime, []}}],
+                                   return = #im_simple_type{type = string}},
                  FormatDatetimeSpec).
 
 parametrized_types_test() ->
-    TypeInfo = erldantic_abstract_code:types_in_module(?MODULE),
+    TypeInfo = impala_abstract_code:types_in_module(?MODULE),
 
     %% Test function using parametrized user-defined types
-    {ok, [ProcessListSpec]} = erldantic_type_info:get_function(TypeInfo, process_list, 1),
-    ?assertMatch(#ed_function_spec{args =
-                                       [#ed_user_type_ref{type_name = my_list,
+    {ok, [ProcessListSpec]} = impala_type_info:get_function(TypeInfo, process_list, 1),
+    ?assertMatch(#im_function_spec{args =
+                                       [#im_user_type_ref{type_name = my_list,
                                                           variables =
-                                                              [#ed_simple_type{type = integer}]}],
+                                                              [#im_simple_type{type = integer}]}],
                                    return =
-                                       #ed_user_type_ref{type_name = my_list,
+                                       #im_user_type_ref{type_name = my_list,
                                                          variables =
-                                                             [#ed_simple_type{type = binary}]}},
+                                                             [#im_simple_type{type = binary}]}},
                  ProcessListSpec),
 
     %% Test function with type variables in spec
-    {ok, [MakePairSpec]} = erldantic_type_info:get_function(TypeInfo, make_pair, 2),
-    ?assertMatch(#ed_function_spec{args = [#ed_var{name = 'A'}, #ed_var{name = 'B'}],
+    {ok, [MakePairSpec]} = impala_type_info:get_function(TypeInfo, make_pair, 2),
+    ?assertMatch(#im_function_spec{args = [#im_var{name = 'A'}, #im_var{name = 'B'}],
                                    return =
-                                       #ed_user_type_ref{type_name = my_pair,
+                                       #im_user_type_ref{type_name = my_pair,
                                                          variables =
-                                                             [#ed_var{name = 'A'},
-                                                              #ed_var{name = 'B'}]}},
+                                                             [#im_var{name = 'A'},
+                                                              #im_var{name = 'B'}]}},
                  MakePairSpec),
 
     %% Test function with complex type variables and functions
-    {ok, [TransformPairSpec]} = erldantic_type_info:get_function(TypeInfo, transform_pair, 3),
-    ?assertMatch(#ed_function_spec{args =
-                                       [#ed_user_type_ref{type_name = my_pair,
+    {ok, [TransformPairSpec]} = impala_type_info:get_function(TypeInfo, transform_pair, 3),
+    ?assertMatch(#im_function_spec{args =
+                                       [#im_user_type_ref{type_name = my_pair,
                                                           variables =
-                                                              [#ed_var{name = 'A'},
-                                                               #ed_var{name = 'B'}]},
-                                        #ed_function{args = [#ed_var{name = 'A'}],
-                                                     return = #ed_var{name = 'C'}},
-                                        #ed_function{args = [#ed_var{name = 'B'}],
-                                                     return = #ed_var{name = 'D'}}],
+                                                              [#im_var{name = 'A'},
+                                                               #im_var{name = 'B'}]},
+                                        #im_function{args = [#im_var{name = 'A'}],
+                                                     return = #im_var{name = 'C'}},
+                                        #im_function{args = [#im_var{name = 'B'}],
+                                                     return = #im_var{name = 'D'}}],
                                    return =
-                                       #ed_user_type_ref{type_name = my_pair,
+                                       #im_user_type_ref{type_name = my_pair,
                                                          variables =
-                                                             [#ed_var{name = 'C'},
-                                                              #ed_var{name = 'D'}]}},
+                                                             [#im_var{name = 'C'},
+                                                              #im_var{name = 'D'}]}},
                  TransformPairSpec).
 
 complex_types_test() ->
-    TypeInfo = erldantic_abstract_code:types_in_module(?MODULE),
+    TypeInfo = impala_abstract_code:types_in_module(?MODULE),
 
     %% Test function with union of user-defined and built-in types
-    {ok, [ProcessIdSpec]} = erldantic_type_info:get_function(TypeInfo, process_id, 1),
-    ?assertMatch(#ed_function_spec{args =
-                                       [#ed_union{types =
-                                                      [#ed_user_type_ref{type_name = my_id},
-                                                       #ed_simple_type{type = binary}]}],
+    {ok, [ProcessIdSpec]} = impala_type_info:get_function(TypeInfo, process_id, 1),
+    ?assertMatch(#im_function_spec{args =
+                                       [#im_union{types =
+                                                      [#im_user_type_ref{type_name = my_id},
+                                                       #im_simple_type{type = binary}]}],
                                    return =
-                                       #ed_union{types =
-                                                     [#ed_tuple{fields =
-                                                                    [#ed_literal{value = ok},
-                                                                     #ed_user_type_ref{type_name =
+                                       #im_union{types =
+                                                     [#im_tuple{fields =
+                                                                    [#im_literal{value = ok},
+                                                                     #im_user_type_ref{type_name =
                                                                                            my_id}]},
-                                                      #ed_tuple{fields =
-                                                                    [#ed_literal{value = error},
-                                                                     #ed_literal{value =
+                                                      #im_tuple{fields =
+                                                                    [#im_literal{value = error},
+                                                                     #im_literal{value =
                                                                                      invalid_id}]}]}},
                  ProcessIdSpec),
 
     %% Test function with external module record type
     {ok, [ExternalTypeFuncSpec]} =
-        erldantic_type_info:get_function(TypeInfo, external_type_func, 1),
-    ?assertMatch(#ed_function_spec{args =
-                                       [#ed_remote_type{mfargs = {external_type, some_record, []}}],
-                                   return = #ed_literal{value = ok}},
+        impala_type_info:get_function(TypeInfo, external_type_func, 1),
+    ?assertMatch(#im_function_spec{args =
+                                       [#im_remote_type{mfargs = {external_type, some_record, []}}],
+                                   return = #im_literal{value = ok}},
                  ExternalTypeFuncSpec).
 
 bounded_fun_spec_test() ->
-    TypeInfo = erldantic_abstract_code:types_in_module(?MODULE),
+    TypeInfo = impala_abstract_code:types_in_module(?MODULE),
 
     %% Test bounded_fun spec with when constraints
-    {ok, [WithBoundFunSpec]} = erldantic_type_info:get_function(TypeInfo, with_bound_fun, 2),
-    ?assertMatch(#ed_function_spec{args =
-                                       [#ed_simple_type{type = atom},
-                                        #ed_list{type = #ed_simple_type{type = integer}}],
-                                   return = #ed_simple_type{type = integer}},
+    {ok, [WithBoundFunSpec]} = impala_type_info:get_function(TypeInfo, with_bound_fun, 2),
+    ?assertMatch(#im_function_spec{args =
+                                       [#im_simple_type{type = atom},
+                                        #im_list{type = #im_simple_type{type = integer}}],
+                                   return = #im_simple_type{type = integer}},
                  WithBoundFunSpec).
 
 multi_clause_spec_test() ->
-    TypeInfo = erldantic_abstract_code:types_in_module(?MODULE),
-    {ok, MultiClauseSpecs} = erldantic_type_info:get_function(TypeInfo, multi_clause_func, 2),
-    ?assertEqual([#ed_function_spec{args =
-                                        [#ed_user_type_ref{type_name = my_id, variables = []},
-                                         #ed_simple_type{type = string}],
-                                    return = #ed_rec_ref{record_name = user, field_types = []}},
-                  #ed_function_spec{args =
-                                        [#ed_simple_type{type = binary},
-                                         #ed_simple_type{type = atom}],
-                                    return = #ed_simple_type{type = boolean}}],
+    TypeInfo = impala_abstract_code:types_in_module(?MODULE),
+    {ok, MultiClauseSpecs} = impala_type_info:get_function(TypeInfo, multi_clause_func, 2),
+    ?assertEqual([#im_function_spec{args =
+                                        [#im_user_type_ref{type_name = my_id, variables = []},
+                                         #im_simple_type{type = string}],
+                                    return = #im_rec_ref{record_name = user, field_types = []}},
+                  #im_function_spec{args =
+                                        [#im_simple_type{type = binary},
+                                         #im_simple_type{type = atom}],
+                                    return = #im_simple_type{type = boolean}}],
                  MultiClauseSpecs).
 
 mixed_bounded_fun_spec_test() ->
-    TypeInfo = erldantic_abstract_code:types_in_module(?MODULE),
-    {ok, MixedSpecs} = erldantic_type_info:get_function(TypeInfo, mixed_spec_func, 2),
+    TypeInfo = impala_abstract_code:types_in_module(?MODULE),
+    {ok, MixedSpecs} = impala_type_info:get_function(TypeInfo, mixed_spec_func, 2),
     ?assertEqual(2, length(MixedSpecs)),
-    ?assertEqual([#ed_function_spec{args =
-                                        [#ed_simple_type{type = atom},
-                                         #ed_list{type = #ed_simple_type{type = term}}],
-                                    return = #ed_simple_type{type = integer}},
-                  #ed_function_spec{args =
-                                        [#ed_simple_type{type = binary},
-                                         #ed_simple_type{type = atom}],
-                                    return = #ed_simple_type{type = string}}],
+    ?assertEqual([#im_function_spec{args =
+                                        [#im_simple_type{type = atom},
+                                         #im_list{type = #im_simple_type{type = term}}],
+                                    return = #im_simple_type{type = integer}},
+                  #im_function_spec{args =
+                                        [#im_simple_type{type = binary},
+                                         #im_simple_type{type = atom}],
+                                    return = #im_simple_type{type = string}}],
                  MixedSpecs).

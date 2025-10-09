@@ -1,4 +1,4 @@
--module(erldantic_util).
+-module(impala_util).
 
 -export([test_abs_code/1, fold_until_error/3, map_until_error/2]).
 
@@ -10,7 +10,7 @@
 
 -endif.
 
--include_lib("erldantic/include/erldantic.hrl").
+-include_lib("impala/include/impala.hrl").
 
 -ifdef(TEST).
 
@@ -21,7 +21,7 @@ not_handled_modules_test() ->
                            case test_abs_code(Module) of
                                {ok, _Types} ->
                                    false;
-                               {error, [#ed_error{} | _]} ->
+                               {error, [#im_error{} | _]} ->
                                    false;
                                {error, {error, {beam_lib_error, _ModuleName, _Details}, _Stack}} ->
                                    false;
@@ -38,10 +38,10 @@ not_handled_modules_test() ->
 -endif.
 
 -spec test_abs_code(module()) ->
-                       {ok, erldantic:type_info()} | {error, {atom(), term(), erlang:stacktrace()}}.
+                       {ok, impala:type_info()} | {error, {atom(), term(), erlang:stacktrace()}}.
 test_abs_code(Module) ->
     try
-        {ok, erldantic_abstract_code:types_in_module(Module)}
+        {ok, impala_abstract_code:types_in_module(Module)}
     catch
         Class:Reason:Stacktrace ->
             {error, {Class, Reason, Stacktrace}}

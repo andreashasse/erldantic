@@ -2,8 +2,8 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--include("../include/erldantic.hrl").
--include("../include/erldantic_internal.hrl").
+-include("../include/impala.hrl").
+-include("../include/impala_internal.hrl").
 
 -type item() :: integer().
 -type nonempty_items() :: [item(), ...].
@@ -18,12 +18,12 @@ validate_nonempty_list_test() ->
     ?assertEqual({ok, #{name => <<"John">>, items => [1, 2, 3]}}, to_json(ValidUser)),
 
     {error, Errors} = to_json(InvalidUser),
-    ?assertEqual([#ed_error{location = [items],
+    ?assertEqual([#im_error{location = [items],
                             type = type_mismatch,
                             ctx =
                                 #{type =>
                                       {nonempty_list,
-                                       #ed_user_type_ref{type_name = item, variables = []}},
+                                       #im_user_type_ref{type_name = item, variables = []}},
                                   value => []}}],
                  Errors),
 
@@ -35,21 +35,20 @@ validate_nonempty_list_test() ->
     ?assertEqual(#{name => "Jane", items => [4, 5, 6]}, User),
 
     {error, FromErrors} = from_json(InvalidJson),
-    ?assertEqual([#ed_error{location = [items],
+    ?assertEqual([#im_error{location = [items],
                             type = type_mismatch,
                             ctx =
                                 #{type =>
                                       {nonempty_list,
-                                       #ed_user_type_ref{type_name = item, variables = []}},
+                                       #im_user_type_ref{type_name = item, variables = []}},
                                   value => []}}],
                  FromErrors).
 
--spec to_json(user_with_items()) ->
-                 {ok, json:encode_value()} | {error, [erldantic:error()]}.
+-spec to_json(user_with_items()) -> {ok, json:encode_value()} | {error, [impala:error()]}.
 to_json(User) ->
-    erldantic_json:to_json(?MODULE, {type, user_with_items, 0}, User).
+    impala_json:to_json(?MODULE, {type, user_with_items, 0}, User).
 
 -spec from_json(json:encode_value()) ->
-                   {ok, user_with_items()} | {error, [erldantic:error()]}.
+                   {ok, user_with_items()} | {error, [impala:error()]}.
 from_json(Json) ->
-    erldantic_json:from_json(?MODULE, {type, user_with_items, 0}, Json).
+    impala_json:from_json(?MODULE, {type, user_with_items, 0}, Json).

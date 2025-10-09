@@ -1,20 +1,20 @@
--module(erldantic_json).
+-module(impala_json).
 
 -export([to_json/3, from_json/3]).
 
 -ignore_xref([to_json/3, from_json/3]).
 
--include("../include/erldantic.hrl").
--include("../include/erldantic_internal.hrl").
+-include("../include/impala.hrl").
+-include("../include/impala_internal.hrl").
 
 %% API
 
--spec to_json(erldantic:type_info() | module(),
-              erldantic:ed_type_or_ref(),
+-spec to_json(impala:type_info() | module(),
+              impala:im_type_or_ref(),
               Data :: dynamic()) ->
-                 {ok, json:encode_value()} | {error, [erldantic:error()]}.
+                 {ok, json:encode_value()} | {error, [impala:error()]}.
 to_json(Module, TypeRef, Data) when is_atom(Module) ->
-    TypeInfo = erldantic_module_types:get(Module),
+    TypeInfo = impala_module_types:get(Module),
     to_json(TypeInfo, TypeRef, Data);
 to_json(TypeInfo, Type, Data) ->
     case do_to_json(TypeInfo, Type, Data) of
@@ -27,26 +27,26 @@ to_json(TypeInfo, Type, Data) ->
     end.
 
 %% INTERNAL
--spec do_to_json(TypeInfo :: erldantic:type_info(),
-                 Type :: erldantic:ed_type_or_ref(),
+-spec do_to_json(TypeInfo :: impala:type_info(),
+                 Type :: impala:im_type_or_ref(),
                  Data :: dynamic()) ->
-                    {ok, json:encode_value()} | {error, [erldantic:error()]} | skip.
+                    {ok, json:encode_value()} | {error, [impala:error()]} | skip.
 do_to_json(TypeInfo, {record, RecordName}, Record) when is_atom(RecordName) ->
     record_to_json(TypeInfo, RecordName, Record, []);
-do_to_json(TypeInfo, #ed_rec{} = RecordInfo, Record) when is_tuple(Record) ->
+do_to_json(TypeInfo, #im_rec{} = RecordInfo, Record) when is_tuple(Record) ->
     record_to_json(TypeInfo, RecordInfo, Record, []);
 do_to_json(TypeInfo,
-           #ed_rec_ref{record_name = RecordName, field_types = TypeArgs},
+           #im_rec_ref{record_name = RecordName, field_types = TypeArgs},
            Record)
     when is_atom(RecordName) ->
     record_to_json(TypeInfo, RecordName, Record, TypeArgs);
-do_to_json(TypeInfo, #ed_user_type_ref{type_name = TypeName, variables = TypeArgs}, Data)
+do_to_json(TypeInfo, #im_user_type_ref{type_name = TypeName, variables = TypeArgs}, Data)
     when is_atom(TypeName) ->
     TypeArity = length(TypeArgs),
-    {ok, Type} = erldantic_type_info:get_type(TypeInfo, TypeName, TypeArity),
+    {ok, Type} = impala_type_info:get_type(TypeInfo, TypeName, TypeArity),
     TypeWithoutVars = apply_args(TypeInfo, Type, TypeArgs),
     do_to_json(TypeInfo, TypeWithoutVars, Data);
-do_to_json(_TypeInfo, #ed_simple_type{type = NotSupported} = Type, _Data)
+do_to_json(_TypeInfo, #im_simple_type{type = NotSupported} = Type, _Data)
     when NotSupported =:= pid
          orelse NotSupported =:= port
          orelse NotSupported =:= reference
@@ -54,30 +54,30 @@ do_to_json(_TypeInfo, #ed_simple_type{type = NotSupported} = Type, _Data)
          orelse NotSupported =:= nonempty_bitstring
          orelse NotSupported =:= none ->
     erlang:error({type_not_supported, Type});
-do_to_json(_TypeInfo, #ed_simple_type{} = Type, Value) ->
+do_to_json(_TypeInfo, #im_simple_type{} = Type, Value) ->
     prim_type_to_json(Type, Value);
 do_to_json(_TypeInfo,
-           #ed_range{type = integer,
+           #im_range{type = integer,
                      lower_bound = Min,
                      upper_bound = Max},
            Value)
     when is_integer(Value) andalso Min =< Value, Value =< Max ->
     {ok, Value};
-do_to_json(_TypeInfo, #ed_literal{value = undefined}, undefined) ->
+do_to_json(_TypeInfo, #im_literal{value = undefined}, undefined) ->
     skip;
-do_to_json(_TypeInfo, #ed_literal{value = Value}, Value) ->
+do_to_json(_TypeInfo, #im_literal{value = Value}, Value) ->
     {ok, Value};
-do_to_json(TypeInfo, #ed_union{} = Type, Data) ->
+do_to_json(TypeInfo, #im_union{} = Type, Data) ->
     union(fun do_to_json/3, TypeInfo, Type, Data);
-do_to_json(TypeInfo, #ed_nonempty_list{type = Type}, Data) ->
+do_to_json(TypeInfo, #im_nonempty_list{type = Type}, Data) ->
     nonempty_list_to_json(TypeInfo, Type, Data);
-do_to_json(TypeInfo, #ed_list{type = Type}, Data) when is_list(Data) ->
+do_to_json(TypeInfo, #im_list{type = Type}, Data) when is_list(Data) ->
     list_to_json(TypeInfo, Type, Data);
 do_to_json(TypeInfo, {type, TypeName, TypeArity}, Data) when is_atom(TypeName) ->
     %% FIXME: For simple types without arity, default to 0
-    {ok, Type} = erldantic_type_info:get_type(TypeInfo, TypeName, TypeArity),
+    {ok, Type} = impala_type_info:get_type(TypeInfo, TypeName, TypeArity),
     do_to_json(TypeInfo, Type, Data);
-do_to_json(TypeInfo, #ed_map{struct_name = StructName} = Map, Data) ->
+do_to_json(TypeInfo, #im_map{struct_name = StructName} = Map, Data) ->
     case StructName of
         undefined ->
             map_to_json(TypeInfo, Map, Data);
@@ -88,35 +88,35 @@ do_to_json(TypeInfo, #ed_map{struct_name = StructName} = Map, Data) ->
                     map_to_json(TypeInfo, Map, Data);
                 _ ->
                     {error,
-                     [#ed_error{type = type_mismatch,
+                     [#im_error{type = type_mismatch,
                                 location = [],
                                 ctx = #{expected_struct => StructName, value => Data}}]}
             end
     end;
-do_to_json(_TypeInfo, #ed_remote_type{mfargs = {Module, TypeName, Args}}, Data) ->
-    TypeInfo = erldantic_module_types:get(Module),
+do_to_json(_TypeInfo, #im_remote_type{mfargs = {Module, TypeName, Args}}, Data) ->
+    TypeInfo = impala_module_types:get(Module),
     TypeArity = length(Args),
-    {ok, Type} = erldantic_type_info:get_type(TypeInfo, TypeName, TypeArity),
+    {ok, Type} = impala_type_info:get_type(TypeInfo, TypeName, TypeArity),
     TypeWithoutVars = apply_args(TypeInfo, Type, Args),
     do_to_json(TypeInfo, TypeWithoutVars, Data);
-do_to_json(_TypeInfo, #ed_maybe_improper_list{} = Type, _Data) ->
+do_to_json(_TypeInfo, #im_maybe_improper_list{} = Type, _Data) ->
     erlang:error({type_not_implemented, Type});
-do_to_json(_TypeInfo, #ed_nonempty_improper_list{} = Type, _Data) ->
+do_to_json(_TypeInfo, #im_nonempty_improper_list{} = Type, _Data) ->
     erlang:error({type_not_implemented, Type});
 %% Not supported types
-do_to_json(_TypeInfo, #ed_tuple{} = Type, _Data) ->
+do_to_json(_TypeInfo, #im_tuple{} = Type, _Data) ->
     erlang:error({type_not_supported, Type});
-do_to_json(_TypeInfo, #ed_function{} = Type, _Data) ->
+do_to_json(_TypeInfo, #im_function{} = Type, _Data) ->
     erlang:error({type_not_supported, Type});
 do_to_json(_TypeInfo, Type, OtherValue) ->
     {error,
-     [#ed_error{type = type_mismatch,
+     [#im_error{type = type_mismatch,
                 location = [],
                 ctx = #{type => Type, value => OtherValue}}]}.
 
--spec prim_type_to_json(Type :: erldantic:ed_type(), Value :: term()) ->
-                           {ok, json:encode_value()} | {error, [erldantic:error()]}.
-prim_type_to_json(#ed_simple_type{type = Type} = T, Value) ->
+-spec prim_type_to_json(Type :: impala:im_type(), Value :: term()) ->
+                           {ok, json:encode_value()} | {error, [impala:error()]}.
+prim_type_to_json(#im_simple_type{type = Type} = T, Value) ->
     case check_type_to_json(Type, Value) of
         {true, NewValue} ->
             {ok, NewValue};
@@ -124,7 +124,7 @@ prim_type_to_json(#ed_simple_type{type = Type} = T, Value) ->
             {error, Reason};
         false ->
             {error,
-             [#ed_error{type = type_mismatch,
+             [#im_error{type = type_mismatch,
                         location = [],
                         ctx = #{type => T, value => Value}}]}
     end.
@@ -133,32 +133,32 @@ nonempty_list_to_json(TypeInfo, Type, Data) when is_list(Data) andalso Data =/= 
     list_to_json(TypeInfo, Type, Data);
 nonempty_list_to_json(_TypeInfo, Type, Data) ->
     {error,
-     [#ed_error{type = type_mismatch,
+     [#im_error{type = type_mismatch,
                 location = [],
                 ctx = #{type => {nonempty_list, Type}, value => Data}}]}.
 
--spec list_to_json(TypeInfo :: erldantic:type_info(),
-                   Type :: erldantic:ed_type_or_ref(),
+-spec list_to_json(TypeInfo :: impala:type_info(),
+                   Type :: impala:im_type_or_ref(),
                    Data :: [term()]) ->
-                      {ok, [json:encode_value()]} | {error, [erldantic:error()]}.
+                      {ok, [json:encode_value()]} | {error, [impala:error()]}.
 list_to_json(TypeInfo, Type, Data) when is_list(Data) ->
-    erldantic_util:map_until_error(fun({Nr, Item}) ->
-                                      case do_to_json(TypeInfo, Type, Item) of
-                                          {ok, Json} ->
-                                              {ok, Json};
-                                          skip ->
-                                              {ok, undefined};
-                                          {error, Errs} ->
-                                              Errs2 =
-                                                  lists:map(fun(Err) -> err_append_location(Err, Nr)
-                                                            end,
-                                                            Errs),
-                                              {error, Errs2}
-                                      end
-                                   end,
-                                   lists:enumerate(Data)).
+    impala_util:map_until_error(fun({Nr, Item}) ->
+                                   case do_to_json(TypeInfo, Type, Item) of
+                                       {ok, Json} ->
+                                           {ok, Json};
+                                       skip ->
+                                           {ok, undefined};
+                                       {error, Errs} ->
+                                           Errs2 =
+                                               lists:map(fun(Err) -> err_append_location(Err, Nr)
+                                                         end,
+                                                         Errs),
+                                           {error, Errs2}
+                                   end
+                                end,
+                                lists:enumerate(Data)).
 
-map_to_json(TypeInfo, #ed_map{fields = Fields}, Data) when is_map(Data) ->
+map_to_json(TypeInfo, #im_map{fields = Fields}, Data) when is_map(Data) ->
     %% Check if this is an Elixir struct and remove __struct__ field for JSON serialization
     DataWithoutStruct =
         case maps:take('__struct__', Data) of
@@ -175,9 +175,9 @@ map_to_json(TypeInfo, #ed_map{fields = Fields}, Data) when is_map(Data) ->
     end;
 map_to_json(_TypeInfo, _MapFieldTypes, Data) ->
     {error,
-     [#ed_error{type = type_mismatch,
+     [#im_error{type = type_mismatch,
                 location = [],
-                ctx = #{type => #ed_simple_type{type = map}, value => Data}}]}.
+                ctx = #{type => #im_simple_type{type = map}, value => Data}}]}.
 
 map_fields_to_json(TypeInfo, MapFieldTypes, Data) ->
     Fun = fun ({map_field_assoc, FieldName, FieldType}, {FieldsAcc, DataAcc}) ->
@@ -210,7 +210,7 @@ map_fields_to_json(TypeInfo, MapFieldTypes, Data) ->
                   case map_field_type(TypeInfo, KeyType, ValueType, DataAcc) of
                       {ok, {[], _}} ->
                           NoExactMatch =
-                              #ed_error{type = not_matched_fields,
+                              #im_error{type = not_matched_fields,
                                         location = [],
                                         ctx =
                                             #{type => {map_field_type_exact, KeyType, ValueType}}},
@@ -236,15 +236,15 @@ map_fields_to_json(TypeInfo, MapFieldTypes, Data) ->
                                   {error, Errs2}
                           end;
                       error ->
-                          case erldantic_type:can_be_undefined(TypeInfo, FieldType) of
+                          case impala_type:can_be_undefined(TypeInfo, FieldType) of
                               true ->
                                   {ok, {FieldsAcc, DataAcc}};
                               false ->
-                                  {error, [#ed_error{type = missing_data, location = [FieldName]}]}
+                                  {error, [#im_error{type = missing_data, location = [FieldName]}]}
                           end
                   end
           end,
-    case erldantic_util:fold_until_error(Fun, {[], Data}, MapFieldTypes) of
+    case impala_util:fold_until_error(Fun, {[], Data}, MapFieldTypes) of
         {ok, {MapFields, FinalData}} ->
             case maps:to_list(FinalData) of
                 [] ->
@@ -252,7 +252,7 @@ map_fields_to_json(TypeInfo, MapFieldTypes, Data) ->
                 L ->
                     {error,
                      lists:map(fun({Key, Value}) ->
-                                  #ed_error{type = not_matched_fields,
+                                  #im_error{type = not_matched_fields,
                                             location = [],
                                             ctx = #{key => Key, value => Value}}
                                end,
@@ -262,12 +262,12 @@ map_fields_to_json(TypeInfo, MapFieldTypes, Data) ->
             Err
     end.
 
--spec map_field_type(TypeInfo :: erldantic:type_info(),
-                     KeyType :: erldantic:ed_type(),
-                     ValueType :: erldantic:ed_type(),
+-spec map_field_type(TypeInfo :: impala:type_info(),
+                     KeyType :: impala:im_type(),
+                     ValueType :: impala:im_type(),
                      Data :: map()) ->
                         {ok, {[{json:encode_value(), json:encode_value()}], map()}} |
-                        {error, [erldantic:error()]}.
+                        {error, [impala:error()]}.
 map_field_type(TypeInfo, KeyType, ValueType, Data) ->
     Fun = fun({Key, Value}, {FieldsAcc, DataAcc}) ->
              case do_to_json(TypeInfo, KeyType, Key) of
@@ -285,18 +285,18 @@ map_field_type(TypeInfo, KeyType, ValueType, Data) ->
                      {ok, {FieldsAcc, DataAcc}}
              end
           end,
-    erldantic_util:fold_until_error(Fun, {[], Data}, maps:to_list(Data)).
+    impala_util:fold_until_error(Fun, {[], Data}, maps:to_list(Data)).
 
--spec record_to_json(TypeInfo :: erldantic:type_info(),
-                     RecordName :: atom() | #ed_rec{},
+-spec record_to_json(TypeInfo :: impala:type_info(),
+                     RecordName :: atom() | #im_rec{},
                      Record :: term(),
-                     TypeArgs :: [{atom(), erldantic:ed_type()}]) ->
-                        {ok, #{atom() => json:encode_value()}} | {error, [erldantic:error()]}.
+                     TypeArgs :: [{atom(), impala:im_type()}]) ->
+                        {ok, #{atom() => json:encode_value()}} | {error, [impala:error()]}.
 record_to_json(TypeInfo, RecordName, Record, TypeArgs) when is_atom(RecordName) ->
-    {ok, RecordInfo} = erldantic_type_info:get_record(TypeInfo, RecordName),
+    {ok, RecordInfo} = impala_type_info:get_record(TypeInfo, RecordName),
     record_to_json(TypeInfo, RecordInfo, Record, TypeArgs);
 record_to_json(TypeInfo,
-               #ed_rec{name = RecordName,
+               #im_rec{name = RecordName,
                        fields = Fields,
                        arity = Arity},
                Record,
@@ -310,7 +310,7 @@ record_to_json(TypeInfo,
     do_record_to_json(TypeInfo, RecFieldTypesWithData);
 record_to_json(_TypeInfo, RecordName, Record, TypeArgs) ->
     {error,
-     [#ed_error{type = type_mismatch,
+     [#im_error{type = type_mismatch,
                 location = [],
                 ctx =
                     #{record_name => RecordName,
@@ -324,9 +324,8 @@ record_replace_vars(RecordInfo, TypeArgs) ->
                 RecordInfo,
                 TypeArgs).
 
--spec do_record_to_json(erldantic:type_info(),
-                        [{{atom(), erldantic:ed_type()}, term()}]) ->
-                           {ok, #{atom() => json}} | {error, [erldantic:error()]}.
+-spec do_record_to_json(impala:type_info(), [{{atom(), impala:im_type()}, term()}]) ->
+                           {ok, #{atom() => json}} | {error, [impala:error()]}.
 do_record_to_json(TypeInfo, RecFieldTypesWithData) ->
     Fun = fun({{FieldName, FieldType}, RecordFieldData}, FieldsAcc) when is_atom(FieldName) ->
              case do_to_json(TypeInfo, FieldType, RecordFieldData) of
@@ -340,7 +339,7 @@ do_record_to_json(TypeInfo, RecFieldTypesWithData) ->
              end
           end,
 
-    case erldantic_util:fold_until_error(Fun, [], RecFieldTypesWithData) of
+    case impala_util:fold_until_error(Fun, [], RecFieldTypesWithData) of
         {ok, Fields} ->
             {ok, maps:from_list(Fields)};
         {error, _} = Err ->
@@ -348,38 +347,38 @@ do_record_to_json(TypeInfo, RecFieldTypesWithData) ->
     end.
 
 err_append_location(Err, FieldName) ->
-    Err#ed_error{location = [FieldName | Err#ed_error.location]}.
+    Err#im_error{location = [FieldName | Err#im_error.location]}.
 
--spec from_json(TypeInfo :: erldantic:type_info() | module(),
-                Type :: erldantic:ed_type_or_ref(),
+-spec from_json(TypeInfo :: impala:type_info() | module(),
+                Type :: impala:im_type_or_ref(),
                 Json :: json:decode_value()) ->
-                   {ok, term()} | {error, [erldantic:error()]}.
+                   {ok, term()} | {error, [impala:error()]}.
 from_json(Module, Type, Json) when is_atom(Module) ->
-    TypeInfo = erldantic_module_types:get(Module),
+    TypeInfo = impala_module_types:get(Module),
     do_from_json(TypeInfo, Type, Json);
 from_json(TypeInfo, Type, Json) ->
     do_from_json(TypeInfo, Type, Json).
 
--spec do_from_json(TypeInfo :: erldantic:type_info(),
-                   Type :: erldantic:ed_type_or_ref(),
+-spec do_from_json(TypeInfo :: impala:type_info(),
+                   Type :: impala:im_type_or_ref(),
                    Json :: json:decode_value()) ->
-                      {ok, term()} | {error, [erldantic:error()]}.
+                      {ok, term()} | {error, [impala:error()]}.
 do_from_json(TypeInfo, {record, RecordName}, Json) when is_atom(RecordName) ->
     record_from_json(TypeInfo, RecordName, Json, []);
-do_from_json(TypeInfo, #ed_rec{} = Rec, Json) ->
+do_from_json(TypeInfo, #im_rec{} = Rec, Json) ->
     record_from_json(TypeInfo, Rec, Json, []);
-do_from_json(_TypeInfo, #ed_remote_type{mfargs = {Module, TypeName, Args}}, Data) ->
-    TypeInfo = erldantic_module_types:get(Module),
+do_from_json(_TypeInfo, #im_remote_type{mfargs = {Module, TypeName, Args}}, Data) ->
+    TypeInfo = impala_module_types:get(Module),
     TypeArity = length(Args),
-    {ok, Type} = erldantic_type_info:get_type(TypeInfo, TypeName, TypeArity),
+    {ok, Type} = impala_type_info:get_type(TypeInfo, TypeName, TypeArity),
     TypeWithoutVars = apply_args(TypeInfo, Type, Args),
     do_from_json(TypeInfo, TypeWithoutVars, Data);
 do_from_json(TypeInfo,
-             #ed_rec_ref{record_name = RecordName, field_types = TypeArgs},
+             #im_rec_ref{record_name = RecordName, field_types = TypeArgs},
              Json)
     when is_atom(RecordName) ->
     record_from_json(TypeInfo, RecordName, Json, TypeArgs);
-do_from_json(TypeInfo, #ed_map{fields = Fields, struct_name = StructName}, Json) ->
+do_from_json(TypeInfo, #im_map{fields = Fields, struct_name = StructName}, Json) ->
     case map_from_json(TypeInfo, Fields, Json) of
         {ok, MapResult} when StructName =/= undefined ->
             %% Add back the __struct__ field for Elixir structs
@@ -388,15 +387,15 @@ do_from_json(TypeInfo, #ed_map{fields = Fields, struct_name = StructName}, Json)
             Result
     end;
 do_from_json(TypeInfo,
-             #ed_user_type_ref{type_name = TypeName, variables = TypeArgs},
+             #im_user_type_ref{type_name = TypeName, variables = TypeArgs},
              Json)
     when is_atom(TypeName) ->
     type_from_json(TypeInfo, TypeName, length(TypeArgs), TypeArgs, Json);
-do_from_json(TypeInfo, #ed_nonempty_list{type = Type}, Data) ->
+do_from_json(TypeInfo, #im_nonempty_list{type = Type}, Data) ->
     nonempty_list_from_json(TypeInfo, Type, Data);
-do_from_json(TypeInfo, #ed_list{type = Type}, Data) ->
+do_from_json(TypeInfo, #im_list{type = Type}, Data) ->
     list_from_json(TypeInfo, Type, Data);
-do_from_json(_TypeInfo, #ed_simple_type{type = NotSupported} = T, _Value)
+do_from_json(_TypeInfo, #im_simple_type{type = NotSupported} = T, _Value)
     when NotSupported =:= pid
          orelse NotSupported =:= port
          orelse NotSupported =:= reference
@@ -404,7 +403,7 @@ do_from_json(_TypeInfo, #ed_simple_type{type = NotSupported} = T, _Value)
          orelse NotSupported =:= nonempty_bitstring
          orelse NotSupported =:= none ->
     erlang:error({type_not_supported, T});
-do_from_json(_TypeInfo, #ed_simple_type{type = PrimaryType} = T, Json) ->
+do_from_json(_TypeInfo, #im_simple_type{type = PrimaryType} = T, Json) ->
     case check_type_from_json(PrimaryType, Json) of
         {true, NewValue} ->
             {ok, NewValue};
@@ -412,55 +411,55 @@ do_from_json(_TypeInfo, #ed_simple_type{type = PrimaryType} = T, Json) ->
             {error, Reason};
         false ->
             {error,
-             [#ed_error{type = type_mismatch,
+             [#im_error{type = type_mismatch,
                         location = [],
                         ctx = #{type => T, value => Json}}]}
     end;
-do_from_json(_TypeInfo, #ed_literal{value = Literal}, Literal) ->
+do_from_json(_TypeInfo, #im_literal{value = Literal}, Literal) ->
     {ok, Literal};
-do_from_json(_TypeInfo, #ed_literal{value = Literal} = Type, Value) ->
+do_from_json(_TypeInfo, #im_literal{value = Literal} = Type, Value) ->
     case try_convert_to_literal(Literal, Value) of
         {ok, Literal} ->
             {ok, Literal};
         false ->
             {error,
-             [#ed_error{type = type_mismatch,
+             [#im_error{type = type_mismatch,
                         location = [],
                         ctx = #{type => Type, value => Value}}]}
     end;
 do_from_json(TypeInfo, {type, TypeName, TypeArity}, Json) when is_atom(TypeName) ->
     type_from_json(TypeInfo, TypeName, TypeArity, [], Json);
-do_from_json(TypeInfo, #ed_union{} = Type, Json) ->
+do_from_json(TypeInfo, #im_union{} = Type, Json) ->
     union(fun do_from_json/3, TypeInfo, Type, Json);
 do_from_json(_TypeInfo,
-             #ed_range{type = integer,
+             #im_range{type = integer,
                        lower_bound = Min,
                        upper_bound = Max},
              Value)
     when Min =< Value, Value =< Max, is_integer(Value) ->
     {ok, Value};
 do_from_json(_TypeInfo,
-             #ed_range{type = integer,
+             #im_range{type = integer,
                        lower_bound = _Min,
                        upper_bound = _Max} =
                  Range,
              Value)
     when is_integer(Value) ->
     {error,
-     [#ed_error{type = type_mismatch,
+     [#im_error{type = type_mismatch,
                 location = [],
                 ctx = #{type => Range, value => Value}}]};
-do_from_json(_TypeInfo, #ed_maybe_improper_list{} = Type, _Value) ->
+do_from_json(_TypeInfo, #im_maybe_improper_list{} = Type, _Value) ->
     erlang:error({type_not_implemented, Type});
-do_from_json(_TypeInfo, #ed_nonempty_improper_list{} = Type, _Value) ->
+do_from_json(_TypeInfo, #im_nonempty_improper_list{} = Type, _Value) ->
     erlang:error({type_not_implemented, Type});
-do_from_json(_TypeInfo, #ed_function{} = Type, _Value) ->
+do_from_json(_TypeInfo, #im_function{} = Type, _Value) ->
     erlang:error({type_not_supported, Type});
-do_from_json(_TypeInfo, #ed_tuple{} = Type, _Value) ->
+do_from_json(_TypeInfo, #im_tuple{} = Type, _Value) ->
     erlang:error({type_not_supported, Type});
 do_from_json(_TypeInfo, Type, Value) ->
     {error,
-     [#ed_error{type = type_mismatch,
+     [#im_error{type = type_mismatch,
                 location = [],
                 ctx = #{type => Type, value => Value}}]}.
 
@@ -481,7 +480,7 @@ nonempty_list_from_json(TypeInfo, Type, Data) when is_list(Data) andalso Data =/
     list_from_json(TypeInfo, Type, Data);
 nonempty_list_from_json(_TypeInfo, Type, Data) ->
     {error,
-     [#ed_error{type = type_mismatch,
+     [#im_error{type = type_mismatch,
                 location = [],
                 ctx = #{type => {nonempty_list, Type}, value => Data}}]}.
 
@@ -496,10 +495,10 @@ list_from_json(TypeInfo, Type, Data) when is_list(Data) ->
                      {error, Errs2}
              end
           end,
-    erldantic_util:map_until_error(Fun, lists:enumerate(Data));
+    impala_util:map_until_error(Fun, lists:enumerate(Data));
 list_from_json(_TypeInfo, Type, Data) ->
     {error,
-     [#ed_error{type = type_mismatch,
+     [#im_error{type = type_mismatch,
                 location = [],
                 ctx = #{type => {list, Type}, value => Data}}]}.
 
@@ -509,10 +508,10 @@ string_from_json(Type, Json) ->
             {true, StringValue};
         _Other ->
             {error,
-             [#ed_error{type = type_mismatch,
+             [#im_error{type = type_mismatch,
                         location = [],
                         ctx =
-                            #{type => #ed_simple_type{type = Type},
+                            #{type => #im_simple_type{type = Type},
                               value => Json,
                               comment => "unicode conversion failed"}}]}
     end.
@@ -545,10 +544,10 @@ check_type_to_json(nonempty_string, Json) when is_list(Json), Json =/= [] ->
     case unicode:characters_to_binary(Json) of
         {Err, _, _} when Err =:= error orelse Err =:= incomplete ->
             {error,
-             [#ed_error{type = type_mismatch,
+             [#im_error{type = type_mismatch,
                         location = [],
                         ctx =
-                            #{type => #ed_simple_type{type = string},
+                            #{type => #im_simple_type{type = string},
                               value => Json,
                               comment => "non printable"}}]};
         Bin when is_binary(Bin) ->
@@ -558,10 +557,10 @@ check_type_to_json(string, Json) when is_list(Json) ->
     case unicode:characters_to_binary(Json) of
         {Err, _, _} when Err =:= error orelse Err =:= incomplete ->
             {error,
-             [#ed_error{type = type_mismatch,
+             [#im_error{type = type_mismatch,
                         location = [],
                         ctx =
-                            #{type => #ed_simple_type{type = string},
+                            #{type => #im_simple_type{type = string},
                               value => Json,
                               comment => "non printable"}}]};
         Bin when is_binary(Bin) ->
@@ -595,11 +594,11 @@ check_type(term, Json) ->
 check_type(_Type, _Json) ->
     false.
 
-union(Fun, TypeInfo, #ed_union{types = Types} = T, Json) ->
+union(Fun, TypeInfo, #im_union{types = Types} = T, Json) ->
     case do_first(Fun, TypeInfo, Types, Json) of
         {error, no_match} ->
             {error,
-             [#ed_error{type = no_match,
+             [#im_error{type = no_match,
                         location = [],
                         ctx = #{type => T, value => Json}}]};
         Result ->
@@ -618,14 +617,14 @@ do_first(Fun, TypeInfo, [Type | Rest], Json) ->
             do_first(Fun, TypeInfo, Rest, Json)
     end.
 
--spec type_from_json(TypeInfo :: erldantic:type_info(),
+-spec type_from_json(TypeInfo :: impala:type_info(),
                      TypeName :: atom(),
                      TypeArity :: non_neg_integer(),
-                     TypeArgs :: [erldantic:ed_type()],
+                     TypeArgs :: [impala:im_type()],
                      Json :: json:decode_value()) ->
-                        {ok, term()} | {error, [erldantic:error()]}.
+                        {ok, term()} | {error, [impala:error()]}.
 type_from_json(TypeInfo, TypeName, TypeArity, TypeArgs, Json) ->
-    {ok, Type} = erldantic_type_info:get_type(TypeInfo, TypeName, TypeArity),
+    {ok, Type} = impala_type_info:get_type(TypeInfo, TypeName, TypeArity),
     TypeWithoutVars = apply_args(TypeInfo, Type, TypeArgs),
     do_from_json(TypeInfo, TypeWithoutVars, Json).
 
@@ -636,27 +635,27 @@ apply_args(TypeInfo, Type, TypeArgs) when is_list(TypeArgs) ->
             lists:zip(ArgNames, TypeArgs)),
     type_replace_vars(TypeInfo, Type, NamedTypes).
 
-arg_names(#ed_type_with_variables{vars = Args}) ->
+arg_names(#im_type_with_variables{vars = Args}) ->
     Args;
 arg_names(_) ->
     [].
 
--spec type_replace_vars(TypeInfo :: erldantic:type_info(),
-                        Type :: erldantic:ed_type(),
-                        NamedTypes :: #{atom() => erldantic:ed_type()}) ->
-                           erldantic:ed_type().
-type_replace_vars(_TypeInfo, #ed_var{name = Name}, NamedTypes) ->
-    maps:get(Name, NamedTypes, #ed_simple_type{type = term});
-type_replace_vars(TypeInfo, #ed_type_with_variables{type = Type}, NamedTypes) ->
+-spec type_replace_vars(TypeInfo :: impala:type_info(),
+                        Type :: impala:im_type(),
+                        NamedTypes :: #{atom() => impala:im_type()}) ->
+                           impala:im_type().
+type_replace_vars(_TypeInfo, #im_var{name = Name}, NamedTypes) ->
+    maps:get(Name, NamedTypes, #im_simple_type{type = term});
+type_replace_vars(TypeInfo, #im_type_with_variables{type = Type}, NamedTypes) ->
     case Type of
-        #ed_union{types = UnionTypes} ->
-            #ed_union{types =
+        #im_union{types = UnionTypes} ->
+            #im_union{types =
                           lists:map(fun(UnionType) ->
                                        type_replace_vars(TypeInfo, UnionType, NamedTypes)
                                     end,
                                     UnionTypes)};
-        #ed_map{fields = Fields, struct_name = StructName} ->
-            #ed_map{fields =
+        #im_map{fields = Fields, struct_name = StructName} ->
+            #im_map{fields =
                         lists:map(fun ({map_field_assoc, FieldName, FieldType}) ->
                                           {map_field_assoc,
                                            FieldName,
@@ -678,19 +677,19 @@ type_replace_vars(TypeInfo, #ed_type_with_variables{type = Type}, NamedTypes) ->
                                   end,
                                   Fields),
                     struct_name = StructName};
-        #ed_rec_ref{record_name = RecordName, field_types = RefFieldTypes} ->
-            case erldantic_type_info:get_record(TypeInfo, RecordName) of
-                {ok, #ed_rec{fields = Fields} = Rec} ->
-                    NewRec = Rec#ed_rec{fields = record_replace_vars(Fields, RefFieldTypes)},
+        #im_rec_ref{record_name = RecordName, field_types = RefFieldTypes} ->
+            case impala_type_info:get_record(TypeInfo, RecordName) of
+                {ok, #im_rec{fields = Fields} = Rec} ->
+                    NewRec = Rec#im_rec{fields = record_replace_vars(Fields, RefFieldTypes)},
                     type_replace_vars(TypeInfo, NewRec, NamedTypes);
                 error ->
                     erlang:error({missing_type, {record, RecordName}})
             end;
-        #ed_remote_type{mfargs = {Module, TypeName, Args}} ->
-            case erldantic_module_types:get(Module) of
+        #im_remote_type{mfargs = {Module, TypeName, Args}} ->
+            case impala_module_types:get(Module) of
                 {ok, TypeInfo} ->
                     TypeArity = length(Args),
-                    case erldantic_type_info:get_type(TypeInfo, TypeName, TypeArity) of
+                    case impala_type_info:get_type(TypeInfo, TypeName, TypeArity) of
                         {ok, Type} ->
                             type_replace_vars(TypeInfo, Type, NamedTypes);
                         error ->
@@ -699,11 +698,11 @@ type_replace_vars(TypeInfo, #ed_type_with_variables{type = Type}, NamedTypes) ->
                 {error, _} = Err ->
                     erlang:error(Err)
             end;
-        #ed_list{type = ListType} ->
-            #ed_list{type = type_replace_vars(TypeInfo, ListType, NamedTypes)}
+        #im_list{type = ListType} ->
+            #im_list{type = type_replace_vars(TypeInfo, ListType, NamedTypes)}
     end;
-type_replace_vars(_TypeInfo, #ed_rec{fields = Fields} = Rec, NamedTypes) ->
-    Rec#ed_rec{fields =
+type_replace_vars(_TypeInfo, #im_rec{fields = Fields} = Rec, NamedTypes) ->
+    Rec#im_rec{fields =
                    lists:map(fun({Name, NType}) ->
                                 {Name, type_replace_vars(_TypeInfo, NType, NamedTypes)}
                              end,
@@ -711,11 +710,9 @@ type_replace_vars(_TypeInfo, #ed_rec{fields = Fields} = Rec, NamedTypes) ->
 type_replace_vars(_TypeInfo, Type, _NamedTypes) ->
     Type.
 
--spec map_from_json(erldantic:type_info(),
-                    [erldantic:map_field()],
-                    json:decode_value()) ->
+-spec map_from_json(impala:type_info(), [impala:map_field()], json:decode_value()) ->
                        {ok, #{json:encode_value() => json:encode_value()}} |
-                       {error, [erldantic:error()]}.
+                       {error, [impala:error()]}.
 map_from_json(TypeInfo, MapFieldType, Json) when is_map(Json) ->
     Fun = fun ({map_field_assoc, FieldName, FieldType}, {FieldsAcc, JsonAcc}) ->
                   case maps:take(atom_to_binary(FieldName), JsonAcc) of
@@ -745,11 +742,11 @@ map_from_json(TypeInfo, MapFieldType, Json) when is_map(Json) ->
                                   {error, Errs2}
                           end;
                       error ->
-                          case erldantic_type:can_be_undefined(TypeInfo, FieldType) of
+                          case impala_type:can_be_undefined(TypeInfo, FieldType) of
                               true ->
                                   {ok, {[{FieldName, undefined}] ++ FieldsAcc, JsonAcc}};
                               false ->
-                                  {error, [#ed_error{type = missing_data, location = [FieldName]}]}
+                                  {error, [#im_error{type = missing_data, location = [FieldName]}]}
                           end
                   end;
               ({map_field_type_assoc, KeyType, ValueType}, {FieldsAcc, JsonAcc}) ->
@@ -765,7 +762,7 @@ map_from_json(TypeInfo, MapFieldType, Json) when is_map(Json) ->
                           case NewFields of
                               [] ->
                                   NoExactMatch =
-                                      #ed_error{type = not_matched_fields,
+                                      #im_error{type = not_matched_fields,
                                                 location = [],
                                                 ctx =
                                                     #{type =>
@@ -781,7 +778,7 @@ map_from_json(TypeInfo, MapFieldType, Json) when is_map(Json) ->
                   end
           end,
 
-    case erldantic_util:fold_until_error(Fun, {[], Json}, MapFieldType) of
+    case impala_util:fold_until_error(Fun, {[], Json}, MapFieldType) of
         {ok, {Fields, NotMapped}} ->
             case maps:size(NotMapped) of
                 0 ->
@@ -789,7 +786,7 @@ map_from_json(TypeInfo, MapFieldType, Json) when is_map(Json) ->
                 _ ->
                     {error,
                      lists:map(fun({Key, Value}) ->
-                                  #ed_error{type = not_matched_fields,
+                                  #im_error{type = not_matched_fields,
                                             location = [],
                                             ctx = #{key => Key, value => Value}}
                                end,
@@ -801,48 +798,47 @@ map_from_json(TypeInfo, MapFieldType, Json) when is_map(Json) ->
 map_from_json(_TypeInfo, _MapFieldType, Json) ->
     %% Return error when Json is not a map
     {error,
-     [#ed_error{type = type_mismatch,
+     [#im_error{type = type_mismatch,
                 location = [],
-                ctx = #{type => #ed_simple_type{type = map}, value => Json}}]}.
+                ctx = #{type => #im_simple_type{type = map}, value => Json}}]}.
 
 map_field_type_from_json(TypeInfo, KeyType, ValueType, Json) ->
-    erldantic_util:fold_until_error(fun({Key, Value}, {FieldsAcc, JsonAcc}) ->
-                                       case do_from_json(TypeInfo, KeyType, Key) of
-                                           {ok, KeyJson} ->
-                                               case do_from_json(TypeInfo, ValueType, Value) of
-                                                   {ok, ValueJson} ->
-                                                       {ok,
-                                                        {FieldsAcc ++ [{KeyJson, ValueJson}],
-                                                         maps:remove(Key, JsonAcc)}};
-                                                   {error, Errs} ->
-                                                       Errs2 =
-                                                           lists:map(fun(Err) ->
-                                                                        err_append_location(Err,
-                                                                                            Key)
-                                                                     end,
-                                                                     Errs),
-                                                       {error, Errs2}
-                                               end;
-                                           {error, _Errs} ->
-                                               {ok, {FieldsAcc, JsonAcc}}
-                                       end
-                                    end,
-                                    {[], Json},
-                                    maps:to_list(Json)).
+    impala_util:fold_until_error(fun({Key, Value}, {FieldsAcc, JsonAcc}) ->
+                                    case do_from_json(TypeInfo, KeyType, Key) of
+                                        {ok, KeyJson} ->
+                                            case do_from_json(TypeInfo, ValueType, Value) of
+                                                {ok, ValueJson} ->
+                                                    {ok,
+                                                     {FieldsAcc ++ [{KeyJson, ValueJson}],
+                                                      maps:remove(Key, JsonAcc)}};
+                                                {error, Errs} ->
+                                                    Errs2 =
+                                                        lists:map(fun(Err) ->
+                                                                     err_append_location(Err, Key)
+                                                                  end,
+                                                                  Errs),
+                                                    {error, Errs2}
+                                            end;
+                                        {error, _Errs} ->
+                                            {ok, {FieldsAcc, JsonAcc}}
+                                    end
+                                 end,
+                                 {[], Json},
+                                 maps:to_list(Json)).
 
--spec record_from_json(TypeInfo :: erldantic:type_info(),
-                       RecordName :: atom() | #ed_rec{},
+-spec record_from_json(TypeInfo :: impala:type_info(),
+                       RecordName :: atom() | #im_rec{},
                        Json :: json:decode_value(),
-                       TypeArgs :: [erldantic:record_field()]) ->
+                       TypeArgs :: [impala:record_field()]) ->
                           {ok, term()} | {error, list()}.
 record_from_json(TypeInfo, RecordName, Json, TypeArgs) when is_atom(RecordName) ->
-    {ok, Record} = erldantic_type_info:get_record(TypeInfo, RecordName),
+    {ok, Record} = impala_type_info:get_record(TypeInfo, RecordName),
     record_from_json(TypeInfo, Record, Json, TypeArgs);
-record_from_json(TypeInfo, #ed_rec{name = RecordName} = ARec, Json, TypeArgs) ->
-    RecordInfo = record_replace_vars(ARec#ed_rec.fields, TypeArgs),
+record_from_json(TypeInfo, #im_rec{name = RecordName} = ARec, Json, TypeArgs) ->
+    RecordInfo = record_replace_vars(ARec#im_rec.fields, TypeArgs),
     do_record_from_json(TypeInfo, RecordName, RecordInfo, Json).
 
--spec do_record_from_json(TypeInfo :: erldantic:type_info(),
+-spec do_record_from_json(TypeInfo :: impala:type_info(),
                           RecordName :: atom(),
                           RecordInfo :: list(),
                           Json :: json:decode_value()) ->
@@ -861,15 +857,15 @@ do_record_from_json(TypeInfo, RecordName, RecordInfo, Json) when is_map(Json) ->
                              {error, Errs2}
                      end;
                  error ->
-                     case erldantic_type:can_be_undefined(TypeInfo, FieldType) of
+                     case impala_type:can_be_undefined(TypeInfo, FieldType) of
                          true ->
                              {ok, undefined};
                          false ->
-                             {error, [#ed_error{type = missing_data, location = [FieldName]}]}
+                             {error, [#im_error{type = missing_data, location = [FieldName]}]}
                      end
              end
           end,
-    case erldantic_util:map_until_error(Fun, RecordInfo) of
+    case impala_util:map_until_error(Fun, RecordInfo) of
         {ok, Fields} ->
             {ok, list_to_tuple([RecordName | Fields])};
         {error, Errs} ->
@@ -877,6 +873,6 @@ do_record_from_json(TypeInfo, RecordName, RecordInfo, Json) when is_map(Json) ->
     end;
 do_record_from_json(_TypeInfo, RecordName, _RecordInfo, Json) ->
     {error,
-     [#ed_error{type = type_mismatch,
+     [#im_error{type = type_mismatch,
                 location = [],
                 ctx = #{record_name => RecordName, record => Json}}]}.

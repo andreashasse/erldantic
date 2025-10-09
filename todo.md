@@ -1,19 +1,19 @@
 ## TODO minor fixes
-- [ ] #ed_type_with_variables can not have any type in type field.
+- [ ] #im_type_with_variables can not have any type in type field.
 - [ ] Test error message path better
 - [ ] Support otp 28
   - [ ] -nominal my_nominal_type() :: Type.
 - [ ] remove the no_pt everywhere.
 
 ## TODO Performance improvements
-- [ ] For each literal atom, convert to binary in erldantic_abstract_code, so that we don't have to do binary_to_existing_atom so see that the values match
-- [ ] Do work in erldantic_abstract_code
-  - [ ] user_type_ref -> just switches to another type with args, can be done in  erldantic_abstract_code.
-  - [ ] do record_apply_args in erldantic_abstract_code.
-  - [ ] erldantic_json:type_replace_vars can also be done in erldantic_abstract_code
+- [ ] For each literal atom, convert to binary in impala_abstract_code, so that we don't have to do binary_to_existing_atom so see that the values match
+- [ ] Do work in impala_abstract_code
+  - [ ] user_type_ref -> just switches to another type with args, can be done in  impala_abstract_code.
+  - [ ] do record_apply_args in impala_abstract_code.
+  - [ ] impala_json:type_replace_vars can also be done in impala_abstract_code
 
 ## TODO PoC FastApi
-- [ ] Types for functions in erldantic_abstract_code
+- [ ] Types for functions in impala_abstract_code
 - [ ] How should I get example values into the mix? Some macro ?spec(example = 2, type = integer) that I write to integer and keep the example separate? Can that be done without IDEs going bananas?
   - [ ] An alternative is to add an example value to the router in the PoC
 - [ ] Get types from function specs.

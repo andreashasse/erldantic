@@ -1,17 +1,17 @@
--module(erldantic_openapi).
+-module(impala_openapi).
 
 -export([endpoint/2, with_response/5, with_request_body/3, with_parameter/3,
          endpoints_to_openapi/2]).
 
--ignore_xref([{erldantic_openapi, type_to_schema, 2},
-              {erldantic_openapi, record_to_schema, 2},
-              {erldantic_openapi, endpoint, 2},
-              {erldantic_openapi, with_response, 5},
-              {erldantic_openapi, with_request_body, 3},
-              {erldantic_openapi, with_parameter, 3},
-              {erldantic_openapi, endpoints_to_openapi, 2}]).
+-ignore_xref([{impala_openapi, type_to_schema, 2},
+              {impala_openapi, record_to_schema, 2},
+              {impala_openapi, endpoint, 2},
+              {impala_openapi, with_response, 5},
+              {impala_openapi, with_request_body, 3},
+              {impala_openapi, with_parameter, 3},
+              {impala_openapi, endpoints_to_openapi, 2}]).
 
--include("../include/erldantic.hrl").
+-include("../include/impala.hrl").
 
 -compile(nowarn_unused_type).
 
@@ -19,16 +19,16 @@
 -type http_status_code() :: 100..599.
 -type parameter_location() :: path | query | header | cookie.
 -type openapi_schema() :: json:encode_value() | #{'$ref' := binary()}.
--type request_body_spec() :: #{schema := erldantic:ed_type_or_ref(), module := module()}.
+-type request_body_spec() :: #{schema := impala:im_type_or_ref(), module := module()}.
 -type response_spec() ::
     #{description := binary(),
-      schema := erldantic:ed_type_or_ref(),
+      schema := impala:im_type_or_ref(),
       module := module()}.
 -type parameter_spec() ::
     #{name := binary(),
       in := parameter_location(),
       required := boolean(),
-      schema := erldantic:ed_type_or_ref(),
+      schema := impala:im_type_or_ref(),
       module := module()}.
 -type openapi_metadata() :: #{title := binary(), version := binary()}.
 -type endpoint_spec() ::
@@ -73,14 +73,14 @@ endpoint(Method, Path) when is_atom(Method) andalso is_binary(Path) ->
 -doc(#{params =>
            #{"Description" => "Human-readable description of the response",
              "Endpoint" => "Endpoint map to add the response to",
-             "Schema" => "Schema reference or direct type (erldantic:ed_type_or_ref())",
+             "Schema" => "Schema reference or direct type (impala:im_type_or_ref())",
              "StatusCode" => "HTTP status code (e.g., 200, 404, 500)"}}).
 
 -spec with_response(Endpoint :: endpoint_spec(),
                     StatusCode :: http_status_code(),
                     Description :: binary(),
                     Module :: module(),
-                    Schema :: erldantic:ed_type_or_ref()) ->
+                    Schema :: impala:im_type_or_ref()) ->
                        endpoint_spec().
 with_response(Endpoint, StatusCode, Description, Module, Schema)
     when is_map(Endpoint)
@@ -97,17 +97,17 @@ with_response(Endpoint, StatusCode, Description, Module, Schema)
 -doc("Adds a request body specification to an endpoint.\nThis function sets the request body schema for the endpoint.\nTypically used with POST, PUT, and PATCH endpoints.\n\n### Returns\nUpdated endpoint map with request body set").
 -doc(#{params =>
            #{"Endpoint" => "Endpoint map to add the request body to",
-             "Schema" => "Schema reference or direct type (erldantic:ed_type_or_ref())"}}).
+             "Schema" => "Schema reference or direct type (impala:im_type_or_ref())"}}).
 
 -spec with_request_body(Endpoint :: endpoint_spec(),
                         Module :: module(),
-                        Schema :: erldantic:ed_type_or_ref()) ->
+                        Schema :: impala:im_type_or_ref()) ->
                            endpoint_spec().
 with_request_body(Endpoint, Module, Schema)
     when is_map(Endpoint) andalso is_atom(Module) ->
     Endpoint#{request_body => #{schema => Schema, module => Module}}.
 
--doc("Adds a parameter specification to an endpoint.\nThis function adds a parameter (path, query, header, or cookie) to the endpoint.\nMultiple parameters can be added by calling this function multiple times.\n\n### Parameter Specification\nThe parameter spec should be a map with these keys:\n- name: Parameter name (binary)\n- in: Parameter location (path | query | header | cookie)\n- required: Whether the parameter is required (boolean)\n- schema: Schema reference or direct type (erldantic:ed_type_or_ref())\n\n### Returns\nUpdated endpoint map with the new parameter added").
+-doc("Adds a parameter specification to an endpoint.\nThis function adds a parameter (path, query, header, or cookie) to the endpoint.\nMultiple parameters can be added by calling this function multiple times.\n\n### Parameter Specification\nThe parameter spec should be a map with these keys:\n- name: Parameter name (binary)\n- in: Parameter location (path | query | header | cookie)\n- required: Whether the parameter is required (boolean)\n- schema: Schema reference or direct type (impala:im_type_or_ref())\n\n### Returns\nUpdated endpoint map with the new parameter added").
 -doc(#{params =>
            #{"Endpoint" => "Endpoint map to add the parameter to",
              "ParameterSpec" => "Parameter specification map"}}).
@@ -132,7 +132,7 @@ with_parameter(Endpoint, Module, #{name := Name} = ParameterSpec)
 
 -spec endpoints_to_openapi(MetaData :: openapi_metadata(),
                            Endpoints :: [endpoint_spec()]) ->
-                              {ok, json:encode_value()} | {error, [erldantic:error()]}.
+                              {ok, json:encode_value()} | {error, [impala:error()]}.
 endpoints_to_openapi(MetaData, Endpoints) when is_list(Endpoints) ->
     PathGroups = group_endpoints_by_path(Endpoints),
     Paths =
@@ -152,7 +152,7 @@ endpoints_to_openapi(MetaData, Endpoints) when is_list(Endpoints) ->
                       #{title => maps:get(title, MetaData), version => maps:get(version, MetaData)},
                   paths => Paths,
                   components => ComponentsResult},
-            erldantic_json:to_json(?MODULE, {type, openapi_spec, 0}, OpenAPISpec);
+            impala_json:to_json(?MODULE, {type, openapi_spec, 0}, OpenAPISpec);
         {error, _} = Err ->
             Err
     end.
@@ -223,7 +223,7 @@ generate_response(#{description := Description,
                     schema := Schema,
                     module := Module})
     when is_binary(Description) ->
-    ModuleTypeInfo = erldantic_abstract_code:types_in_module(Module),
+    ModuleTypeInfo = impala_abstract_code:types_in_module(Module),
 
     SchemaContent =
         case Schema of
@@ -234,7 +234,7 @@ generate_response(#{description := Description,
                 SchemaName = type_ref_to_component_name({record, Name}),
                 #{'$ref' => <<"#/components/schemas/", SchemaName/binary>>};
             DirectType ->
-                {ok, InlineSchema} = erldantic_json_schema:to_schema(ModuleTypeInfo, DirectType),
+                {ok, InlineSchema} = impala_json_schema:to_schema(ModuleTypeInfo, DirectType),
                 InlineSchema
         end,
 
@@ -243,7 +243,7 @@ generate_response(#{description := Description,
 
 -spec generate_request_body(request_body_spec()) -> openapi_request_body().
 generate_request_body(#{schema := Schema, module := Module}) ->
-    ModuleTypeInfo = erldantic_abstract_code:types_in_module(Module),
+    ModuleTypeInfo = impala_abstract_code:types_in_module(Module),
     SchemaContent =
         case Schema of
             {type, Name, Arity} ->
@@ -253,7 +253,7 @@ generate_request_body(#{schema := Schema, module := Module}) ->
                 SchemaName = type_ref_to_component_name({record, Name}),
                 #{'$ref' => <<"#/components/schemas/", SchemaName/binary>>};
             DirectType ->
-                {ok, InlineSchema} = erldantic_json_schema:to_schema(ModuleTypeInfo, DirectType),
+                {ok, InlineSchema} = impala_json_schema:to_schema(ModuleTypeInfo, DirectType),
                 InlineSchema
         end,
 
@@ -266,17 +266,17 @@ generate_parameter(#{name := Name,
                      module := Module} =
                        ParameterSpec)
     when is_binary(Name) ->
-    ModuleTypeInfo = erldantic_abstract_code:types_in_module(Module),
+    ModuleTypeInfo = impala_abstract_code:types_in_module(Module),
     Required = maps:get(required, ParameterSpec, false),
 
-    {ok, InlineSchema} = erldantic_json_schema:to_schema(ModuleTypeInfo, Schema),
+    {ok, InlineSchema} = impala_json_schema:to_schema(ModuleTypeInfo, Schema),
 
     #{name => Name,
       in => In,
       required => Required,
       schema => InlineSchema}.
 
--spec collect_schema_refs([endpoint_spec()]) -> [{module(), erldantic:ed_type_or_ref()}].
+-spec collect_schema_refs([endpoint_spec()]) -> [{module(), impala:im_type_or_ref()}].
 collect_schema_refs(Endpoints) ->
     lists:foldl(fun(Endpoint, Acc) ->
                    EndpointRefs = collect_endpoint_schema_refs(Endpoint),
@@ -286,7 +286,7 @@ collect_schema_refs(Endpoints) ->
                 Endpoints).
 
 -spec collect_endpoint_schema_refs(endpoint_spec()) ->
-                                      [{module(), erldantic:ed_type_or_ref()}].
+                                      [{module(), impala:im_type_or_ref()}].
 collect_endpoint_schema_refs(#{responses := Responses, parameters := Parameters} =
                                  Endpoint) ->
     ResponseRefs = collect_response_refs(Responses),
@@ -295,7 +295,7 @@ collect_endpoint_schema_refs(#{responses := Responses, parameters := Parameters}
             undefined ->
                 [];
             #{schema := Schema, module := Module} ->
-                case erldantic_type:is_type_reference(Schema) of
+                case impala_type:is_type_reference(Schema) of
                     true ->
                         [{Module, Schema}];
                     false ->
@@ -307,10 +307,10 @@ collect_endpoint_schema_refs(#{responses := Responses, parameters := Parameters}
     ResponseRefs ++ RequestBodyRefs ++ ParameterRefs.
 
 -spec collect_response_refs(#{http_status_code() => response_spec()}) ->
-                               [{module(), erldantic:ed_type_or_ref()}].
+                               [{module(), impala:im_type_or_ref()}].
 collect_response_refs(Responses) ->
     maps:fold(fun(_StatusCode, #{schema := Schema, module := Module}, Acc) ->
-                 case erldantic_type:is_type_reference(Schema) of
+                 case impala_type:is_type_reference(Schema) of
                      true ->
                          [{Module, Schema} | Acc];
                      false ->
@@ -320,11 +320,10 @@ collect_response_refs(Responses) ->
               [],
               Responses).
 
--spec collect_parameter_refs([parameter_spec()]) ->
-                                [{module(), erldantic:ed_type_or_ref()}].
+-spec collect_parameter_refs([parameter_spec()]) -> [{module(), impala:im_type_or_ref()}].
 collect_parameter_refs(Parameters) ->
     lists:filtermap(fun(#{schema := Schema, module := Module}) ->
-                       case erldantic_type:is_type_reference(Schema) of
+                       case impala_type:is_type_reference(Schema) of
                            true ->
                                {true, {Module, Schema}};
                            false ->
@@ -333,25 +332,24 @@ collect_parameter_refs(Parameters) ->
                     end,
                     Parameters).
 
--spec generate_components([{module(), erldantic:ed_type_or_ref()}]) ->
+-spec generate_components([{module(), impala:im_type_or_ref()}]) ->
                              {ok, #{schemas => #{binary() => openapi_schema()}}} |
-                             {error, [erldantic:error()]}.
+                             {error, [impala:error()]}.
 generate_components(SchemaRefs) ->
-    case erldantic_util:fold_until_error(fun({Module, TypeRef}, Acc) ->
-                                            case erldantic_json_schema:to_schema(
-                                                     erldantic_abstract_code:types_in_module(Module),
-                                                     TypeRef)
-                                            of
-                                                {ok, Schema} when is_map(Schema) ->
-                                                    SchemaName =
-                                                        type_ref_to_component_name(TypeRef),
-                                                    {ok, Acc#{SchemaName => Schema}};
-                                                {error, _} = Error ->
-                                                    Error
-                                            end
-                                         end,
-                                         #{},
-                                         SchemaRefs)
+    case impala_util:fold_until_error(fun({Module, TypeRef}, Acc) ->
+                                         case impala_json_schema:to_schema(
+                                                  impala_abstract_code:types_in_module(Module),
+                                                  TypeRef)
+                                         of
+                                             {ok, Schema} when is_map(Schema) ->
+                                                 SchemaName = type_ref_to_component_name(TypeRef),
+                                                 {ok, Acc#{SchemaName => Schema}};
+                                             {error, _} = Error ->
+                                                 Error
+                                         end
+                                      end,
+                                      #{},
+                                      SchemaRefs)
     of
         {ok, Schemas} ->
             ComponentsMap =
@@ -366,7 +364,7 @@ generate_components(SchemaRefs) ->
             Error
     end.
 
--spec type_ref_to_component_name(erldantic:ed_type_reference()) -> binary().
+-spec type_ref_to_component_name(impala:im_type_reference()) -> binary().
 type_ref_to_component_name({type, TypeName, Arity}) ->
     TypeStr = atom_to_list(TypeName),
     Words = string:split(TypeStr, "_", all),

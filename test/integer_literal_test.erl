@@ -2,8 +2,8 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--include("../include/erldantic.hrl").
--include("../include/erldantic_internal.hrl").
+-include("../include/impala.hrl").
+-include("../include/impala_internal.hrl").
 
 -type one() :: 1.
 -type courses() :: one() | 2 | 5.
@@ -14,9 +14,9 @@
       level := courses()}.
 
 bor_t_abstract_code_test() ->
-    TypeInfo = erldantic_abstract_code:types_in_module(?MODULE),
-    {ok, BorTType} = erldantic_type_info:get_type(TypeInfo, bor_t, 0),
-    ?assertEqual(#ed_literal{value = 2 bor 5}, BorTType).
+    TypeInfo = impala_abstract_code:types_in_module(?MODULE),
+    {ok, BorTType} = impala_type_info:get_type(TypeInfo, bor_t, 0),
+    ?assertEqual(#im_literal{value = 2 bor 5}, BorTType).
 
 bor_t_to_json_test() ->
     ValidBor = 2 bor 5,
@@ -27,8 +27,8 @@ bor_t_to_json_test() ->
 
     % Test with invalid bor_t type
     {error, Errors} = to_json_bor_t(InvalidBor),
-    ?assertMatch([#ed_error{type = type_mismatch,
-                            ctx = #{type := #ed_literal{value = 7}, value := 6}}],
+    ?assertMatch([#im_error{type = type_mismatch,
+                            ctx = #{type := #im_literal{value = 7}, value := 6}}],
                  Errors).
 
 bor_t_from_json_test() ->
@@ -40,8 +40,8 @@ bor_t_from_json_test() ->
 
     % Test from_json with invalid bor_t
     {error, Errors} = from_json_bor_t(InvalidBorJson),
-    ?assertMatch([#ed_error{type = type_mismatch,
-                            ctx = #{type := #ed_literal{value = 7}, value := 6}}],
+    ?assertMatch([#im_error{type = type_mismatch,
+                            ctx = #{type := #im_literal{value = 7}, value := 6}}],
                  Errors).
 
 validate_integer_literal_test() ->
@@ -70,8 +70,8 @@ validate_integer_literal_test() ->
 
     % Test with invalid one() type
     {error, OneErrors} = to_json_one(InvalidOneData),
-    ?assertMatch([#ed_error{type = type_mismatch,
-                            ctx = #{type := #ed_literal{value = 1}, value := 2}}],
+    ?assertMatch([#im_error{type = type_mismatch,
+                            ctx = #{type := #im_literal{value = 1}, value := 2}}],
                  OneErrors),
 
     % Test with valid courses() type
@@ -79,14 +79,14 @@ validate_integer_literal_test() ->
 
     % Test with invalid courses() type
     {error, CoursesErrors} = to_json_courses(InvalidCourses),
-    ?assertMatch([#ed_error{type = no_match,
+    ?assertMatch([#im_error{type = no_match,
                             ctx =
                                 #{type :=
-                                      #ed_union{types =
-                                                    [#ed_user_type_ref{type_name = one,
+                                      #im_union{types =
+                                                    [#im_user_type_ref{type_name = one,
                                                                        variables = []},
-                                                     #ed_literal{value = 2},
-                                                     #ed_literal{value = 5}]},
+                                                     #im_literal{value = 2},
+                                                     #im_literal{value = 5}]},
                                   value := 3}}],
                  CoursesErrors),
 
@@ -99,11 +99,11 @@ validate_integer_literal_test() ->
 
     % Test with invalid lives in game_state()
     {error, LivesErrors} = to_json_game(InvalidLivesGame),
-    ?assertMatch([#ed_error{location = [lives],
+    ?assertMatch([#im_error{location = [lives],
                             type = type_mismatch,
                             ctx =
                                 #{type :=
-                                      #ed_range{type = integer,
+                                      #im_range{type = integer,
                                                 lower_bound = 1,
                                                 upper_bound = 3},
                                   value := 4}}],
@@ -111,15 +111,15 @@ validate_integer_literal_test() ->
 
     % Test with invalid level in game_state()
     {error, LevelErrors} = to_json_game(InvalidLevelGame),
-    ?assertMatch([#ed_error{location = [level],
+    ?assertMatch([#im_error{location = [level],
                             type = no_match,
                             ctx =
                                 #{type :=
-                                      #ed_union{types =
-                                                    [#ed_user_type_ref{type_name = one,
+                                      #im_union{types =
+                                                    [#im_user_type_ref{type_name = one,
                                                                        variables = []},
-                                                     #ed_literal{value = 2},
-                                                     #ed_literal{value = 5}]},
+                                                     #im_literal{value = 2},
+                                                     #im_literal{value = 5}]},
                                   value := 4}}],
                  LevelErrors),
 
@@ -141,8 +141,8 @@ validate_integer_literal_test() ->
 
     % Test from_json with invalid one()
     {error, OneFromErrors} = from_json_one(InvalidOneJson),
-    ?assertMatch([#ed_error{type = type_mismatch,
-                            ctx = #{type := #ed_literal{value = 1}, value := 2}}],
+    ?assertMatch([#im_error{type = type_mismatch,
+                            ctx = #{type := #im_literal{value = 1}, value := 2}}],
                  OneFromErrors),
 
     % Test from_json with valid courses()
@@ -152,8 +152,8 @@ validate_integer_literal_test() ->
     % Test from_json with invalid courses()
     InvalidCoursesJson = 3,
     {error, CoursesFromErrors} = from_json_courses(InvalidCoursesJson),
-    ?assertMatch([#ed_error{type = no_match,
-                            ctx = #{type := #ed_union{types = [_, _, _]}, value := 3}}],
+    ?assertMatch([#im_error{type = no_match,
+                            ctx = #{type := #im_union{types = [_, _, _]}, value := 3}}],
                  CoursesFromErrors),
 
     % Test from_json with valid game_state()
@@ -165,44 +165,41 @@ validate_integer_literal_test() ->
 
     % Test from_json with invalid game_state()
     {error, GameFromErrors} = from_json_game(InvalidGameJson),
-    ?assertMatch([#ed_error{location = [level],
+    ?assertMatch([#im_error{location = [level],
                             type = no_match,
-                            ctx = #{type := #ed_union{types = [_, _, _]}, value := 6}}],
+                            ctx = #{type := #im_union{types = [_, _, _]}, value := 6}}],
                  GameFromErrors).
 
--spec to_json_one(one()) -> {ok, json:encode_value()} | {error, [erldantic:error()]}.
+-spec to_json_one(one()) -> {ok, json:encode_value()} | {error, [impala:error()]}.
 to_json_one(Data) ->
-    erldantic_json:to_json(?MODULE, {type, one, 0}, Data).
+    impala_json:to_json(?MODULE, {type, one, 0}, Data).
 
--spec to_json_courses(courses()) ->
-                         {ok, json:encode_value()} | {error, [erldantic:error()]}.
+-spec to_json_courses(courses()) -> {ok, json:encode_value()} | {error, [impala:error()]}.
 to_json_courses(Data) ->
-    erldantic_json:to_json(?MODULE, {type, courses, 0}, Data).
+    impala_json:to_json(?MODULE, {type, courses, 0}, Data).
 
--spec to_json_game(game_state()) ->
-                      {ok, json:encode_value()} | {error, [erldantic:error()]}.
+-spec to_json_game(game_state()) -> {ok, json:encode_value()} | {error, [impala:error()]}.
 to_json_game(Data) ->
-    erldantic_json:to_json(?MODULE, {type, game_state, 0}, Data).
+    impala_json:to_json(?MODULE, {type, game_state, 0}, Data).
 
--spec to_json_bor_t(bor_t()) -> {ok, json:encode_value()} | {error, [erldantic:error()]}.
+-spec to_json_bor_t(bor_t()) -> {ok, json:encode_value()} | {error, [impala:error()]}.
 to_json_bor_t(Data) ->
-    erldantic_json:to_json(?MODULE, {type, bor_t, 0}, Data).
+    impala_json:to_json(?MODULE, {type, bor_t, 0}, Data).
 
--spec from_json_bor_t(json:encode_value()) ->
-                         {ok, bor_t()} | {error, [erldantic:error()]}.
+-spec from_json_bor_t(json:encode_value()) -> {ok, bor_t()} | {error, [impala:error()]}.
 from_json_bor_t(Json) ->
-    erldantic_json:from_json(?MODULE, {type, bor_t, 0}, Json).
+    impala_json:from_json(?MODULE, {type, bor_t, 0}, Json).
 
--spec from_json_one(json:encode_value()) -> {ok, one()} | {error, [erldantic:error()]}.
+-spec from_json_one(json:encode_value()) -> {ok, one()} | {error, [impala:error()]}.
 from_json_one(Json) ->
-    erldantic_json:from_json(?MODULE, {type, one, 0}, Json).
+    impala_json:from_json(?MODULE, {type, one, 0}, Json).
 
 -spec from_json_courses(json:encode_value()) ->
-                           {ok, courses()} | {error, [erldantic:error()]}.
+                           {ok, courses()} | {error, [impala:error()]}.
 from_json_courses(Json) ->
-    erldantic_json:from_json(?MODULE, {type, courses, 0}, Json).
+    impala_json:from_json(?MODULE, {type, courses, 0}, Json).
 
 -spec from_json_game(json:encode_value()) ->
-                        {ok, game_state()} | {error, [erldantic:error()]}.
+                        {ok, game_state()} | {error, [impala:error()]}.
 from_json_game(Json) ->
-    erldantic_json:from_json(?MODULE, {type, game_state, 0}, Json).
+    impala_json:from_json(?MODULE, {type, game_state, 0}, Json).
