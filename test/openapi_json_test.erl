@@ -352,6 +352,17 @@ validate_json_serializable(Value) ->
 
 %% Test Python-based OpenAPI validation
 python_openapi_validation_test() ->
+    %% Check if uv is available first
+    case os:cmd("which uv") of
+        "" ->
+            %% uv not found, skip test
+            ok;
+        _ ->
+            %% uv is available, run the validation test
+            run_python_openapi_validation()
+    end.
+
+run_python_openapi_validation() ->
     %% Generate a complete OpenAPI specification first
     GetUsersEndpoint1 = erldantic_openapi:endpoint(get, <<"/users">>),
     GetUsersEndpoint =
