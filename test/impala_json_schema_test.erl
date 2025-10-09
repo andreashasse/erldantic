@@ -1,8 +1,8 @@
--module(erldantic_json_schema_test).
+-module(impala_json_schema_test).
 
 -include_lib("eunit/include/eunit.hrl").
 
--include("../include/erldantic.hrl").
+-include("../include/impala.hrl").
 
 -compile(nowarn_unused_type).
 
@@ -52,39 +52,39 @@
 simple_types_test() ->
     %% integer
     ?assertEqual({ok, #{type => <<"integer">>}},
-                 erldantic_json_schema:to_schema(?MODULE, {type, my_integer, 0})),
+                 impala_json_schema:to_schema(?MODULE, {type, my_integer, 0})),
 
     %% string
     ?assertEqual({ok, #{type => <<"string">>}},
-                 erldantic_json_schema:to_schema(?MODULE, {type, my_string, 0})),
+                 impala_json_schema:to_schema(?MODULE, {type, my_string, 0})),
 
     %% boolean
     ?assertEqual({ok, #{type => <<"boolean">>}},
-                 erldantic_json_schema:to_schema(?MODULE, {type, my_boolean, 0})),
+                 impala_json_schema:to_schema(?MODULE, {type, my_boolean, 0})),
 
     %% number
     ?assertEqual({ok, #{type => <<"number">>}},
-                 erldantic_json_schema:to_schema(?MODULE, {type, my_number, 0})),
+                 impala_json_schema:to_schema(?MODULE, {type, my_number, 0})),
 
     %% atom (mapped to string)
     ?assertEqual({ok, #{type => <<"string">>}},
-                 erldantic_json_schema:to_schema(?MODULE, {type, my_atom, 0})),
+                 impala_json_schema:to_schema(?MODULE, {type, my_atom, 0})),
 
     %% binary (mapped to string)
     ?assertEqual({ok, #{type => <<"string">>}},
-                 erldantic_json_schema:to_schema(?MODULE, {type, my_binary, 0})),
+                 impala_json_schema:to_schema(?MODULE, {type, my_binary, 0})),
 
     %% float
     ?assertEqual({ok, #{type => <<"number">>, format => <<"float">>}},
-                 erldantic_json_schema:to_schema(?MODULE, {type, my_float, 0})),
+                 impala_json_schema:to_schema(?MODULE, {type, my_float, 0})),
 
     %% iodata (mapped to string)
     ?assertEqual({ok, #{type => <<"string">>}},
-                 erldantic_json_schema:to_schema(?MODULE, {type, my_iodata, 0})),
+                 impala_json_schema:to_schema(?MODULE, {type, my_iodata, 0})),
 
     %% iolist (mapped to string)
     ?assertEqual({ok, #{type => <<"string">>}},
-                 erldantic_json_schema:to_schema(?MODULE, {type, my_iolist, 0})).
+                 impala_json_schema:to_schema(?MODULE, {type, my_iolist, 0})).
 
 %% Test range type mappings
 range_types_test() ->
@@ -93,54 +93,54 @@ range_types_test() ->
                   #{type => <<"integer">>,
                     minimum => 1,
                     maximum => 10}},
-                 erldantic_json_schema:to_schema(?MODULE, {type, my_range, 0})),
+                 impala_json_schema:to_schema(?MODULE, {type, my_range, 0})),
 
     %% byte (0..255)
     ?assertEqual({ok,
                   #{type => <<"integer">>,
                     minimum => 0,
                     maximum => 255}},
-                 erldantic_json_schema:to_schema(?MODULE, {type, my_byte, 0})),
+                 impala_json_schema:to_schema(?MODULE, {type, my_byte, 0})),
 
     %% char (0..1114111)
     ?assertEqual({ok,
                   #{type => <<"integer">>,
                     minimum => 0,
                     maximum => 1114111}},
-                 erldantic_json_schema:to_schema(?MODULE, {type, my_char, 0})).
+                 impala_json_schema:to_schema(?MODULE, {type, my_char, 0})).
 
 %% Test literal type mappings
 literal_types_test() ->
     %% Literal atom (converted to binary string)
     ?assertEqual({ok, #{enum => [<<"hello">>]}},
-                 erldantic_json_schema:to_schema(?MODULE, {type, my_literal_atom, 0})),
+                 impala_json_schema:to_schema(?MODULE, {type, my_literal_atom, 0})),
 
     %% Literal integer
     ?assertEqual({ok, #{enum => [42]}},
-                 erldantic_json_schema:to_schema(?MODULE, {type, my_literal_integer, 0})).
+                 impala_json_schema:to_schema(?MODULE, {type, my_literal_integer, 0})).
 
 %% Test list type mappings
 list_types_test() ->
     %% Regular list
     ?assertEqual({ok, #{type => <<"array">>, items => #{type => <<"integer">>}}},
-                 erldantic_json_schema:to_schema(?MODULE, {type, my_list, 0})),
+                 impala_json_schema:to_schema(?MODULE, {type, my_list, 0})),
 
     %% Non-empty list
     ?assertEqual({ok,
                   #{type => <<"array">>,
                     items => #{type => <<"string">>},
                     minItems => 1}},
-                 erldantic_json_schema:to_schema(?MODULE, {type, my_nonempty_list, 0})).
+                 impala_json_schema:to_schema(?MODULE, {type, my_nonempty_list, 0})).
 
 %% Test union type mappings
 union_types_test() ->
     %% Simple union
     ?assertEqual({ok, #{oneOf => [#{type => <<"integer">>}, #{type => <<"string">>}]}},
-                 erldantic_json_schema:to_schema(?MODULE, {type, my_union, 0})),
+                 impala_json_schema:to_schema(?MODULE, {type, my_union, 0})),
 
     %% Optional type (union with undefined) - now returns just the non-undefined type
     ?assertEqual({ok, #{type => <<"integer">>}},
-                 erldantic_json_schema:to_schema(?MODULE, {type, my_optional, 0})).
+                 impala_json_schema:to_schema(?MODULE, {type, my_optional, 0})).
 
 %% Test map type mappings
 map_types_test() ->
@@ -151,7 +151,7 @@ map_types_test() ->
                         #{name => #{type => <<"string">>}, age => #{type => <<"integer">>}},
                     required => [age, name],
                     additionalProperties => false}},
-                 erldantic_json_schema:to_schema(?MODULE, {type, my_map, 0})),
+                 impala_json_schema:to_schema(?MODULE, {type, my_map, 0})),
 
     %% Structured map with specific fields
     ?assertEqual({ok,
@@ -160,13 +160,13 @@ map_types_test() ->
                         #{config => #{type => <<"string">>}, timeout => #{type => <<"integer">>}},
                     required => [timeout, config],
                     additionalProperties => false}},
-                 erldantic_json_schema:to_schema(?MODULE, {type, my_flexible_map, 0})).
+                 impala_json_schema:to_schema(?MODULE, {type, my_flexible_map, 0})).
 
 %% Test generic map types with additional properties
 generic_map_types_test() ->
     %% Generic map with atom keys and integer values
     ?assertEqual({ok, #{type => <<"object">>, additionalProperties => true}},
-                 erldantic_json_schema:to_schema(?MODULE, {type, my_generic_map, 0})),
+                 impala_json_schema:to_schema(?MODULE, {type, my_generic_map, 0})),
 
     %% Mixed map with both specific and generic fields
     ?assertEqual({ok,
@@ -174,7 +174,7 @@ generic_map_types_test() ->
                     properties => #{name => #{type => <<"string">>}},
                     required => [name],
                     additionalProperties => true}},
-                 erldantic_json_schema:to_schema(?MODULE, {type, my_mixed_map, 0})).
+                 impala_json_schema:to_schema(?MODULE, {type, my_mixed_map, 0})).
 
 %% Test record type mappings
 record_types_test() ->
@@ -186,7 +186,7 @@ record_types_test() ->
                           name => #{type => <<"string">>},
                           email => #{type => <<"string">>}},
                     required => [id, name, email]}},
-                 erldantic_json_schema:to_schema(?MODULE, {record, user})),
+                 impala_json_schema:to_schema(?MODULE, {record, user})),
     %% Record with array field
     ExpectedProps =
         #{id => #{type => <<"integer">>},
@@ -197,7 +197,7 @@ record_types_test() ->
                   #{type => <<"object">>,
                     properties => ExpectedProps,
                     required => [id, name, price, tags]}},
-                 erldantic_json_schema:to_schema(?MODULE, {record, product})).
+                 impala_json_schema:to_schema(?MODULE, {record, product})).
 
 %% Test record with optional field
 record_with_optional_fields_test() ->
@@ -210,16 +210,14 @@ record_with_optional_fields_test() ->
                           name => #{type => <<"string">>},
                           email => #{type => <<"string">>}},
                     required => [id, name]}},
-                 erldantic_json_schema:to_schema(?MODULE, {record, user_with_optional})).
+                 impala_json_schema:to_schema(?MODULE, {record, user_with_optional})).
 
 %% Test error handling
 error_handling_test() ->
     %% Non-existent type
-    {error, [Error1]} =
-        erldantic_json_schema:to_schema(?MODULE, {type, non_existent_type, 0}),
-    ?assertEqual(no_match, Error1#ed_error.type),
+    {error, [Error1]} = impala_json_schema:to_schema(?MODULE, {type, non_existent_type, 0}),
+    ?assertEqual(no_match, Error1#im_error.type),
 
     %% Non-existent record
-    {error, [Error2]} =
-        erldantic_json_schema:to_schema(?MODULE, {record, non_existent_record}),
-    ?assertEqual(no_match, Error2#ed_error.type).
+    {error, [Error2]} = impala_json_schema:to_schema(?MODULE, {record, non_existent_record}),
+    ?assertEqual(no_match, Error2#im_error.type).

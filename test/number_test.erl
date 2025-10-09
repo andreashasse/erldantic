@@ -2,8 +2,8 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--include("../include/erldantic.hrl").
--include("../include/erldantic_internal.hrl").
+-include("../include/impala.hrl").
+-include("../include/impala_internal.hrl").
 
 -type number_data() :: #{name := string(), value := number()}.
 
@@ -22,9 +22,9 @@ validate_number_test() ->
 
     % Test with invalid data
     {error, Errors} = to_json(InvalidData),
-    ?assertMatch([#ed_error{type = type_mismatch,
+    ?assertMatch([#im_error{type = type_mismatch,
                             ctx =
-                                #{type := #ed_simple_type{type = number},
+                                #{type := #im_simple_type{type = number},
                                   value := "not a number"}}],
                  Errors),
 
@@ -41,17 +41,16 @@ validate_number_test() ->
 
     % Test from_json with invalid data
     {error, FromErrors} = from_json(InvalidJson),
-    ?assertMatch([#ed_error{type = type_mismatch,
+    ?assertMatch([#im_error{type = type_mismatch,
                             ctx =
-                                #{type := #ed_simple_type{type = number},
+                                #{type := #im_simple_type{type = number},
                                   value := <<"not a number">>}}],
                  FromErrors).
 
--spec to_json(number_data()) -> {ok, json:encode_value()} | {error, [erldantic:error()]}.
+-spec to_json(number_data()) -> {ok, json:encode_value()} | {error, [impala:error()]}.
 to_json(Data) ->
-    erldantic_json:to_json(?MODULE, {type, number_data, 0}, Data).
+    impala_json:to_json(?MODULE, {type, number_data, 0}, Data).
 
--spec from_json(json:encode_value()) ->
-                   {ok, number_data()} | {error, [erldantic:error()]}.
+-spec from_json(json:encode_value()) -> {ok, number_data()} | {error, [impala:error()]}.
 from_json(Json) ->
-    erldantic_json:from_json(?MODULE, {type, number_data, 0}, Json).
+    impala_json:from_json(?MODULE, {type, number_data, 0}, Json).

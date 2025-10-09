@@ -24,11 +24,11 @@ invalid_int_result_from_json_test() ->
     ?assertMatch({error, [_ | _]}, Result).
 
 -spec to_json_int_result(int_result()) ->
-                            {ok, json:encode_value()} | {error, [erldantic:error()]}.
+                            {ok, json:encode_value()} | {error, [impala:error()]}.
 to_json_int_result(Result) ->
-    erldantic_json:to_json(?MODULE, {type, int_result, 0}, Result).
+    impala_json:to_json(?MODULE, {type, int_result, 0}, Result).
 
 -spec from_json_int_result(json:encode_value()) ->
-                              {ok, int_result()} | {error, [erldantic:error()]}.
+                              {ok, int_result()} | {error, [impala:error()]}.
 from_json_int_result(Json) ->
-    erldantic_json:from_json(?MODULE, {type, int_result, 0}, Json).
+    impala_json:from_json(?MODULE, {type, int_result, 0}, Json).

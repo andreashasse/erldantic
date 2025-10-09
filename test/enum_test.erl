@@ -2,8 +2,8 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--include("../include/erldantic.hrl").
--include("../include/erldantic_internal.hrl").
+-include("../include/impala.hrl").
+-include("../include/impala_internal.hrl").
 
 -type non_atom_enum() :: 1 | 3.
 -type role() :: admin | user | guest.
@@ -21,12 +21,12 @@ validate_non_atom_enum_test() ->
 
     % Test with invalid data
     {error, Errors} = to_json_non_atom_enum(InvalidData),
-    ?assertMatch([#ed_error{type = no_match,
+    ?assertMatch([#im_error{type = no_match,
                             ctx =
                                 #{type :=
-                                      #ed_union{types =
-                                                    [#ed_literal{value = 1},
-                                                     #ed_literal{value = 3}]},
+                                      #im_union{types =
+                                                    [#im_literal{value = 1},
+                                                     #im_literal{value = 3}]},
                                   value := 2}}],
                  Errors),
 
@@ -41,12 +41,12 @@ validate_non_atom_enum_test() ->
 
     % Test from_json with invalid data
     {error, FromErrors} = from_json_non_atom_enum(InvalidJson),
-    ?assertMatch([#ed_error{type = no_match,
+    ?assertMatch([#im_error{type = no_match,
                             ctx =
                                 #{type :=
-                                      #ed_union{types =
-                                                    [#ed_literal{value = 1},
-                                                     #ed_literal{value = 3}]},
+                                      #im_union{types =
+                                                    [#im_literal{value = 1},
+                                                     #im_literal{value = 3}]},
                                   value := 2}}],
                  FromErrors).
 
@@ -65,13 +65,13 @@ validate_role_test() ->
 
     % Test with invalid data
     {error, Errors} = to_json_role(InvalidData),
-    ?assertMatch([#ed_error{type = no_match,
+    ?assertMatch([#im_error{type = no_match,
                             ctx =
                                 #{type :=
-                                      #ed_union{types =
-                                                    [#ed_literal{value = admin},
-                                                     #ed_literal{value = user},
-                                                     #ed_literal{value = guest}]},
+                                      #im_union{types =
+                                                    [#im_literal{value = admin},
+                                                     #im_literal{value = user},
+                                                     #im_literal{value = guest}]},
                                   value := moderator}}],
                  Errors),
 
@@ -88,30 +88,30 @@ validate_role_test() ->
 
     % Test from_json with invalid data
     {error, FromErrors} = from_json_role(InvalidJson),
-    ?assertMatch([#ed_error{type = no_match,
+    ?assertMatch([#im_error{type = no_match,
                             ctx =
                                 #{type :=
-                                      #ed_union{types =
-                                                    [#ed_literal{value = admin},
-                                                     #ed_literal{value = user},
-                                                     #ed_literal{value = guest}]},
+                                      #im_union{types =
+                                                    [#im_literal{value = admin},
+                                                     #im_literal{value = user},
+                                                     #im_literal{value = guest}]},
                                   value := <<"moderator">>}}],
                  FromErrors).
 
 -spec to_json_non_atom_enum(non_atom_enum()) ->
-                               {ok, json:encode_value()} | {error, [erldantic:error()]}.
+                               {ok, json:encode_value()} | {error, [impala:error()]}.
 to_json_non_atom_enum(Data) ->
-    erldantic_json:to_json(?MODULE, {type, non_atom_enum, 0}, Data).
+    impala_json:to_json(?MODULE, {type, non_atom_enum, 0}, Data).
 
 -spec from_json_non_atom_enum(json:encode_value()) ->
-                                 {ok, non_atom_enum()} | {error, [erldantic:error()]}.
+                                 {ok, non_atom_enum()} | {error, [impala:error()]}.
 from_json_non_atom_enum(Json) ->
-    erldantic_json:from_json(?MODULE, {type, non_atom_enum, 0}, Json).
+    impala_json:from_json(?MODULE, {type, non_atom_enum, 0}, Json).
 
--spec to_json_role(role()) -> {ok, json:encode_value()} | {error, [erldantic:error()]}.
+-spec to_json_role(role()) -> {ok, json:encode_value()} | {error, [impala:error()]}.
 to_json_role(Data) ->
-    erldantic_json:to_json(?MODULE, {type, role, 0}, Data).
+    impala_json:to_json(?MODULE, {type, role, 0}, Data).
 
--spec from_json_role(json:encode_value()) -> {ok, role()} | {error, [erldantic:error()]}.
+-spec from_json_role(json:encode_value()) -> {ok, role()} | {error, [impala:error()]}.
 from_json_role(Json) ->
-    erldantic_json:from_json(?MODULE, {type, role, 0}, Json).
+    impala_json:from_json(?MODULE, {type, role, 0}, Json).

@@ -3,7 +3,7 @@
 -include_lib("eunit/include/eunit.hrl").
 
 %% Test module specifically for the issues identified in PR #45 comments
-%% https://github.com/andreashasse/erldantic/pull/45
+%% https://github.com/andreashasse/impala/pull/45
 
 -compile(nowarn_unused_type).
 
@@ -15,21 +15,21 @@
 -type my_pid_literal() :: pid().
 
 %% Issue 1: "format => <<\"binary\">>" - This can't be right?
-%% Location: src/erldantic_json_schema.erl:76
+%% Location: src/impala_json_schema.erl:76
 binary_format_issue_test() ->
-    {ok, BinarySchema} = erldantic_json_schema:to_schema(?MODULE, {type, my_binary, 0}),
+    {ok, BinarySchema} = impala_json_schema:to_schema(?MODULE, {type, my_binary, 0}),
     ?assertEqual(#{type => <<"string">>}, BinarySchema),
 
     %% FIXED: Now correctly generates simple string type for binary()
-    %% This matches how erldantic_json handles binary - as regular JSON strings
+    %% This matches how impala_json handles binary - as regular JSON strings
     %% No more problematic "binary" format that isn't standard JSON Schema
     ok.
 
 %% Issue 2: "Again with the weird? format" (binary format + minLength)
-%% Location: src/erldantic_json_schema.erl:80
+%% Location: src/impala_json_schema.erl:80
 binary_format_with_minlength_issue_test() ->
     {ok, NonEmptyBinarySchema} =
-        erldantic_json_schema:to_schema(?MODULE, {type, my_nonempty_binary, 0}),
+        impala_json_schema:to_schema(?MODULE, {type, my_nonempty_binary, 0}),
     Expected = #{type => <<"string">>, minLength => 1},
     ?assertEqual(Expected, NonEmptyBinarySchema),
 
@@ -39,9 +39,9 @@ binary_format_with_minlength_issue_test() ->
     ok.
 
 %% Issue 3: "Is this valid json schema?" (empty object for term type)
-%% Location: src/erldantic_json_schema.erl:103
+%% Location: src/impala_json_schema.erl:103
 empty_schema_for_term_test() ->
-    {ok, TermSchema} = erldantic_json_schema:to_schema(?MODULE, {type, my_term, 0}),
+    {ok, TermSchema} = impala_json_schema:to_schema(?MODULE, {type, my_term, 0}),
     ?assertEqual(#{}, TermSchema),
 
     %% Actually, this is CORRECT! Empty object {} in JSON Schema means "any valid JSON value"
@@ -50,15 +50,15 @@ empty_schema_for_term_test() ->
     ok.
 
 %% Issue 4: "most literal values doesn't translate well to json"
-%% Location: src/erldantic_json_schema.erl:105
+%% Location: src/impala_json_schema.erl:105
 literal_values_translation_issue_test() ->
     {ok, AtomLiteralSchema} =
-        erldantic_json_schema:to_schema(?MODULE, {type, my_atom_literal, 0}),
+        impala_json_schema:to_schema(?MODULE, {type, my_atom_literal, 0}),
     ?assertEqual(#{enum => [<<"ok">>]}, AtomLiteralSchema),
 
     %% FIXED: Now correctly converts atom literals to binary strings in enum
     %% - The enum contains the binary string <<"ok">> instead of raw atom 'ok'
-    %% - This matches how erldantic_json handles atoms - as UTF-8 encoded binaries
+    %% - This matches how impala_json handles atoms - as UTF-8 encoded binaries
     %% - JSON Schema validators can now properly validate JSON string "ok" against this schema
     ok.
 
@@ -71,8 +71,8 @@ correct_schemas_test() ->
     CorrectAtomLiteralSchema = #{enum => [<<"ok">>]}, %% String, not atom
 
     %% Current implementation now matches these correct schemas
-    {ok, CurrentBinary} = erldantic_json_schema:to_schema(?MODULE, {type, my_binary, 0}),
-    {ok, CurrentAtom} = erldantic_json_schema:to_schema(?MODULE, {type, my_atom_literal, 0}),
+    {ok, CurrentBinary} = impala_json_schema:to_schema(?MODULE, {type, my_binary, 0}),
+    {ok, CurrentAtom} = impala_json_schema:to_schema(?MODULE, {type, my_atom_literal, 0}),
 
     ?assertEqual(CorrectBinarySchema, CurrentBinary),
     ?assertEqual(CorrectAtomLiteralSchema, CurrentAtom),
@@ -82,7 +82,7 @@ correct_schemas_test() ->
 %% Test with actual JSON Schema validator (Jesse) to show validation problems
 json_schema_validator_issues_test() ->
     %% Test atom literal with Jesse
-    {ok, AtomSchema} = erldantic_json_schema:to_schema(?MODULE, {type, my_atom_literal, 0}),
+    {ok, AtomSchema} = impala_json_schema:to_schema(?MODULE, {type, my_atom_literal, 0}),
 
     %% Convert schema to Jesse format
     JesseSchema = json:decode(iolist_to_binary(json:encode(AtomSchema))),
@@ -99,7 +99,7 @@ json_schema_validator_issues_test() ->
 %% Summary of issues found in PR #45:
 summary_test() ->
     %% Issues found and fixed:
-    %% 1. ✓ FIXED: Binary type now generates simple string type (matches erldantic_json behavior)
+    %% 1. ✓ FIXED: Binary type now generates simple string type (matches impala_json behavior)
     %% 2. ✓ FIXED: nonempty_binary generates string with minLength (semantically correct)
     %% 3. ✓ CORRECT: Empty schema {} for term() is valid JSON Schema - comment resolved
     %% 4. ✓ FIXED: Atom literals now convert to binary strings in enum arrays

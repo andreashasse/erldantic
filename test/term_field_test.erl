@@ -52,12 +52,11 @@ validate_term_field_test() ->
     ?assertEqual("record5", RecordFromTuple#data_with_term.id),
     ?assertEqual([a, b, c], RecordFromTuple#data_with_term.value).
 
--spec to_json(#data_with_term{}) ->
-                 {ok, json:encode_value()} | {error, [erldantic:error()]}.
+-spec to_json(#data_with_term{}) -> {ok, json:encode_value()} | {error, [impala:error()]}.
 to_json(Data) ->
-    erldantic_json:to_json(?MODULE, {record, data_with_term}, Data).
+    impala_json:to_json(?MODULE, {record, data_with_term}, Data).
 
 -spec from_json(json:encode_value()) ->
-                   {ok, #data_with_term{}} | {error, [erldantic:error()]}.
+                   {ok, #data_with_term{}} | {error, [impala:error()]}.
 from_json(Json) ->
-    erldantic_json:from_json(?MODULE, {record, data_with_term}, Json).
+    impala_json:from_json(?MODULE, {record, data_with_term}, Json).

@@ -26,7 +26,7 @@
 %% Tests
 simple_type_validation_test() ->
     %% Test integer type validation
-    {ok, IntSchema} = erldantic_json_schema:to_schema(?MODULE, {type, user_id, 0}),
+    {ok, IntSchema} = impala_json_schema:to_schema(?MODULE, {type, user_id, 0}),
     %% Convert to Jesse-compatible format by encoding then decoding
     JesseSchema = json:decode(iolist_to_binary(json:encode(IntSchema))),
 
@@ -43,7 +43,7 @@ simple_type_validation_test() ->
 
 string_type_validation_test() ->
     %% Test string type validation
-    {ok, StringSchema} = erldantic_json_schema:to_schema(?MODULE, {type, user_name, 0}),
+    {ok, StringSchema} = impala_json_schema:to_schema(?MODULE, {type, user_name, 0}),
     JesseSchema = json:decode(iolist_to_binary(json:encode(StringSchema))),
 
     %% Valid string
@@ -56,7 +56,7 @@ string_type_validation_test() ->
 
 binary_type_validation_test() ->
     %% Test binary type validation
-    {ok, BinarySchema} = erldantic_json_schema:to_schema(?MODULE, {type, user_email, 0}),
+    {ok, BinarySchema} = impala_json_schema:to_schema(?MODULE, {type, user_email, 0}),
     JesseSchema = json:decode(iolist_to_binary(json:encode(BinarySchema))),
 
     %% Valid binary string
@@ -69,7 +69,7 @@ binary_type_validation_test() ->
 
 record_validation_test() ->
     %% Test record schema validation
-    {ok, RecordSchema} = erldantic_json_schema:to_schema(?MODULE, {record, user_profile}),
+    {ok, RecordSchema} = impala_json_schema:to_schema(?MODULE, {record, user_profile}),
     JesseSchema = json:decode(iolist_to_binary(json:encode(RecordSchema))),
 
     %% Valid record data - use binary keys for Jesse
@@ -100,7 +100,7 @@ record_validation_test() ->
 
 complex_map_validation_test() ->
     %% Test complex map schema validation
-    {ok, MapSchema} = erldantic_json_schema:to_schema(?MODULE, {type, user_settings, 0}),
+    {ok, MapSchema} = impala_json_schema:to_schema(?MODULE, {type, user_settings, 0}),
     JesseSchema = json:decode(iolist_to_binary(json:encode(MapSchema))),
 
     %% Valid complex map data with all required and optional fields

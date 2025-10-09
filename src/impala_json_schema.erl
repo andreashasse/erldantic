@@ -1,71 +1,70 @@
--module(erldantic_json_schema).
+-module(impala_json_schema).
 
 -export([to_schema/2]).
 
 -ignore_xref([to_schema/2]).
 
--include("../include/erldantic.hrl").
--include("../include/erldantic_internal.hrl").
+-include("../include/impala.hrl").
+-include("../include/impala_internal.hrl").
 
 %% API
 
--spec to_schema(module() | erldantic:type_info(), erldantic:ed_type_or_ref()) ->
-                   {ok, Schema :: map()} | {error, [erldantic:error()]}.
+-spec to_schema(module() | impala:type_info(), impala:im_type_or_ref()) ->
+                   {ok, Schema :: map()} | {error, [impala:error()]}.
 to_schema(Module, Type) when is_atom(Module) ->
-    TypeInfo = erldantic_module_types:get(Module),
+    TypeInfo = impala_module_types:get(Module),
     to_schema(TypeInfo, Type);
 %% Type references
 to_schema(TypeInfo, {type, TypeName, TypeArity}) when is_atom(TypeName) ->
-    case erldantic_type_info:get_type(TypeInfo, TypeName, TypeArity) of
+    case impala_type_info:get_type(TypeInfo, TypeName, TypeArity) of
         {ok, Type} ->
             TypeWithoutVars = apply_args(TypeInfo, Type, []),
             do_to_schema(TypeInfo, TypeWithoutVars);
         error ->
             {error,
-             [#ed_error{type = no_match,
+             [#im_error{type = no_match,
                         location = [TypeName],
                         ctx = #{type => TypeName, arity => TypeArity}}]}
     end;
 to_schema(TypeInfo, Type) ->
     do_to_schema(TypeInfo, Type).
 
--spec do_to_schema(TypeInfo :: erldantic:type_info(),
-                   Type :: erldantic:ed_type_or_ref()) ->
-                      {ok, Schema :: map()} | {error, [erldantic:error()]}.
+-spec do_to_schema(TypeInfo :: impala:type_info(), Type :: impala:im_type_or_ref()) ->
+                      {ok, Schema :: map()} | {error, [impala:error()]}.
 %% Simple types
-do_to_schema(_TypeInfo, #ed_simple_type{type = integer}) ->
+do_to_schema(_TypeInfo, #im_simple_type{type = integer}) ->
     {ok, #{type => <<"integer">>}};
-do_to_schema(_TypeInfo, #ed_simple_type{type = string}) ->
+do_to_schema(_TypeInfo, #im_simple_type{type = string}) ->
     {ok, #{type => <<"string">>}};
-do_to_schema(_TypeInfo, #ed_simple_type{type = iodata}) ->
+do_to_schema(_TypeInfo, #im_simple_type{type = iodata}) ->
     {ok, #{type => <<"string">>}};
-do_to_schema(_TypeInfo, #ed_simple_type{type = iolist}) ->
+do_to_schema(_TypeInfo, #im_simple_type{type = iolist}) ->
     {ok, #{type => <<"string">>}};
-do_to_schema(_TypeInfo, #ed_simple_type{type = boolean}) ->
+do_to_schema(_TypeInfo, #im_simple_type{type = boolean}) ->
     {ok, #{type => <<"boolean">>}};
-do_to_schema(_TypeInfo, #ed_simple_type{type = number}) ->
+do_to_schema(_TypeInfo, #im_simple_type{type = number}) ->
     {ok, #{type => <<"number">>}};
-do_to_schema(_TypeInfo, #ed_simple_type{type = float}) ->
+do_to_schema(_TypeInfo, #im_simple_type{type = float}) ->
     {ok, #{type => <<"number">>, format => <<"float">>}};
-do_to_schema(_TypeInfo, #ed_simple_type{type = atom}) ->
+do_to_schema(_TypeInfo, #im_simple_type{type = atom}) ->
     {ok, #{type => <<"string">>}};
-do_to_schema(_TypeInfo, #ed_simple_type{type = binary}) ->
+do_to_schema(_TypeInfo, #im_simple_type{type = binary}) ->
     {ok, #{type => <<"string">>}};
-do_to_schema(_TypeInfo, #ed_simple_type{type = nonempty_binary}) ->
+do_to_schema(_TypeInfo, #im_simple_type{type = nonempty_binary}) ->
     {ok, #{type => <<"string">>, minLength => 1}};
-do_to_schema(_TypeInfo, #ed_simple_type{type = nonempty_string}) ->
+do_to_schema(_TypeInfo, #im_simple_type{type = nonempty_string}) ->
     {ok, #{type => <<"string">>, minLength => 1}};
-do_to_schema(_TypeInfo, #ed_simple_type{type = pos_integer}) ->
+do_to_schema(_TypeInfo, #im_simple_type{type = pos_integer}) ->
     {ok, #{type => <<"integer">>, minimum => 1}};
-do_to_schema(_TypeInfo, #ed_simple_type{type = non_neg_integer}) ->
+do_to_schema(_TypeInfo, #im_simple_type{type = non_neg_integer}) ->
     {ok, #{type => <<"integer">>, minimum => 0}};
-do_to_schema(_TypeInfo, #ed_simple_type{type = neg_integer}) ->
+do_to_schema(_TypeInfo, #im_simple_type{type = neg_integer}) ->
     {ok, #{type => <<"integer">>, maximum => -1}};
-do_to_schema(_TypeInfo, #ed_simple_type{type = term}) ->
+do_to_schema(_TypeInfo, #im_simple_type{type = term}) ->
     {ok, #{}};  % any type
 %% Range types
 do_to_schema(_TypeInfo,
-             #ed_range{type = integer,
+             #im_range{type = integer,
                        lower_bound = Min,
                        upper_bound = Max}) ->
     {ok,
@@ -73,21 +72,21 @@ do_to_schema(_TypeInfo,
        minimum => Min,
        maximum => Max}};
 %% Literal types
-do_to_schema(_TypeInfo, #ed_literal{value = undefined}) ->
+do_to_schema(_TypeInfo, #im_literal{value = undefined}) ->
     {ok, #{enum => [null]}};
-do_to_schema(_TypeInfo, #ed_literal{value = Value}) when is_atom(Value) ->
+do_to_schema(_TypeInfo, #im_literal{value = Value}) when is_atom(Value) ->
     {ok, #{enum => [atom_to_binary(Value, utf8)]}};
-do_to_schema(_TypeInfo, #ed_literal{value = Value}) ->
+do_to_schema(_TypeInfo, #im_literal{value = Value}) ->
     {ok, #{enum => [Value]}};
 %% List types
-do_to_schema(TypeInfo, #ed_list{type = ItemType}) ->
+do_to_schema(TypeInfo, #im_list{type = ItemType}) ->
     case do_to_schema(TypeInfo, ItemType) of
         {ok, ItemSchema} ->
             {ok, #{type => <<"array">>, items => ItemSchema}};
         {error, _} = Err ->
             Err
     end;
-do_to_schema(TypeInfo, #ed_nonempty_list{type = ItemType}) ->
+do_to_schema(TypeInfo, #im_nonempty_list{type = ItemType}) ->
     case do_to_schema(TypeInfo, ItemType) of
         {ok, ItemSchema} ->
             {ok,
@@ -98,9 +97,9 @@ do_to_schema(TypeInfo, #ed_nonempty_list{type = ItemType}) ->
             Err
     end;
 %% Union types
-do_to_schema(TypeInfo, #ed_union{types = Types}) ->
+do_to_schema(TypeInfo, #im_union{types = Types}) ->
     %% Check if this is a union with undefined - if so, extract the non-undefined type
-    case lists:partition(fun (#ed_literal{value = undefined}) ->
+    case lists:partition(fun (#im_literal{value = undefined}) ->
                                  true;
                              (_) ->
                                  false
@@ -118,37 +117,37 @@ do_to_schema(TypeInfo, #ed_union{types = Types}) ->
             generate_oneof_schema(TypeInfo, Types)
     end;
 %% Map types
-do_to_schema(TypeInfo, #ed_map{fields = Fields}) ->
+do_to_schema(TypeInfo, #im_map{fields = Fields}) ->
     map_fields_to_schema(TypeInfo, Fields);
 %% Record types
 do_to_schema(TypeInfo, {record, RecordName}) when is_atom(RecordName) ->
     record_to_schema_internal(TypeInfo, RecordName);
-do_to_schema(TypeInfo, #ed_rec{} = RecordInfo) ->
+do_to_schema(TypeInfo, #im_rec{} = RecordInfo) ->
     record_to_schema_internal(TypeInfo, RecordInfo);
 %% Record references
-do_to_schema(TypeInfo, #ed_rec_ref{record_name = RecordName}) ->
+do_to_schema(TypeInfo, #im_rec_ref{record_name = RecordName}) ->
     record_to_schema_internal(TypeInfo, RecordName);
 %% User type references
-do_to_schema(TypeInfo, #ed_user_type_ref{type_name = TypeName, variables = TypeArgs}) ->
+do_to_schema(TypeInfo, #im_user_type_ref{type_name = TypeName, variables = TypeArgs}) ->
     TypeArity = length(TypeArgs),
-    case erldantic_type_info:get_type(TypeInfo, TypeName, TypeArity) of
+    case impala_type_info:get_type(TypeInfo, TypeName, TypeArity) of
         error ->
             {error,
-             [#ed_error{type = no_match,
+             [#im_error{type = no_match,
                         location = [TypeName],
                         ctx = #{type => TypeName, arity => TypeArity}}]};
         {ok, Type} ->
             do_to_schema(TypeInfo, Type)
     end;
 %% Remote types
-do_to_schema(_TypeInfo, #ed_remote_type{mfargs = {Module, TypeName, Args}}) ->
-    TypeInfo = erldantic_module_types:get(Module),
+do_to_schema(_TypeInfo, #im_remote_type{mfargs = {Module, TypeName, Args}}) ->
+    TypeInfo = impala_module_types:get(Module),
     TypeArity = length(Args),
-    {ok, Type} = erldantic_type_info:get_type(TypeInfo, TypeName, TypeArity),
+    {ok, Type} = impala_type_info:get_type(TypeInfo, TypeName, TypeArity),
     TypeWithoutVars = apply_args(TypeInfo, Type, Args),
     do_to_schema(TypeInfo, TypeWithoutVars);
 %% Unsupported types
-do_to_schema(_TypeInfo, #ed_simple_type{type = NotSupported} = Type)
+do_to_schema(_TypeInfo, #im_simple_type{type = NotSupported} = Type)
     when NotSupported =:= pid
          orelse NotSupported =:= port
          orelse NotSupported =:= reference
@@ -156,14 +155,14 @@ do_to_schema(_TypeInfo, #ed_simple_type{type = NotSupported} = Type)
          orelse NotSupported =:= nonempty_bitstring
          orelse NotSupported =:= none ->
     erlang:error({type_not_supported, Type});
-do_to_schema(_TypeInfo, #ed_tuple{} = Type) ->
+do_to_schema(_TypeInfo, #im_tuple{} = Type) ->
     erlang:error({type_not_supported, Type});
-do_to_schema(_TypeInfo, #ed_function{} = Type) ->
+do_to_schema(_TypeInfo, #im_function{} = Type) ->
     erlang:error({type_not_supported, Type});
 %% Fallback
 do_to_schema(_TypeInfo, Type) ->
     {error,
-     [#ed_error{type = no_match,
+     [#im_error{type = no_match,
                 location = [],
                 ctx = #{type => Type}}]}.
 
@@ -176,22 +175,22 @@ record_replace_vars(RecordInfo, TypeArgs) ->
                 RecordInfo,
                 TypeArgs).
 
--spec type_replace_vars(TypeInfo :: erldantic:type_info(),
-                        Type :: erldantic:ed_type(),
-                        NamedTypes :: #{atom() => erldantic:ed_type()}) ->
-                           erldantic:ed_type().
-type_replace_vars(_TypeInfo, #ed_var{name = Name}, NamedTypes) ->
-    maps:get(Name, NamedTypes, #ed_simple_type{type = term});
-type_replace_vars(TypeInfo, #ed_type_with_variables{type = Type}, NamedTypes) ->
+-spec type_replace_vars(TypeInfo :: impala:type_info(),
+                        Type :: impala:im_type(),
+                        NamedTypes :: #{atom() => impala:im_type()}) ->
+                           impala:im_type().
+type_replace_vars(_TypeInfo, #im_var{name = Name}, NamedTypes) ->
+    maps:get(Name, NamedTypes, #im_simple_type{type = term});
+type_replace_vars(TypeInfo, #im_type_with_variables{type = Type}, NamedTypes) ->
     case Type of
-        #ed_union{types = UnionTypes} ->
-            #ed_union{types =
+        #im_union{types = UnionTypes} ->
+            #im_union{types =
                           lists:map(fun(UnionType) ->
                                        type_replace_vars(TypeInfo, UnionType, NamedTypes)
                                     end,
                                     UnionTypes)};
-        #ed_map{fields = Fields} ->
-            #ed_map{fields =
+        #im_map{fields = Fields} ->
+            #im_map{fields =
                         lists:map(fun ({map_field_assoc, FieldName, FieldType}) ->
                                           {map_field_assoc,
                                            FieldName,
@@ -210,16 +209,16 @@ type_replace_vars(TypeInfo, #ed_type_with_variables{type = Type}, NamedTypes) ->
                                            type_replace_vars(TypeInfo, ValueType, NamedTypes)}
                                   end,
                                   Fields)};
-        #ed_rec_ref{record_name = RecordName, field_types = RefFieldTypes} ->
+        #im_rec_ref{record_name = RecordName, field_types = RefFieldTypes} ->
             case TypeInfo of
-                #{{record, RecordName} := #ed_rec{fields = Fields} = Rec} ->
-                    NewRec = Rec#ed_rec{fields = record_replace_vars(Fields, RefFieldTypes)},
+                #{{record, RecordName} := #im_rec{fields = Fields} = Rec} ->
+                    NewRec = Rec#im_rec{fields = record_replace_vars(Fields, RefFieldTypes)},
                     type_replace_vars(TypeInfo, NewRec, NamedTypes);
                 #{} ->
                     erlang:error({missing_type, {record, RecordName}})
             end;
-        #ed_remote_type{mfargs = {Module, TypeName, Args}} ->
-            case erldantic_module_types:get(Module) of
+        #im_remote_type{mfargs = {Module, TypeName, Args}} ->
+            case impala_module_types:get(Module) of
                 {ok, TypeInfo} ->
                     TypeArity = length(Args),
                     case TypeInfo of
@@ -231,11 +230,11 @@ type_replace_vars(TypeInfo, #ed_type_with_variables{type = Type}, NamedTypes) ->
                 {error, _} = Err ->
                     erlang:error(Err)
             end;
-        #ed_list{type = ListType} ->
-            #ed_list{type = type_replace_vars(TypeInfo, ListType, NamedTypes)}
+        #im_list{type = ListType} ->
+            #im_list{type = type_replace_vars(TypeInfo, ListType, NamedTypes)}
     end;
-type_replace_vars(_TypeInfo, #ed_rec{fields = Fields} = Rec, NamedTypes) ->
-    Rec#ed_rec{fields =
+type_replace_vars(_TypeInfo, #im_rec{fields = Fields} = Rec, NamedTypes) ->
+    Rec#im_rec{fields =
                    lists:map(fun({Name, NType}) ->
                                 {Name, type_replace_vars(_TypeInfo, NType, NamedTypes)}
                              end,
@@ -243,7 +242,7 @@ type_replace_vars(_TypeInfo, #ed_rec{fields = Fields} = Rec, NamedTypes) ->
 type_replace_vars(_TypeInfo, Type, _NamedTypes) ->
     Type.
 
-arg_names(#ed_type_with_variables{vars = Args}) ->
+arg_names(#im_type_with_variables{vars = Args}) ->
     Args;
 arg_names(_) ->
     [].
@@ -255,8 +254,8 @@ apply_args(TypeInfo, Type, TypeArgs) when is_list(TypeArgs) ->
             lists:zip(ArgNames, TypeArgs)),
     type_replace_vars(TypeInfo, Type, NamedTypes).
 
--spec map_fields_to_schema(erldantic:type_info(), [erldantic:map_field()]) ->
-                              {ok, map()} | {error, [erldantic:error()]}.
+-spec map_fields_to_schema(impala:type_info(), [impala:map_field()]) ->
+                              {ok, map()} | {error, [impala:error()]}.
 map_fields_to_schema(TypeInfo, Fields) ->
     case process_map_fields(TypeInfo, Fields, #{}, [], false) of
         {ok, Properties, Required, HasAdditional} ->
@@ -271,12 +270,12 @@ map_fields_to_schema(TypeInfo, Fields) ->
             Err
     end.
 
--spec process_map_fields(erldantic:type_info(),
-                         [erldantic:map_field()],
+-spec process_map_fields(impala:type_info(),
+                         [impala:map_field()],
                          map(),
                          [atom()],
                          boolean()) ->
-                            {ok, map(), [atom()], boolean()} | {error, [erldantic:error()]}.
+                            {ok, map(), [atom()], boolean()} | {error, [impala:error()]}.
 process_map_fields(_TypeInfo, [], Properties, Required, HasAdditional) ->
     {ok, Properties, Required, HasAdditional};
 process_map_fields(TypeInfo,
@@ -319,19 +318,19 @@ process_map_fields(_TypeInfo,
     %% Generic key-value map allows additional properties
     process_map_fields(_TypeInfo, Rest, Properties, Required, true).
 
--spec record_to_schema_internal(erldantic:type_info(), atom() | #ed_rec{}) ->
-                                   {ok, map()} | {error, [erldantic:error()]}.
+-spec record_to_schema_internal(impala:type_info(), atom() | #im_rec{}) ->
+                                   {ok, map()} | {error, [impala:error()]}.
 record_to_schema_internal(TypeInfo, RecordName) when is_atom(RecordName) ->
-    case erldantic_type_info:get_record(TypeInfo, RecordName) of
+    case impala_type_info:get_record(TypeInfo, RecordName) of
         {ok, RecordInfo} ->
             record_to_schema_internal(TypeInfo, RecordInfo);
         error ->
             {error,
-             [#ed_error{type = no_match,
+             [#im_error{type = no_match,
                         location = [RecordName],
                         ctx = #{type => RecordName}}]}
     end;
-record_to_schema_internal(TypeInfo, #ed_rec{fields = Fields}) ->
+record_to_schema_internal(TypeInfo, #im_rec{fields = Fields}) ->
     case process_record_fields(TypeInfo, Fields, #{}, []) of
         {ok, Properties, Required} ->
             Schema =
@@ -343,11 +342,11 @@ record_to_schema_internal(TypeInfo, #ed_rec{fields = Fields}) ->
             Err
     end.
 
--spec process_record_fields(erldantic:type_info(),
-                            [{atom(), erldantic:ed_type()}],
+-spec process_record_fields(impala:type_info(),
+                            [{atom(), impala:im_type()}],
                             map(),
                             [atom()]) ->
-                               {ok, map(), [atom()]} | {error, [erldantic:error()]}.
+                               {ok, map(), [atom()]} | {error, [impala:error()]}.
 process_record_fields(_TypeInfo, [], Properties, Required) ->
     {ok, Properties, lists:reverse(Required)};
 process_record_fields(TypeInfo, [{FieldName, FieldType} | Rest], Properties, Required) ->
@@ -355,7 +354,7 @@ process_record_fields(TypeInfo, [{FieldName, FieldType} | Rest], Properties, Req
         {ok, FieldSchema} ->
             NewProperties = Properties#{FieldName => FieldSchema},
             NewRequired =
-                case erldantic_type:can_be_undefined(TypeInfo, FieldType) of
+                case impala_type:can_be_undefined(TypeInfo, FieldType) of
                     true ->
                         Required;
                     false ->
@@ -368,16 +367,16 @@ process_record_fields(TypeInfo, [{FieldName, FieldType} | Rest], Properties, Req
 
 %% Helper function to generate oneOf schemas
 generate_oneof_schema(TypeInfo, Types) ->
-    case erldantic_util:fold_until_error(fun(T, Acc) ->
-                                            case do_to_schema(TypeInfo, T) of
-                                                {ok, Schema} ->
-                                                    {ok, [Schema | Acc]};
-                                                {error, _} = Err ->
-                                                    Err
-                                            end
-                                         end,
-                                         [],
-                                         Types)
+    case impala_util:fold_until_error(fun(T, Acc) ->
+                                         case do_to_schema(TypeInfo, T) of
+                                             {ok, Schema} ->
+                                                 {ok, [Schema | Acc]};
+                                             {error, _} = Err ->
+                                                 Err
+                                         end
+                                      end,
+                                      [],
+                                      Types)
     of
         {ok, Schemas} ->
             {ok, #{oneOf => lists:reverse(Schemas)}};

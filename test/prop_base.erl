@@ -9,7 +9,7 @@ prop_hej() ->
                 TypeInfo = #{{type, TypeName} => Type},
                 case from_json(TypeInfo, Type, JsonValue) of
                     {ok, Data} ->
-                        case erldantic_json:to_json(TypeInfo, Type, Data) of
+                        case impala_json:to_json(TypeInfo, Type, Data) of
                             {ok, Value} ->
                                 Json = iolist_to_binary(json:encode(Value)),
                                 ?WHENFAIL(io:format("~nJsonValue ~p~nValue    ~p~nJson   ~p",
@@ -27,7 +27,7 @@ prop_hej() ->
 
 from_json(TypeInfo, Type, JsonValue) ->
     try
-        erldantic_json:from_json(TypeInfo, Type, JsonValue)
+        impala_json:from_json(TypeInfo, Type, JsonValue)
     catch
         error:{type_not_supported, _} ->
             {error, type_not_supported};
@@ -42,4 +42,4 @@ from_json(TypeInfo, Type, JsonValue) ->
     end.
 
 test_type() ->
-    {my_type, ed_type_generators:ed_type()}.
+    {my_type, im_type_generators:im_type()}.

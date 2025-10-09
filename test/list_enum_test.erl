@@ -2,8 +2,8 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--include("../include/erldantic.hrl").
--include("../include/erldantic_internal.hrl").
+-include("../include/impala.hrl").
+-include("../include/impala_internal.hrl").
 
 -type accesses() :: [read | write].
 
@@ -24,12 +24,12 @@ validate_accesses_test() ->
 
     % Test with invalid data
     {error, Errors} = to_json_accesses(InvalidData),
-    ?assertMatch([#ed_error{type = no_match,
+    ?assertMatch([#im_error{type = no_match,
                             ctx =
                                 #{type :=
-                                      #ed_union{types =
-                                                    [#ed_literal{value = read},
-                                                     #ed_literal{value = write}]},
+                                      #im_union{types =
+                                                    [#im_literal{value = read},
+                                                     #im_literal{value = write}]},
                                   value := invalid}}],
                  Errors),
 
@@ -48,21 +48,21 @@ validate_accesses_test() ->
 
     % Test from_json with invalid data
     {error, FromErrors} = from_json_accesses(InvalidJson),
-    ?assertMatch([#ed_error{type = no_match,
+    ?assertMatch([#im_error{type = no_match,
                             ctx =
                                 #{type :=
-                                      #ed_union{types =
-                                                    [#ed_literal{value = read},
-                                                     #ed_literal{value = write}]},
+                                      #im_union{types =
+                                                    [#im_literal{value = read},
+                                                     #im_literal{value = write}]},
                                   value := <<"invalid">>}}],
                  FromErrors).
 
 -spec to_json_accesses(accesses()) ->
-                          {ok, json:encode_value()} | {error, [erldantic:error()]}.
+                          {ok, json:encode_value()} | {error, [impala:error()]}.
 to_json_accesses(Data) ->
-    erldantic_json:to_json(?MODULE, {type, accesses, 0}, Data).
+    impala_json:to_json(?MODULE, {type, accesses, 0}, Data).
 
 -spec from_json_accesses(json:encode_value()) ->
-                            {ok, accesses()} | {error, [erldantic:error()]}.
+                            {ok, accesses()} | {error, [impala:error()]}.
 from_json_accesses(Json) ->
-    erldantic_json:from_json(?MODULE, {type, accesses, 0}, Json).
+    impala_json:from_json(?MODULE, {type, accesses, 0}, Json).
