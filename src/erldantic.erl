@@ -1,5 +1,8 @@
 -module(erldantic).
 
+-export([decode_type/4, decode_record/4, decode/4, encode_type/4, encode_record/4,
+         encode/4]).
+
 -include("../include/erldantic.hrl").
 -include("../include/erldantic_internal.hrl").
 
@@ -40,3 +43,70 @@
 
 -export_type([ed_type/0, ed_type_reference/0, ed_type_or_ref/0, var_type/0, type_info/0,
               record_field/0, error/0, map_field/0, user_type_name/0, ed_function_spec/0]).
+
+-spec decode_type(Format :: atom(),
+                  ModuleOrTypeinfo :: module() | type_info(),
+                  TypeName :: atom(),
+                  Data :: any()) ->
+                     {ok, term()} | {error, [error()]}.
+decode_type(Format, ModuleOrTypeinfo, TypeName, Binary) ->
+    decode(Format, ModuleOrTypeinfo, {type, TypeName, 0}, Binary).
+
+-spec decode_record(Format :: atom(),
+                    ModuleOrTypeinfo :: module() | type_info(),
+                    RecordName :: atom(),
+                    Data :: any()) ->
+                       {ok, term()} | {error, [error()]}.
+decode_record(Format, ModuleOrTypeinfo, RecordName, Binary) ->
+    decode(Format, ModuleOrTypeinfo, {record, RecordName}, Binary).
+
+-spec decode(Format :: atom(),
+             ModuleOrTypeinfo :: module() | type_info(),
+             TypeOrRef :: ed_type_or_ref(),
+             Binary :: any()) ->
+                {ok, term()} | {error, [error()]}.
+decode(Format, Module, TypeOrRef, Binary) when is_atom(Module) ->
+    TypeInfo = erldantic_module_types:get(Module),
+    decode(Format, TypeInfo, TypeOrRef, Binary);
+decode(json, Typeinfo, TypeOrRef, Binary) when is_binary(Binary) ->
+    erldantic_json:from_json(Typeinfo, TypeOrRef, json:decode(Binary));
+decode(binary_string, Typeinfo, TypeOrRef, Binary) when is_binary(Binary) ->
+    erldantic_binary_string:from_binary_string(Typeinfo, TypeOrRef, Binary);
+decode(string, Typeinfo, TypeOrRef, String) when is_list(String) ->
+    erldantic_string:from_string(Typeinfo, TypeOrRef, String).
+
+-spec encode_type(Format :: atom(),
+                  ModuleOrTypeinfo :: module() | type_info(),
+                  TypeName :: atom(),
+                  Data :: any()) ->
+                     {ok, term()} | {error, [error()]}.
+encode_type(Format, ModuleOrTypeinfo, TypeName, Binary) ->
+    encode(Format, ModuleOrTypeinfo, {type, TypeName, 0}, Binary).
+
+-spec encode_record(Format :: atom(),
+                    ModuleOrTypeinfo :: module() | type_info(),
+                    RecordName :: atom(),
+                    Data :: any()) ->
+                       {ok, term()} | {error, [error()]}.
+encode_record(Format, ModuleOrTypeinfo, RecordName, Binary) ->
+    encode(Format, ModuleOrTypeinfo, {record, RecordName}, Binary).
+
+-spec encode(Format :: atom(),
+             ModuleOrTypeinfo :: module() | type_info(),
+             TypeOrRef :: ed_type_or_ref(),
+             Binary :: any()) ->
+                {ok, term()} | {error, [error()]}.
+encode(Format, Module, TypeOrRef, Binary) when is_atom(Module) ->
+    TypeInfo = erldantic_module_types:get(Module),
+    encode(Format, TypeInfo, TypeOrRef, Binary);
+encode(json, Typeinfo, TypeOrRef, Data) ->
+    case erldantic_json:to_json(Typeinfo, TypeOrRef, Data) of
+        {ok, Json} ->
+            {ok, json:encode(Json)};
+        {error, _} = Err ->
+            Err
+    end;
+encode(binary_string, Typeinfo, TypeOrRef, Data) ->
+    erldantic_binary_string:to_binary_string(Typeinfo, TypeOrRef, Data);
+encode(string, Typeinfo, TypeOrRef, Data) ->
+    erldantic_string:to_string(Typeinfo, TypeOrRef, Data).

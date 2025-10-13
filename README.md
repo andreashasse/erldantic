@@ -53,14 +53,13 @@ Here's how to use erldantic for JSON serialization and deserialization:
 ```erlang
 -spec json_to_contacts(binary()) -> {ok, contacts()} | {error, [erldantic:error()]}.
 json_to_contacts(Json) ->
-    Decoded = json:decode(Json),
-    erldantic_json:from_json(?MODULE, {type, contacts, 0}, Decoded).
+    erldantic:decode_type(json, ?MODULE, contacts, Json).
 
 -spec contacts_to_json(contacts()) -> binary() | {error, [erldantic:error()]}.
 contacts_to_json(Contacts) ->
-    maybe
-        {ok, Encodeable} ?= erldantic_json:to_json(?MODULE, {type, contacts, 0}, Contacts),
-        iolist_to_binary(json:encode(Encodeable))
+    case erldantic:encode_type(json, ?MODULE, contacts, Contacts) of
+        {ok, JsonIoList} -> {ok, iolist_to_binary(JsonIoList)};
+        {error, _} = Error -> Error
     end.
 ```
 
@@ -99,18 +98,30 @@ Json = contacts_to_json(Contacts),
 These are the main functions for JSON serialization and deserialization:
 
 ```erlang
-erldantic_json:to_json(Module, TypeOrReference, Value) -> {ok, json:encode_value()} | {error, [erldantic:error()]}.
-erldantic_json:from_json(Module, TypeOrReference, Json) -> {ok, ... your type ...} | {error, [erldantic:error()]}.
+%% Convenience functions for types and records
+erldantic:encode_type(json, Module, TypeName, Value) -> {ok, iolist()} | {error, [erldantic:error()]}.
+erldantic:decode_type(json, Module, TypeName, JsonBinary) -> {ok, Value} | {error, [erldantic:error()]}.
+
+erldantic:encode_record(json, Module, RecordName, Value) -> {ok, iolist()} | {error, [erldantic:error()]}.
+erldantic:decode_record(json, Module, RecordName, JsonBinary) -> {ok, Value} | {error, [erldantic:error()]}.
+
+%% Generic functions with type references
+erldantic:encode(json, Module, TypeOrReference, Value) -> {ok, iolist()} | {error, [erldantic:error()]}.
+erldantic:decode(json, Module, TypeOrReference, JsonBinary) -> {ok, Value} | {error, [erldantic:error()]}.
 ```
 
 Where:
-- `Module` is the module where the type/record is defined
+- `Module` is the module where the type/record is defined (or a `type_info()` for advanced usage)
+- `TypeName` is the name of the type (atom) - must have arity 0
+- `RecordName` is the name of the record (atom)
 - `TypeOrReference` can be:
   - `{type, TypeName, Arity}` for user-defined types (e.g., `{type, my_type, 0}`)
   - `{record, RecordName}` for records (e.g., `{record, user}`)
   - An actual `ed_type()` structure (for advanced usage)
+- `JsonBinary` is the JSON data as a binary
+- The encode functions return iolists which can be converted to binary with `iolist_to_binary/1`
 
-The type cannot have any parameters (arity must be 0 for user-defined types).
+**Note**: Erldantic also supports `binary_string` and `string` formats for simple type conversions. See the test suite for examples.
 
 ### Error Handling
 
@@ -125,6 +136,8 @@ BadSourceJson = <<"[{\"number\":\"+1-555-123-4567\",\"verified\":{\"source\":\"a
 ## JSON Schema Generation
 
 Erldantic can generate [JSON Schema](https://json-schema.org/) specifications from your Erlang types. This is useful for API documentation, client code generation, validation in other languages, and integration with schema-based tools.
+
+**Note**: For JSON Schema generation, you currently need to use `erldantic_json_schema:to_schema/2` directly as there is no wrapper in the main `erldantic` module yet.
 
 ### JSON Schema API
 

@@ -17,7 +17,7 @@
 
 -spec from_string(TypeInfo :: erldantic:type_info(),
                   Type :: erldantic:ed_type_or_ref(),
-                  String :: string()) ->
+                  String :: list()) ->
                      {ok, term()} | {error, [erldantic:error()]}.
 from_string(TypeInfo, {type, TypeName, TypeArity}, String) when is_atom(TypeName) ->
     {ok, Type} = erldantic_type_info:get_type(TypeInfo, TypeName, TypeArity),
