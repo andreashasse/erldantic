@@ -2,6 +2,8 @@
 
 -export([decode/4, encode/4]).
 
+-ignore_xref([decode/4, encode/4]).
+
 -include("../include/erldantic.hrl").
 -include("../include/erldantic_internal.hrl").
 

@@ -16,13 +16,10 @@
              "Type" => "The type specification (erldantic:ed_type_or_ref())",
              "TypeInfo" => "The type information containing type definitions"}}).
 
--spec from_binary_string(TypeInfo :: module() | erldantic:type_info(),
+-spec from_binary_string(TypeInfo :: erldantic:type_info(),
                          Type :: erldantic:ed_type_or_ref(),
                          BinaryString :: binary()) ->
                             {ok, term()} | {error, [erldantic:error()]}.
-from_binary_string(Module, TypeOrRef, BinaryString) when is_atom(Module) ->
-    TypeInfo = erldantic_module_types:get(Module),
-    from_binary_string(TypeInfo, TypeOrRef, BinaryString);
 from_binary_string(TypeInfo, {type, TypeName, TypeArity}, BinaryString)
     when is_atom(TypeName) ->
     {ok, Type} = erldantic_type_info:get_type(TypeInfo, TypeName, TypeArity),
