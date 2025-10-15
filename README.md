@@ -35,7 +35,9 @@ Here's how to use erldantic for JSON serialization and deserialization:
 
 -type quality() :: 1..5.
 -type verified() ::
-    #{source := one_time_code | gut_feeling, quality => quality(), binary() => binary()} | undefined.
+    #{source := one_time_code | gut_feeling,
+      quality => quality(),
+      binary() => binary()} | undefined.
 -type email_contact() ::
     #email_contact{address :: nonempty_binary(),
                    verified :: verified(),
@@ -116,8 +118,10 @@ demo:json_schema().
 These are the main functions for JSON serialization and deserialization:
 
 ```erlang
-erldantic:encode(Format, Module, Type, Value) -> {ok, iolist()} | {error, [erldantic:error()]}.
-erldantic:decode(Format, Module, Type, JsonBinary) -> {ok, Value} | {error, [erldantic:error()]}.
+erldantic:encode(Format, Module, Type, Value) ->
+    {ok, iolist()} | {error, [erldantic:error()]}.
+erldantic:decode(Format, Module, Type, JsonBinary) ->
+    {ok, Value} | {error, [erldantic:error()]}.
 
 ```
 
@@ -134,7 +138,8 @@ Where:
 ### Schema API
 
 ```erlang
-erldantic:schema(Format, Module, Type) -> {ok, Schema :: map()} | {error, [erldantic:error()]}.
+erldantic:schema(Format, Module, Type) ->
+    {ok, Schema :: map()} | {error, [erldantic:error()]}.
 ```
 
 Where:
@@ -183,19 +188,24 @@ See [elli_openapi](https://github.com/andreashasse/elli_openapi) for an example 
 
 ```erlang
 %% Create a base endpoint
-erldantic_openapi:endpoint(Method, Path) -> endpoint_spec().
+erldantic_openapi:endpoint(Method, Path) ->
+    endpoint_spec().
 
 %% Add responses
-erldantic_openapi:with_response(Endpoint, StatusCode, Description, Module, Schema) -> endpoint_spec().
+erldantic_openapi:with_response(Endpoint, StatusCode, Description, Module, Schema) ->
+    endpoint_spec().
 
 %% Add request body
-erldantic_openapi:with_request_body(Endpoint, Module, Schema) -> endpoint_spec().
+erldantic_openapi:with_request_body(Endpoint, Module, Schema) ->
+    endpoint_spec().
 
 %% Add parameters (path, query, header, cookie)
-erldantic_openapi:with_parameter(Endpoint, Module, ParameterSpec) -> endpoint_spec().
+erldantic_openapi:with_parameter(Endpoint, Module, ParameterSpec) ->
+    endpoint_spec().
 
 %% Generate complete OpenAPI spec
-erldantic_openapi:endpoints_to_openapi(Metadata, Endpoints) -> {ok, json:encode_value()} | {error, [erldantic:error()]}.
+erldantic_openapi:endpoints_to_openapi(Metadata, Endpoints) ->
+    {ok, json:encode_value()} | {error, [erldantic:error()]}.
 ```
 
 
