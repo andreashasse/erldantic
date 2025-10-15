@@ -28,19 +28,20 @@ Here's how to use erldantic for JSON serialization and deserialization:
 ```erlang
 -module(demo).
 
--export([json_to_contacts/1, contacts_to_json/1, json_schema/0]).
+-export([json_to_contacts/1, contacts_to_json/1, json_schema/0, binary_to_quality/1]).
 
 -record(email_contact, {address, verified, domain}).
 -record(phone_contact, {number, verified, sms_capable}).
 
+-type quality() :: 1..5.
 -type verified() ::
-    #{source := one_time_code | gut_feeling, string() => string()} | undefined.
+    #{source := one_time_code | gut_feeling, quality => quality(), binary() => binary()} | undefined.
 -type email_contact() ::
-    #email_contact{address :: string(),
+    #email_contact{address :: nonempty_binary(),
                    verified :: verified(),
-                   domain :: string()}.
+                   domain :: nonempty_binary()}.
 -type phone_contact() ::
-    #phone_contact{number :: string(),
+    #phone_contact{number :: binary(),
                    verified :: verified(),
                    sms_capable :: boolean()}.
 -type contacts() :: [email_contact() | phone_contact()].
@@ -58,8 +59,13 @@ contacts_to_json(Contacts) ->
         {error, _} = Error -> Error
     end.
 
+-spec binary_to_quality(binary()) -> {ok, quality()} | {error, [erldantic:error()]}.
+binary_to_quality(Bin) ->
+    erldantic:decode(binary_string, ?MODULE, quality, Bin).
+
 json_schema() ->
-    erldantic:schema(json_schema, ?MODULE, contacts).
+    {ok, IoSchema} = erldantic:schema(json_schema, ?MODULE, contacts),
+    iolist_to_binary(IoSchema).
 
 ```
 
@@ -76,28 +82,29 @@ rr(demo).
 %% Create some data
 Contacts = [
     #email_contact{
-        address = "john.doe@example.com",
-        verified = #{source => one_time_code, "code" => "123456"},
-        domain = "example.com"
+        address = <<"john.doe@example.com">>,
+        verified = #{source => one_time_code, quality => 2, <<"code">> => <<"123456">>},
+        domain = <<"example.com">>
     },
     #phone_contact{
-        number = "+1-555-123-4567",
-        verified = #{source => gut_feeling, "confidence" => "high"},
+        number = <<"+1-555-123-4567">>,
+        verified = #{source => gut_feeling, <<"confidence">> => <<"high">>},
         sms_capable = true
     },
     #email_contact{
-        address = "alice@company.org",
-        domain = "company.org"
+        address = <<"alice@company.org">>,
+        domain = <<"company.org">>
     }
 ].
 
 %% Convert to JSON
 {ok, Json} = demo:contacts_to_json(Contacts).
-%% Results in `Json` being:
-%% <<"[{\"domain\":\"example.com\",\"address\":\"john.doe@example.com\",\"verified\":{\"source\":\"one_time_code\",\"code\":\"123456\"}},{\"number\":\"+1-555-123-4567\",\"verified\":{\"source\":\"gut_feeling\",\"confidence\":\"high\"},\"sms_capable\":true},{\"domain\":\"company.org\",\"address\":\"alice@company.org\"}]">>
 
 %% Convert back from JSON
 demo:json_to_contacts(Json).
+
+%% If you get quality as a query parameter, you can do:
+demo:binary_to_quality(<<"4">>).
 
 %% Generate the json schema
 demo:json_schema().
