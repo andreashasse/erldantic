@@ -38,6 +38,8 @@ types_in_module_path(FilePath) ->
         {ok, {_Module, [{abstract_code, {_, Forms}}]}} ->
             NamedTypes = lists:filtermap(fun(F) -> type_in_form(F) end, Forms),
             build_type_info(NamedTypes);
+        {ok, {Module, [{abstract_code, no_abstract_code}]}} ->
+            erlang:error({module_not_compiled_with_debug_info, Module, FilePath});
         {error, beam_lib, Reason} ->
             erlang:error({beam_lib_error, FilePath, Reason})
     end.

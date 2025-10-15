@@ -12,26 +12,24 @@ Add erldantic to your rebar.config dependencies:
 ]}.
 ```
 
-## Type-safe Json serialization / deserialization
+## Type-safe data serialization / deserialization
 
-Erldantic provides type-safe JSON serialization and deserialization for Erlang records and all Erlang types that can be converted to JSON.
+Erldantic provides type-safe data serialization and deserialization for Erlang records and all Erlang types that can be converted to that type. Currently the focus is on JSON.
 
-- **Type-safe JSON conversion**: Convert typed erlang values to/from JSON, making sure the data conforms to the type.
+- **Type-safe conversion**: Convert typed erlang values to/from external formats such as JSON, making sure the data conforms to the type.
 - **Detailed errors**: Get error messages with location information when validation fails
 - **Support for complex scenarios**: Handles unions, records, atoms, nested structures, ...
-- **Works in tandem with json.erl**: Relies on json.erl to do the encoding / decoding.
-
-Hopefully easy to add support for Elixir and Gleam in the future.
-
 
 ### Basic Usage
 
 Here's how to use erldantic for JSON serialization and deserialization:
-(The same code is available in `test/example_test.erl`)
 
-#### 1. Define your types:
 
 ```erlang
+-module(demo).
+
+-export([json_to_contacts/1, contacts_to_json/1, json_schema/0]).
+
 -record(email_contact, {address, verified, domain}).
 -record(phone_contact, {number, verified, sms_capable}).
 
@@ -46,11 +44,9 @@ Here's how to use erldantic for JSON serialization and deserialization:
                    verified :: verified(),
                    sms_capable :: boolean()}.
 -type contacts() :: [email_contact() | phone_contact()].
-```
 
-#### 2. Optionally, create helper functions:
+%% Some helper functions
 
-```erlang
 -spec json_to_contacts(binary()) -> {ok, contacts()} | {error, [erldantic:error()]}.
 json_to_contacts(Json) ->
     erldantic:decode(json, ?MODULE, contacts, Json).
@@ -63,13 +59,20 @@ contacts_to_json(Contacts) ->
     end.
 
 json_schema() ->
-    erldantic_json_schema:to_schema(?MODULE, contacts).
+    erldantic:schema(json_schema, ?MODULE, contacts).
 
 ```
 
-#### 3. Use the functions:
+### Using the demo module in the shell
+
 
 ```erlang
+%% Compile the demo module (note: You need debug info)
+c("demo.erl", [debug_info]).
+
+%% Load the record defs into the shell.
+rr(demo).
+
 %% Create some data
 Contacts = [
     #email_contact{
@@ -86,15 +89,19 @@ Contacts = [
         address = "alice@company.org",
         domain = "company.org"
     }
-],
+].
 
 %% Convert to JSON
-Json = contacts_to_json(Contacts),
-%% Results in:
+{ok, Json} = demo:contacts_to_json(Contacts).
+%% Results in `Json` being:
 %% <<"[{\"domain\":\"example.com\",\"address\":\"john.doe@example.com\",\"verified\":{\"source\":\"one_time_code\",\"code\":\"123456\"}},{\"number\":\"+1-555-123-4567\",\"verified\":{\"source\":\"gut_feeling\",\"confidence\":\"high\"},\"sms_capable\":true},{\"domain\":\"company.org\",\"address\":\"alice@company.org\"}]">>
 
 %% Convert back from JSON
-{ok, Contacts} = json_to_contacts(Json).
+demo:json_to_contacts(Json).
+
+%% Generate the json schema
+demo:json_schema().
+
 ```
 
 ### Data Serialization API
@@ -116,6 +123,23 @@ Where:
   - `{record, RecordName}` for records (e.g., `{record, user}`)
   - An actual `ed_type()` structure (for advanced usage)
 
+
+### Schema API
+
+```erlang
+erldantic:schema(Format, Module, Type) -> {ok, Schema :: map()} | {error, [erldantic:error()]}.
+```
+
+Where:
+- `Format` is `json_schema` (for now)
+
+And the rest of the arguments are the same as for the data serialization API.
+
+### Requirements
+
+* Modules must be compiled with `debug_info` for erldantic to extract type information.
+
+
 ### Error Handling
 
 Erldantic provides detailed error messages when data doesn't match your type specifications:
@@ -126,48 +150,15 @@ BadSourceJson = <<"[{\"number\":\"+1-555-123-4567\",\"verified\":{\"source\":\"a
 {error, [#ed_error{...}]} = json_to_contacts(BadSourceJson).
 ```
 
-## JSON Schema Generation
-
-Erldantic can generate [JSON Schema](https://json-schema.org/) specifications from your Erlang types. This is useful for API documentation, client code generation, validation in other languages, and integration with schema-based tools.
-
-**Note**: For JSON Schema generation, you currently need to use `erldantic_json_schema:to_schema/2` directly as there is no wrapper in the main `erldantic` module yet.
-
-### JSON Schema API
-
-```erlang
-erldantic_json_schema:to_schema(Module, TypeOrReference) -> {ok, Schema :: map()} | {error, [erldantic:error()]}.
-```
-
-### Basic Example
-
-```erlang
--module(my_api).
-
--export([generate_user_schema/0]).
-
--record(user, {id :: integer(), name :: string() | undefined, email :: string()}).
-
-generate_user_schema() ->
-    {ok, Schema} = erldantic_json_schema:to_schema(?MODULE, {record, user}),
-    %% Schema will be:
-    %% #{type => <<"object">>,
-    %%   properties => #{
-    %%     id => #{type => <<"integer">>},
-    %%     name => #{type => <<"string">>},
-    %%     email => #{type => <<"string">>}
-    %%   },
-    %%   required => [id, name, email]}
-    Schema.
-
-```
-
 ## OpenAPI Specification Generation
 
 Erldantic can generate complete [OpenAPI 3.0](https://spec.openapis.org/oas/v3.0.0) specifications for your REST APIs. This provides interactive documentation, client generation, and API testing tools.
 
 ### OpenAPI Builder API
 
-Build endpoints using a fluent builder pattern:
+The API for building endpoints is very experimental and will probably change a lot.
+It is meant to be used by developers of web servers / web frameworks.
+See [elli_openapi](https://github.com/andreashasse/elli_openapi) for an example of how to use it in a web server.
 
 ```erlang
 %% Create a base endpoint
@@ -186,8 +177,6 @@ erldantic_openapi:with_parameter(Endpoint, Module, ParameterSpec) -> endpoint_sp
 erldantic_openapi:endpoints_to_openapi(Metadata, Endpoints) -> {ok, json:encode_value()} | {error, [erldantic:error()]}.
 ```
 
-This API is meant to be used by developers of web severs / web frameworks.
-See [elli_openapi](https://github.com/andreashasse/elli_openapi) for an example of how to use it in a web server.
 
 ## Special Handling
 
@@ -208,6 +197,8 @@ Some Erlang types are not supported for JSON conversion:
 - `pid()`, `port()`, `reference()` - Cannot be serialized to JSON
 - `tuple()`, `bitstring()`, `nonempty_bitstring()` - Not JSON-compatible
 - Function types - Cannot be serialized
+
+It would be interesting to add support for key value lists, but as it isn't a native type in erlang, I haven't gotten around to it yet.
 
 ## Configuration
 

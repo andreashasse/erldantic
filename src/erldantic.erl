@@ -1,8 +1,8 @@
 -module(erldantic).
 
--export([decode/4, encode/4]).
+-export([decode/4, encode/4, schema/3]).
 
--ignore_xref([decode/4, encode/4]).
+-ignore_xref([decode/4, encode/4, schema/3]).
 
 -include("../include/erldantic.hrl").
 -include("../include/erldantic_internal.hrl").
@@ -93,6 +93,28 @@ encode(binary_string, Typeinfo, TypeOrRef, Data) ->
     erldantic_binary_string:to_binary_string(Typeinfo, TypeOrRef, Data);
 encode(string, Typeinfo, TypeOrRef, Data) ->
     erldantic_string:to_string(Typeinfo, TypeOrRef, Data).
+
+-spec schema(Format :: atom(),
+             ModuleOrTypeinfo :: module() | type_info(),
+             TypeOrRef :: atom() | ed_type_or_ref()) ->
+                {ok, iodata()} | {error, [error()]}.
+schema(Format, Module, TypeOrRef) when is_atom(Module) ->
+    TypeInfo = erldantic_module_types:get(Module),
+    schema(Format, TypeInfo, TypeOrRef);
+schema(Format, TypeInfo, TypeAtom) when is_atom(TypeAtom) ->
+    case find_type_from_atom(TypeInfo, TypeAtom) of
+        {ok, Type} ->
+            schema(Format, TypeInfo, Type);
+        {error, _} = Err ->
+            Err
+    end;
+schema(json_schema, Module, TypeOrRef) ->
+    case erldantic_json_schema:to_schema(Module, TypeOrRef) of
+        {ok, SchemaMap} ->
+            {ok, json:encode(SchemaMap)};
+        {error, _} = Err ->
+            Err
+    end.
 
 find_type_from_atom(TypeInfo, RefAtom) ->
     case erldantic_type_info:get_type(TypeInfo, RefAtom, 0) of
