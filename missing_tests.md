@@ -1,3 +1,0 @@
-- [ ] Predefined integer ranges (pos_integer, neg_integer, etc.)
-- [ ] Binary types
-- [ ] String vs int list disambiguation
