@@ -142,13 +142,27 @@ And the rest of the arguments are the same as for the data serialization API.
 
 ### Error Handling
 
-Erldantic provides detailed error messages when data doesn't match your type specifications:
+Erldantic uses two different error handling strategies depending on the type of error:
 
+#### Returned Errors (`{error, [erldantic:error()]}`)
+
+Data validation errors are returned as `{error, [#ed_error{}]}` tuples. These occur when input data doesn't match the expected type during encoding/decoding.
+
+Example:
 ```erlang
 BadSourceJson = <<"[{\"number\":\"+1-555-123-4567\",\"verified\":{\"source\":\"a_bad_source\",\"confidence\":\"high\"},\"sms_capable\":true}]">>.
 
 {error, [#ed_error{...}]} = json_to_contacts(BadSourceJson).
 ```
+
+#### Raised Exceptions
+
+Configuration and structural errors raise exceptions. These occur when:
+- Module not found, not loaded, or not compiled with `debug_info`
+- Type or record not found in module (e.g., `{type_or_record_not_found, TypeName}`)
+- Unsupported type used (e.g., `pid()`, `port()`, `tuple()`)
+
+These errors indicate a problem with your application's configuration or type definitions, not with the data being processed.
 
 ## OpenAPI Specification Generation
 

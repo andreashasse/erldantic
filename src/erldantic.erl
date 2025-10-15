@@ -54,12 +54,8 @@ decode(Format, Module, TypeOrRef, Binary) when is_atom(Module) ->
     TypeInfo = erldantic_module_types:get(Module),
     decode(Format, TypeInfo, TypeOrRef, Binary);
 decode(Format, TypeInfo, RefAtom, Binary) when is_atom(RefAtom) ->
-    case find_type_from_atom(TypeInfo, RefAtom) of
-        {ok, Type} ->
-            decode(Format, TypeInfo, Type, Binary);
-        {error, _} = Err ->
-            Err
-    end;
+    Type = get_type_from_atom(TypeInfo, RefAtom),
+    decode(Format, TypeInfo, Type, Binary);
 decode(json, Typeinfo, TypeOrRef, Binary) when is_binary(Binary) ->
     erldantic_json:from_json(Typeinfo, TypeOrRef, json:decode(Binary));
 decode(binary_string, Typeinfo, TypeOrRef, Binary) when is_binary(Binary) ->
@@ -76,12 +72,8 @@ encode(Format, Module, TypeOrRef, Data) when is_atom(Module) ->
     TypeInfo = erldantic_module_types:get(Module),
     encode(Format, TypeInfo, TypeOrRef, Data);
 encode(Format, Module, TypeAtom, Data) when is_atom(TypeAtom) ->
-    case find_type_from_atom(Module, TypeAtom) of
-        {ok, Type} ->
-            encode(Format, Module, Type, Data);
-        {error, _} = Err ->
-            Err
-    end;
+    Type = get_type_from_atom(Module, TypeAtom),
+    encode(Format, Module, Type, Data);
 encode(json, Typeinfo, TypeOrRef, Data) ->
     case erldantic_json:to_json(Typeinfo, TypeOrRef, Data) of
         {ok, Json} ->
@@ -102,12 +94,8 @@ schema(Format, Module, TypeOrRef) when is_atom(Module) ->
     TypeInfo = erldantic_module_types:get(Module),
     schema(Format, TypeInfo, TypeOrRef);
 schema(Format, TypeInfo, TypeAtom) when is_atom(TypeAtom) ->
-    case find_type_from_atom(TypeInfo, TypeAtom) of
-        {ok, Type} ->
-            schema(Format, TypeInfo, Type);
-        {error, _} = Err ->
-            Err
-    end;
+    Type = get_type_from_atom(TypeInfo, TypeAtom),
+    schema(Format, TypeInfo, Type);
 schema(json_schema, Module, TypeOrRef) ->
     case erldantic_json_schema:to_schema(Module, TypeOrRef) of
         {ok, SchemaMap} ->
@@ -116,19 +104,15 @@ schema(json_schema, Module, TypeOrRef) ->
             Err
     end.
 
-find_type_from_atom(TypeInfo, RefAtom) ->
+get_type_from_atom(TypeInfo, RefAtom) ->
     case erldantic_type_info:get_type(TypeInfo, RefAtom, 0) of
         {ok, Type} ->
-            {ok, Type};
+            Type;
         error ->
             case erldantic_type_info:get_record(TypeInfo, RefAtom) of
                 {ok, Rec} ->
-                    {ok, Rec};
+                    Rec;
                 error ->
-                    %% FIXME: error message
-                    {error,
-                     [#ed_error{location = [],
-                                type = no_match,
-                                ctx = RefAtom}]}
+                    erlang:error({type_or_record_not_found, RefAtom})
             end
     end.
