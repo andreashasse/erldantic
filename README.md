@@ -167,6 +167,12 @@ BadSourceJson = <<"[{\"number\":\"+1-555-123-4567\",\"verified\":{\"source\":\"a
 {error, [#ed_error{...}]} = json_to_contacts(BadSourceJson).
 ```
 
+`#error{}` contains:
+
+- `location` - List showing the path to where the error occurred
+- `type` - Error type: `type_mismatch`, `no_match`, `missing_data`, `missing_type`, `type_not_supported`, `not_matched_fields`, `not_implemented`
+- `ctx` - Context information about the error
+
 #### Raised Exceptions
 
 Configuration and structural errors raise exceptions. These occur when:
@@ -259,14 +265,6 @@ Example configuration in `sys.config`:
     {check_unicode, false}
 ]}.
 ```
-
-## Error Types
-
-`#error{}` contains:
-
-- `location` - List showing the path to where the error occurred
-- `type` - Error type: `type_mismatch`, `no_match`, `missing_data`, `missing_type`, `type_not_supported`, `not_matched_fields`, `not_implemented`
-- `ctx` - Context information about the error
 
 ## Related Projects
 
