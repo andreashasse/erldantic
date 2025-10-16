@@ -57,7 +57,12 @@ decode(Format, TypeInfo, RefAtom, Binary) when is_atom(RefAtom) ->
     Type = get_type_from_atom(TypeInfo, RefAtom),
     decode(Format, TypeInfo, Type, Binary);
 decode(json, Typeinfo, TypeOrRef, Binary) when is_binary(Binary) ->
-    erldantic_json:from_json(Typeinfo, TypeOrRef, json:decode(Binary));
+    case json_decode(Binary) of
+        {ok, DecodedJson} ->
+            erldantic_json:from_json(Typeinfo, TypeOrRef, DecodedJson);
+        {error, _} = Err ->
+            Err
+    end;
 decode(binary_string, Typeinfo, TypeOrRef, Binary) when is_binary(Binary) ->
     erldantic_binary_string:from_binary_string(Typeinfo, TypeOrRef, Binary);
 decode(string, Typeinfo, TypeOrRef, String) when is_list(String) ->
@@ -115,4 +120,15 @@ get_type_from_atom(TypeInfo, RefAtom) ->
                 error ->
                     erlang:error({type_or_record_not_found, RefAtom})
             end
+    end.
+
+json_decode(Binary) ->
+    try
+        {ok, json:decode(Binary)}
+    catch
+        ErrType:Reason ->
+            {error,
+             [#ed_error{location = [],
+                        type = decode_error,
+                        ctx = #{type => ErrType, reason => Reason}}]}
     end.

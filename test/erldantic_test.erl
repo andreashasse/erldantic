@@ -387,6 +387,27 @@ error_handling_decode_test() ->
     {error, Errors3} = erldantic:decode(json, ?MODULE, user_map, JsonMissingField),
     ?assertMatch([#ed_error{}], Errors3).
 
+error_handling_invalid_json_test() ->
+    InvalidJson1 = <<"{\"id\":1,\"name\":\"Alice\"">>,
+    {error, Errors1} = erldantic:decode(json, ?MODULE, user_map, InvalidJson1),
+    ?assertMatch([#ed_error{type = decode_error, location = []}], Errors1),
+
+    InvalidJson2 = <<"{invalid}">>,
+    {error, Errors2} = erldantic:decode(json, ?MODULE, user_map, InvalidJson2),
+    ?assertMatch([#ed_error{type = decode_error, location = []}], Errors2),
+
+    InvalidJson3 = <<"{\"id\":">>,
+    {error, Errors3} = erldantic:decode(json, ?MODULE, user_id, InvalidJson3),
+    ?assertMatch([#ed_error{type = decode_error, location = []}], Errors3),
+
+    InvalidJson4 = <<"this is not json">>,
+    {error, Errors4} = erldantic:decode(json, ?MODULE, user_id, InvalidJson4),
+    ?assertMatch([#ed_error{type = decode_error, location = []}], Errors4),
+
+    InvalidJson5 = <<"">>,
+    {error, Errors5} = erldantic:decode(json, ?MODULE, user_id, InvalidJson5),
+    ?assertMatch([#ed_error{type = decode_error, location = []}], Errors5).
+
 error_handling_encode_test() ->
     % Wrong type for status
     {error, Errors1} = erldantic:encode(json, ?MODULE, status, wrong_atom),
