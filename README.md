@@ -229,7 +229,7 @@ When using types with `term`, `erldantic_json` will not reject any data, which m
 
 ### Unsupported Types
 
-Some Erlang types are not supported for JSON conversion:
+Each format supports a subset of Erlang types. For JSON serialization and schema, the following are not supported:
 - `maybe_improper_list()` - Currently returns an error
 - `pid()`, `port()`, `reference()` - Cannot be serialized to JSON
 - `tuple()`, `bitstring()`, `nonempty_bitstring()` - Not JSON-compatible
