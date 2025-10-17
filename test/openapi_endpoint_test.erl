@@ -314,3 +314,171 @@ endpoint_with_complex_direct_types_test() ->
                        #{200 := #{schema := ListType, module := ?MODULE},
                          400 := #{schema := UnionType, module := ?MODULE}}},
                  Endpoint).
+
+%% Test endpoint with custom response content type
+endpoint_with_custom_response_content_type_test() ->
+    %% Create endpoint with custom content type
+    Endpoint1 = erldantic_openapi:endpoint(get, <<"/users">>),
+    Endpoint =
+        erldantic_openapi:with_response(Endpoint1,
+                                        200,
+                                        <<"List of users">>,
+                                        ?MODULE,
+                                        {record, user_list},
+                                        <<"application/xml">>),
+
+    %% Should have the response with custom content type
+    ?assertMatch(#{responses :=
+                       #{200 :=
+                             #{description := <<"List of users">>,
+                               schema := {record, user_list},
+                               content_type := <<"application/xml">>}}},
+                 Endpoint).
+
+%% Test endpoint with custom request body content type
+endpoint_with_custom_request_body_content_type_test() ->
+    %% Create endpoint with custom request body content type
+    Endpoint1 = erldantic_openapi:endpoint(post, <<"/users">>),
+    Endpoint =
+        erldantic_openapi:with_request_body(Endpoint1,
+                                            ?MODULE,
+                                            {record, create_user_request},
+                                            <<"application/xml">>),
+
+    %% Should have request body with custom content type
+    ?assertMatch(#{request_body :=
+                       #{schema := {record, create_user_request},
+                         module := ?MODULE,
+                         content_type := <<"application/xml">>}},
+                 Endpoint).
+
+%% Test endpoint with both custom content types
+endpoint_with_both_custom_content_types_test() ->
+    %% Create endpoint with both custom content types
+    Endpoint1 = erldantic_openapi:endpoint(post, <<"/users">>),
+    Endpoint2 =
+        erldantic_openapi:with_request_body(Endpoint1,
+                                            ?MODULE,
+                                            {record, create_user_request},
+                                            <<"application/xml">>),
+    Endpoint =
+        erldantic_openapi:with_response(Endpoint2,
+                                        201,
+                                        <<"User created">>,
+                                        ?MODULE,
+                                        {record, user},
+                                        <<"text/plain">>),
+
+    %% Should have both custom content types
+    ?assertMatch(#{request_body := #{content_type := <<"application/xml">>},
+                   responses := #{201 := #{content_type := <<"text/plain">>}}},
+                 Endpoint).
+
+%% Test backward compatibility - endpoints without content type should default to application/json
+endpoint_default_content_type_test() ->
+    %% Create endpoint without specifying content type (using old API)
+    Endpoint1 = erldantic_openapi:endpoint(post, <<"/users">>),
+    Endpoint2 =
+        erldantic_openapi:with_request_body(Endpoint1, ?MODULE, {record, create_user_request}),
+    Endpoint =
+        erldantic_openapi:with_response(Endpoint2,
+                                        201,
+                                        <<"User created">>,
+                                        ?MODULE,
+                                        {record, user}),
+
+    %% Should not have content_type field (defaults to application/json in generation)
+    #{request_body := RequestBody, responses := Responses} = Endpoint,
+    ?assertNot(maps:is_key(content_type, RequestBody)),
+    #{201 := Response} = Responses,
+    ?assertNot(maps:is_key(content_type, Response)).
+
+%% Test adding response header
+endpoint_with_response_header_test() ->
+    %% Create endpoint with response and add a header
+    Endpoint1 = erldantic_openapi:endpoint(get, <<"/users">>),
+    Endpoint2 =
+        erldantic_openapi:with_response(Endpoint1,
+                                        200,
+                                        <<"List of users">>,
+                                        ?MODULE,
+                                        {record, user_list}),
+    Endpoint =
+        erldantic_openapi:with_response_header(Endpoint2,
+                                               200,
+                                               <<"X-Rate-Limit">>,
+                                               ?MODULE,
+                                               #{schema => #ed_simple_type{type = integer},
+                                                 description => <<"Request limit">>,
+                                                 required => false}),
+
+    %% Should have the header in the response
+    #{responses := #{200 := Response}} = Endpoint,
+    ?assertMatch(#{headers := #{<<"X-Rate-Limit">> := _}}, Response),
+    #{headers := #{<<"X-Rate-Limit">> := Header}} = Response,
+    ?assertMatch(#{schema := #ed_simple_type{type = integer},
+                   description := <<"Request limit">>,
+                   required := false},
+                 Header).
+
+%% Test adding multiple response headers
+endpoint_with_multiple_response_headers_test() ->
+    %% Create endpoint with response and add multiple headers
+    Endpoint1 = erldantic_openapi:endpoint(get, <<"/users">>),
+    Endpoint2 =
+        erldantic_openapi:with_response(Endpoint1,
+                                        200,
+                                        <<"List of users">>,
+                                        ?MODULE,
+                                        {record, user_list}),
+    Endpoint3 =
+        erldantic_openapi:with_response_header(Endpoint2,
+                                               200,
+                                               <<"X-Rate-Limit">>,
+                                               ?MODULE,
+                                               #{schema => #ed_simple_type{type = integer}}),
+    Endpoint =
+        erldantic_openapi:with_response_header(Endpoint3,
+                                               200,
+                                               <<"X-Request-ID">>,
+                                               ?MODULE,
+                                               #{schema => #ed_simple_type{type = string},
+                                                 required => true}),
+
+    %% Should have both headers in the response
+    #{responses := #{200 := Response}} = Endpoint,
+    ?assertMatch(#{headers := #{<<"X-Rate-Limit">> := _, <<"X-Request-ID">> := _}}, Response).
+
+%% Test adding response headers to different status codes
+endpoint_with_headers_on_different_responses_test() ->
+    %% Create endpoint with multiple responses and different headers
+    Endpoint1 = erldantic_openapi:endpoint(post, <<"/users">>),
+    Endpoint2 =
+        erldantic_openapi:with_response(Endpoint1,
+                                        201,
+                                        <<"User created">>,
+                                        ?MODULE,
+                                        {record, user}),
+    Endpoint3 =
+        erldantic_openapi:with_response(Endpoint2,
+                                        429,
+                                        <<"Too many requests">>,
+                                        ?MODULE,
+                                        {record, error_response}),
+    Endpoint4 =
+        erldantic_openapi:with_response_header(Endpoint3,
+                                               201,
+                                               <<"Location">>,
+                                               ?MODULE,
+                                               #{schema => #ed_simple_type{type = string}}),
+    Endpoint =
+        erldantic_openapi:with_response_header(Endpoint4,
+                                               429,
+                                               <<"Retry-After">>,
+                                               ?MODULE,
+                                               #{schema => #ed_simple_type{type = integer}}),
+
+    %% Should have different headers on different responses
+    #{responses := #{201 := Response201, 429 := Response429}} = Endpoint,
+    ?assertMatch(#{headers := #{<<"Location">> := _}}, Response201),
+    ?assertMatch(#{headers := #{<<"Retry-After">> := _}}, Response429).

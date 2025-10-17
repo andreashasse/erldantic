@@ -437,3 +437,265 @@ run_python_openapi_validation() ->
             %% Validation passed
             ok
     end.
+
+%% Test that custom content types appear in generated OpenAPI JSON for responses
+custom_response_content_type_json_test() ->
+    %% Create endpoint with custom response content type
+    Endpoint1 = erldantic_openapi:endpoint(get, <<"/users">>),
+    Endpoint =
+        erldantic_openapi:with_response(Endpoint1,
+                                        200,
+                                        <<"List of users">>,
+                                        ?MODULE,
+                                        {record, user},
+                                        <<"application/xml">>),
+
+    %% Generate OpenAPI spec
+    {ok, OpenAPISpec} =
+        erldantic_openapi:endpoints_to_openapi(#{title => <<"API Documentation">>,
+                                                 version => <<"1.0.0">>},
+                                               [Endpoint]),
+
+    %% Validate that the generated spec uses the custom content type
+    #{paths := #{<<"/users">> := #{get := #{responses := #{<<"200">> := Response}}}}} =
+        OpenAPISpec,
+
+    %% Check that the response has application/xml content type
+    ?assertMatch(#{content := #{<<"application/xml">> := #{schema := _}}}, Response),
+
+    %% Ensure it does NOT have application/json
+    #{content := Content} = Response,
+    ?assertNot(maps:is_key(<<"application/json">>, Content)).
+
+%% Test that custom content types appear in generated OpenAPI JSON for request bodies
+custom_request_body_content_type_json_test() ->
+    %% Create endpoint with custom request body content type
+    Endpoint1 = erldantic_openapi:endpoint(post, <<"/users">>),
+    Endpoint2 =
+        erldantic_openapi:with_request_body(Endpoint1,
+                                            ?MODULE,
+                                            {record, create_user_request},
+                                            <<"application/xml">>),
+    Endpoint =
+        erldantic_openapi:with_response(Endpoint2,
+                                        201,
+                                        <<"User created">>,
+                                        ?MODULE,
+                                        {record, user}),
+
+    %% Generate OpenAPI spec
+    {ok, OpenAPISpec} =
+        erldantic_openapi:endpoints_to_openapi(#{title => <<"API Documentation">>,
+                                                 version => <<"1.0.0">>},
+                                               [Endpoint]),
+
+    %% Validate that the generated spec uses the custom content type
+    #{paths := #{<<"/users">> := #{post := #{requestBody := RequestBody}}}} = OpenAPISpec,
+
+    %% Check that the request body has application/xml content type
+    ?assertMatch(#{content := #{<<"application/xml">> := #{schema := _}}}, RequestBody),
+
+    %% Ensure it does NOT have application/json for request body
+    #{content := Content} = RequestBody,
+    ?assertNot(maps:is_key(<<"application/json">>, Content)).
+
+%% Test that default content type (application/json) is used when not specified
+default_content_type_json_test() ->
+    %% Create endpoint without specifying content type (using old API)
+    Endpoint1 = erldantic_openapi:endpoint(post, <<"/users">>),
+    Endpoint2 =
+        erldantic_openapi:with_request_body(Endpoint1, ?MODULE, {record, create_user_request}),
+    Endpoint =
+        erldantic_openapi:with_response(Endpoint2,
+                                        201,
+                                        <<"User created">>,
+                                        ?MODULE,
+                                        {record, user}),
+
+    %% Generate OpenAPI spec
+    {ok, OpenAPISpec} =
+        erldantic_openapi:endpoints_to_openapi(#{title => <<"API Documentation">>,
+                                                 version => <<"1.0.0">>},
+                                               [Endpoint]),
+
+    %% Validate that the generated spec defaults to application/json
+    #{paths := #{<<"/users">> := UsersPath}} = OpenAPISpec,
+    #{post := #{requestBody := RequestBody, responses := #{<<"201">> := Response}}} =
+        UsersPath,
+
+    %% Check that default content type is application/json
+    ?assertMatch(#{content := #{<<"application/json">> := #{schema := _}}}, RequestBody),
+    ?assertMatch(#{content := #{<<"application/json">> := #{schema := _}}}, Response).
+
+%% Test mixed content types - different content types for request and response
+mixed_content_types_json_test() ->
+    %% Create endpoint with different content types for request and response
+    Endpoint1 = erldantic_openapi:endpoint(post, <<"/users">>),
+    Endpoint2 =
+        erldantic_openapi:with_request_body(Endpoint1,
+                                            ?MODULE,
+                                            {record, create_user_request},
+                                            <<"application/xml">>),
+    Endpoint3 =
+        erldantic_openapi:with_response(Endpoint2,
+                                        201,
+                                        <<"User created">>,
+                                        ?MODULE,
+                                        {record, user},
+                                        <<"text/plain">>),
+    Endpoint =
+        erldantic_openapi:with_response(Endpoint3,
+                                        400,
+                                        <<"Invalid input">>,
+                                        ?MODULE,
+                                        {record, error_response},
+                                        <<"application/json">>),
+
+    %% Generate OpenAPI spec
+    {ok, OpenAPISpec} =
+        erldantic_openapi:endpoints_to_openapi(#{title => <<"API Documentation">>,
+                                                 version => <<"1.0.0">>},
+                                               [Endpoint]),
+
+    %% Validate that each part has its specified content type
+    #{paths := #{<<"/users">> := UsersPath}} = OpenAPISpec,
+    #{post :=
+          #{requestBody := RequestBody,
+            responses := #{<<"201">> := Response201, <<"400">> := Response400}}} =
+        UsersPath,
+
+    %% Check that each part has the correct content type
+    ?assertMatch(#{content := #{<<"application/xml">> := #{schema := _}}}, RequestBody),
+    ?assertMatch(#{content := #{<<"text/plain">> := #{schema := _}}}, Response201),
+    ?assertMatch(#{content := #{<<"application/json">> := #{schema := _}}}, Response400),
+
+    %% Ensure they don't have other content types
+    #{content := ReqContent} = RequestBody,
+    #{content := Resp201Content} = Response201,
+    ?assertNot(maps:is_key(<<"application/json">>, ReqContent)),
+    ?assertNot(maps:is_key(<<"application/json">>, Resp201Content)),
+    ?assertNot(maps:is_key(<<"application/xml">>, Resp201Content)).
+
+%% Test that response headers appear in generated OpenAPI JSON
+response_headers_in_json_test() ->
+    %% Create endpoint with response headers
+    Endpoint1 = erldantic_openapi:endpoint(get, <<"/users">>),
+    Endpoint2 =
+        erldantic_openapi:with_response(Endpoint1,
+                                        200,
+                                        <<"List of users">>,
+                                        ?MODULE,
+                                        {record, user}),
+    Endpoint3 =
+        erldantic_openapi:with_response_header(Endpoint2,
+                                               200,
+                                               <<"X-Rate-Limit">>,
+                                               ?MODULE,
+                                               #{schema => #ed_simple_type{type = integer},
+                                                 description => <<"Request limit">>,
+                                                 required => false}),
+    Endpoint =
+        erldantic_openapi:with_response_header(Endpoint3,
+                                               200,
+                                               <<"X-Request-ID">>,
+                                               ?MODULE,
+                                               #{schema => #ed_simple_type{type = string},
+                                                 required => true}),
+
+    %% Generate OpenAPI spec
+    {ok, OpenAPISpec} =
+        erldantic_openapi:endpoints_to_openapi(#{title => <<"API Documentation">>,
+                                                 version => <<"1.0.0">>},
+                                               [Endpoint]),
+
+    %% Validate that headers appear in the generated spec
+    #{paths := #{<<"/users">> := #{get := #{responses := #{<<"200">> := Response}}}}} =
+        OpenAPISpec,
+
+    %% Check that headers are present
+    ?assertMatch(#{headers := #{<<"X-Rate-Limit">> := _, <<"X-Request-ID">> := _}}, Response),
+
+    %% Validate header structure
+    #{headers :=
+          #{<<"X-Rate-Limit">> := RateLimitHeader, <<"X-Request-ID">> := RequestIDHeader}} =
+        Response,
+    ?assertMatch(#{schema := #{type := <<"integer">>},
+                   description := <<"Request limit">>,
+                   required := false},
+                 RateLimitHeader),
+    ?assertMatch(#{schema := #{type := <<"string">>}, required := true}, RequestIDHeader).
+
+%% Test response without headers doesn't have headers field
+response_without_headers_test() ->
+    %% Create endpoint without headers
+    Endpoint1 = erldantic_openapi:endpoint(get, <<"/users">>),
+    Endpoint =
+        erldantic_openapi:with_response(Endpoint1,
+                                        200,
+                                        <<"List of users">>,
+                                        ?MODULE,
+                                        {record, user}),
+
+    %% Generate OpenAPI spec
+    {ok, OpenAPISpec} =
+        erldantic_openapi:endpoints_to_openapi(#{title => <<"API Documentation">>,
+                                                 version => <<"1.0.0">>},
+                                               [Endpoint]),
+
+    %% Validate that headers field is not present
+    #{paths := #{<<"/users">> := #{get := #{responses := #{<<"200">> := Response}}}}} =
+        OpenAPISpec,
+
+    %% Should not have headers field
+    ?assertNot(maps:is_key(headers, Response)).
+
+%% Test headers on different response status codes
+headers_on_different_responses_test() ->
+    %% Create endpoint with headers on different responses
+    Endpoint1 = erldantic_openapi:endpoint(post, <<"/users">>),
+    Endpoint2 =
+        erldantic_openapi:with_request_body(Endpoint1, ?MODULE, {record, create_user_request}),
+    Endpoint3 =
+        erldantic_openapi:with_response(Endpoint2,
+                                        201,
+                                        <<"User created">>,
+                                        ?MODULE,
+                                        {record, user}),
+    Endpoint4 =
+        erldantic_openapi:with_response(Endpoint3,
+                                        429,
+                                        <<"Too many requests">>,
+                                        ?MODULE,
+                                        {record, error_response}),
+    Endpoint5 =
+        erldantic_openapi:with_response_header(Endpoint4,
+                                               201,
+                                               <<"Location">>,
+                                               ?MODULE,
+                                               #{schema => #ed_simple_type{type = string}}),
+    Endpoint =
+        erldantic_openapi:with_response_header(Endpoint5,
+                                               429,
+                                               <<"Retry-After">>,
+                                               ?MODULE,
+                                               #{schema => #ed_simple_type{type = integer}}),
+
+    %% Generate OpenAPI spec
+    {ok, OpenAPISpec} =
+        erldantic_openapi:endpoints_to_openapi(#{title => <<"API Documentation">>,
+                                                 version => <<"1.0.0">>},
+                                               [Endpoint]),
+
+    %% Validate that headers appear on correct responses
+    #{paths := #{<<"/users">> := #{post := #{responses := Responses}}}} = OpenAPISpec,
+    #{<<"201">> := Response201, <<"429">> := Response429} = Responses,
+
+    %% Check 201 response has Location header
+    ?assertMatch(#{headers := #{<<"Location">> := _}}, Response201),
+    #{headers := #{<<"Location">> := LocationHeader}} = Response201,
+    ?assertMatch(#{schema := #{type := <<"string">>}}, LocationHeader),
+
+    %% Check 429 response has Retry-After header
+    ?assertMatch(#{headers := #{<<"Retry-After">> := _}}, Response429),
+    #{headers := #{<<"Retry-After">> := RetryAfterHeader}} = Response429,
+    ?assertMatch(#{schema := #{type := <<"integer">>}}, RetryAfterHeader).

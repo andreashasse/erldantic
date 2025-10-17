@@ -1,13 +1,16 @@
 -module(erldantic_openapi).
 
--export([endpoint/2, with_response/5, with_request_body/3, with_parameter/3,
-         endpoints_to_openapi/2]).
+-export([endpoint/2, with_response/5, with_response/6, with_response_header/5,
+         with_request_body/3, with_request_body/4, with_parameter/3, endpoints_to_openapi/2]).
 
 -ignore_xref([{erldantic_openapi, type_to_schema, 2},
               {erldantic_openapi, record_to_schema, 2},
               {erldantic_openapi, endpoint, 2},
               {erldantic_openapi, with_response, 5},
+              {erldantic_openapi, with_response, 6},
+              {erldantic_openapi, with_response_header, 5},
               {erldantic_openapi, with_request_body, 3},
+              {erldantic_openapi, with_request_body, 4},
               {erldantic_openapi, with_parameter, 3},
               {erldantic_openapi, endpoints_to_openapi, 2}]).
 
@@ -19,11 +22,21 @@
 -type http_status_code() :: 100..599.
 -type parameter_location() :: path | query | header | cookie.
 -type openapi_schema() :: json:encode_value() | #{'$ref' := binary()}.
--type request_body_spec() :: #{schema := erldantic:ed_type_or_ref(), module := module()}.
+-type request_body_spec() ::
+    #{schema := erldantic:ed_type_or_ref(),
+      module := module(),
+      content_type => binary()}.
+-type response_header_spec() ::
+    #{description => binary(),
+      required => boolean(),
+      schema := erldantic:ed_type_or_ref(),
+      module := module()}.
 -type response_spec() ::
     #{description := binary(),
       schema := erldantic:ed_type_or_ref(),
-      module := module()}.
+      module := module(),
+      content_type => binary(),
+      headers => #{binary() => response_header_spec()}}.
 -type parameter_spec() ::
     #{name := binary(),
       in := parameter_location(),
@@ -43,7 +56,13 @@
       requestBody => openapi_request_body(),
       parameters => [openapi_parameter()]}.
 -type openapi_response() ::
-    #{description := binary(), content := #{binary() => #{schema := openapi_schema()}}}.
+    #{description := binary(),
+      content := #{binary() => #{schema := openapi_schema()}},
+      headers => #{binary() => openapi_header()}}.
+-type openapi_header() ::
+    #{description => binary(),
+      required => boolean(),
+      schema := openapi_schema()}.
 -type openapi_request_body() ::
     #{required := boolean(), content := #{binary() => #{schema := openapi_schema()}}}.
 -type openapi_parameter() ::
@@ -94,6 +113,68 @@ with_response(Endpoint, StatusCode, Description, Module, Schema)
     Responses = maps:get(responses, Endpoint, #{}),
     Endpoint#{responses => Responses#{StatusCode => ResponseSpec}}.
 
+-doc("Adds a response specification with custom content type to an endpoint.\nThis function adds a response with the specified status code, description, schema, and content type.\nMultiple responses can be added to the same endpoint by calling this function multiple times.\n\n### Returns\nUpdated endpoint map with the new response added").
+-doc(#{params =>
+           #{"ContentType" =>
+                 "Content type for the response (e.g., \"application/json\", \"application/xml\")",
+             "Description" => "Human-readable description of the response",
+             "Endpoint" => "Endpoint map to add the response to",
+             "Schema" => "Schema reference or direct type (erldantic:ed_type_or_ref())",
+             "StatusCode" => "HTTP status code (e.g., 200, 404, 500)"}}).
+
+-spec with_response(Endpoint :: endpoint_spec(),
+                    StatusCode :: http_status_code(),
+                    Description :: binary(),
+                    Module :: module(),
+                    Schema :: erldantic:ed_type_or_ref(),
+                    ContentType :: binary()) ->
+                       endpoint_spec().
+with_response(Endpoint, StatusCode, Description, Module, Schema, ContentType)
+    when is_map(Endpoint)
+         andalso is_integer(StatusCode)
+         andalso is_binary(Description)
+         andalso is_atom(Module)
+         andalso is_binary(ContentType) ->
+    ResponseSpec =
+        #{description => Description,
+          schema => Schema,
+          module => Module,
+          content_type => ContentType},
+    Responses = maps:get(responses, Endpoint, #{}),
+    Endpoint#{responses => Responses#{StatusCode => ResponseSpec}}.
+
+-doc("Adds a response header to a specific response status code.\nThis function adds a header specification to a response that was previously added with with_response.\nMultiple headers can be added to the same response by calling this function multiple times.\n\n### Returns\nUpdated endpoint map with the response header added").
+-doc(#{params =>
+           #{"Endpoint" => "Endpoint map with existing response",
+             "HeaderName" => "Name of the response header (e.g., \"X-Rate-Limit\")",
+             "HeaderSpec" => "Header specification (response_header_spec map)",
+             "Module" => "Module containing the type definition",
+             "StatusCode" => "HTTP status code of the response to add the header to"}}).
+
+-spec with_response_header(Endpoint :: endpoint_spec(),
+                           StatusCode :: http_status_code(),
+                           HeaderName :: binary(),
+                           Module :: module(),
+                           HeaderSpec :: response_header_spec()) ->
+                              endpoint_spec().
+with_response_header(Endpoint, StatusCode, HeaderName, Module, HeaderSpec)
+    when is_map(Endpoint)
+         andalso is_integer(StatusCode)
+         andalso is_binary(HeaderName)
+         andalso is_atom(Module)
+         andalso is_map(HeaderSpec) ->
+    Responses = maps:get(responses, Endpoint, #{}),
+    case maps:get(StatusCode, Responses, undefined) of
+        undefined ->
+            error({response_not_found, StatusCode});
+        ResponseSpec ->
+            Headers = maps:get(headers, ResponseSpec, #{}),
+            HeaderSpecWithModule = HeaderSpec#{module => Module},
+            UpdatedResponseSpec =
+                ResponseSpec#{headers => Headers#{HeaderName => HeaderSpecWithModule}},
+            Endpoint#{responses => Responses#{StatusCode => UpdatedResponseSpec}}
+    end.
+
 -doc("Adds a request body specification to an endpoint.\nThis function sets the request body schema for the endpoint.\nTypically used with POST, PUT, and PATCH endpoints.\n\n### Returns\nUpdated endpoint map with request body set").
 -doc(#{params =>
            #{"Endpoint" => "Endpoint map to add the request body to",
@@ -106,6 +187,25 @@ with_response(Endpoint, StatusCode, Description, Module, Schema)
 with_request_body(Endpoint, Module, Schema)
     when is_map(Endpoint) andalso is_atom(Module) ->
     Endpoint#{request_body => #{schema => Schema, module => Module}}.
+
+-doc("Adds a request body specification with custom content type to an endpoint.\nThis function sets the request body schema and content type for the endpoint.\nTypically used with POST, PUT, and PATCH endpoints.\n\n### Returns\nUpdated endpoint map with request body set").
+-doc(#{params =>
+           #{"ContentType" =>
+                 "Content type for the request body (e.g., \"application/json\", \"application/xml\")",
+             "Endpoint" => "Endpoint map to add the request body to",
+             "Schema" => "Schema reference or direct type (erldantic:ed_type_or_ref())"}}).
+
+-spec with_request_body(Endpoint :: endpoint_spec(),
+                        Module :: module(),
+                        Schema :: erldantic:ed_type_or_ref(),
+                        ContentType :: binary()) ->
+                           endpoint_spec().
+with_request_body(Endpoint, Module, Schema, ContentType)
+    when is_map(Endpoint) andalso is_atom(Module) andalso is_binary(ContentType) ->
+    Endpoint#{request_body =>
+                  #{schema => Schema,
+                    module => Module,
+                    content_type => ContentType}}.
 
 -doc("Adds a parameter specification to an endpoint.\nThis function adds a parameter (path, query, header, or cookie) to the endpoint.\nMultiple parameters can be added by calling this function multiple times.\n\n### Parameter Specification\nThe parameter spec should be a map with these keys:\n- name: Parameter name (binary)\n- in: Parameter location (path | query | header | cookie)\n- required: Whether the parameter is required (boolean)\n- schema: Schema reference or direct type (erldantic:ed_type_or_ref())\n\n### Returns\nUpdated endpoint map with the new parameter added").
 -doc(#{params =>
@@ -221,7 +321,8 @@ generate_operation(Endpoint) ->
 -spec generate_response(response_spec()) -> openapi_response().
 generate_response(#{description := Description,
                     schema := Schema,
-                    module := Module})
+                    module := Module} =
+                      ResponseSpec)
     when is_binary(Description) ->
     ModuleTypeInfo = erldantic_abstract_code:types_in_module(Module),
 
@@ -238,11 +339,49 @@ generate_response(#{description := Description,
                 InlineSchema
         end,
 
-    #{description => Description,
-      content => #{<<"application/json">> => #{schema => SchemaContent}}}.
+    ContentType = maps:get(content_type, ResponseSpec, <<"application/json">>),
+    BaseResponse =
+        #{description => Description, content => #{ContentType => #{schema => SchemaContent}}},
+
+    %% Add headers if present
+    case maps:get(headers, ResponseSpec, undefined) of
+        undefined ->
+            BaseResponse;
+        HeadersSpec when map_size(HeadersSpec) =:= 0 ->
+            BaseResponse;
+        HeadersSpec ->
+            GeneratedHeaders =
+                maps:map(fun(_HeaderName, HeaderSpec) -> generate_response_header(HeaderSpec) end,
+                         HeadersSpec),
+            BaseResponse#{headers => GeneratedHeaders}
+    end.
+
+-spec generate_response_header(response_header_spec()) -> openapi_header().
+generate_response_header(#{schema := Schema, module := Module} = HeaderSpec) ->
+    ModuleTypeInfo = erldantic_abstract_code:types_in_module(Module),
+    {ok, InlineSchema} = erldantic_json_schema:to_schema(ModuleTypeInfo, Schema),
+
+    BaseHeader = #{schema => InlineSchema},
+
+    %% Add optional description
+    HeaderWithDesc =
+        case maps:get(description, HeaderSpec, undefined) of
+            undefined ->
+                BaseHeader;
+            Description ->
+                BaseHeader#{description => Description}
+        end,
+
+    %% Add optional required flag
+    case maps:get(required, HeaderSpec, undefined) of
+        undefined ->
+            HeaderWithDesc;
+        Required ->
+            HeaderWithDesc#{required => Required}
+    end.
 
 -spec generate_request_body(request_body_spec()) -> openapi_request_body().
-generate_request_body(#{schema := Schema, module := Module}) ->
+generate_request_body(#{schema := Schema, module := Module} = RequestBodySpec) ->
     ModuleTypeInfo = erldantic_abstract_code:types_in_module(Module),
     SchemaContent =
         case Schema of
@@ -257,7 +396,8 @@ generate_request_body(#{schema := Schema, module := Module}) ->
                 InlineSchema
         end,
 
-    #{required => true, content => #{<<"application/json">> => #{schema => SchemaContent}}}.
+    ContentType = maps:get(content_type, RequestBodySpec, <<"application/json">>),
+    #{required => true, content => #{ContentType => #{schema => SchemaContent}}}.
 
 -spec generate_parameter(parameter_spec()) -> openapi_parameter().
 generate_parameter(#{name := Name,
