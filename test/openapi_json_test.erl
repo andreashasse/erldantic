@@ -699,3 +699,114 @@ headers_on_different_responses_test() ->
     ?assertMatch(#{headers := #{<<"Retry-After">> := _}}, Response429),
     #{headers := #{<<"Retry-After">> := RetryAfterHeader}} = Response429,
     ?assertMatch(#{schema := #{type := <<"integer">>}}, RetryAfterHeader).
+
+%% Test response builder pattern generates correct OpenAPI JSON
+response_builder_json_generation_test() ->
+    %% Build response using builder pattern
+    Response1 = erldantic_openapi:response(200, <<"Success">>),
+    Response2 = erldantic_openapi:with_response_body(Response1, ?MODULE, {record, user}),
+    Response =
+        erldantic_openapi:with_header(Response2,
+                                      <<"X-Rate-Limit">>,
+                                      ?MODULE,
+                                      #{schema => #ed_simple_type{type = integer},
+                                        description => <<"Requests remaining">>,
+                                        required => false}),
+
+    %% Create endpoint with builder pattern response
+    Endpoint1 = erldantic_openapi:endpoint(get, <<"/users">>),
+    Endpoint = erldantic_openapi:add_response(Endpoint1, 200, Response),
+
+    %% Generate OpenAPI spec
+    {ok, OpenAPISpec} =
+        erldantic_openapi:endpoints_to_openapi(#{title => <<"API Documentation">>,
+                                                 version => <<"1.0.0">>},
+                                               [Endpoint]),
+
+    %% Validate the generated JSON structure
+    #{paths := #{<<"/users">> := #{get := #{responses := #{<<"200">> := Response200}}}}} =
+        OpenAPISpec,
+
+    %% Verify response body
+    ?assertMatch(#{description := <<"Success">>, content := #{<<"application/json">> := _}},
+                 Response200),
+
+    %% Verify header
+    ?assertMatch(#{headers := #{<<"X-Rate-Limit">> := _}}, Response200),
+    #{headers := #{<<"X-Rate-Limit">> := RateLimitHeader}} = Response200,
+    ?assertMatch(#{schema := #{type := <<"integer">>},
+                   description := <<"Requests remaining">>,
+                   required := false},
+                 RateLimitHeader).
+
+%% Test response builder with custom content type in JSON
+response_builder_custom_content_type_json_test() ->
+    %% Build response with custom content type
+    Response1 = erldantic_openapi:response(200, <<"XML Response">>),
+    Response =
+        erldantic_openapi:with_response_body(Response1,
+                                             ?MODULE,
+                                             {record, user},
+                                             <<"application/xml">>),
+
+    %% Create endpoint
+    Endpoint1 = erldantic_openapi:endpoint(get, <<"/users">>),
+    Endpoint = erldantic_openapi:add_response(Endpoint1, 200, Response),
+
+    %% Generate OpenAPI spec
+    {ok, OpenAPISpec} =
+        erldantic_openapi:endpoints_to_openapi(#{title => <<"API">>, version => <<"1.0.0">>},
+                                               [Endpoint]),
+
+    %% Verify custom content type in JSON
+    #{paths := #{<<"/users">> := #{get := #{responses := #{<<"200">> := Response200}}}}} =
+        OpenAPISpec,
+    ?assertMatch(#{content := #{<<"application/xml">> := _}}, Response200),
+    #{content := Content} = Response200,
+    ?assertNot(maps:is_key(<<"application/json">>, Content)).
+
+%% Test complete endpoint with response builder
+response_builder_complete_endpoint_test() ->
+    %% Build multiple responses
+    Success = erldantic_openapi:response(200, <<"Success">>),
+    Success2 = erldantic_openapi:with_response_body(Success, ?MODULE, {record, user}),
+
+    Created = erldantic_openapi:response(201, <<"Created">>),
+    Created2 = erldantic_openapi:with_response_body(Created, ?MODULE, {record, user}),
+    Created3 =
+        erldantic_openapi:with_header(Created2,
+                                      <<"Location">>,
+                                      ?MODULE,
+                                      #{schema => #ed_simple_type{type = string}}),
+
+    Error = erldantic_openapi:response(400, <<"Bad Request">>),
+    Error2 = erldantic_openapi:with_response_body(Error, ?MODULE, {record, error_response}),
+
+    %% Build endpoint
+    Endpoint1 = erldantic_openapi:endpoint(post, <<"/users">>),
+    Endpoint2 =
+        erldantic_openapi:with_request_body(Endpoint1, ?MODULE, {record, create_user_request}),
+    Endpoint3 = erldantic_openapi:add_response(Endpoint2, 200, Success2),
+    Endpoint4 = erldantic_openapi:add_response(Endpoint3, 201, Created3),
+    Endpoint = erldantic_openapi:add_response(Endpoint4, 400, Error2),
+
+    %% Generate and validate
+    {ok, OpenAPISpec} =
+        erldantic_openapi:endpoints_to_openapi(#{title => <<"API">>, version => <<"1.0.0">>},
+                                               [Endpoint]),
+
+    #{paths := #{<<"/users">> := #{post := Operation}}} = OpenAPISpec,
+
+    %% Verify request body
+    ?assertMatch(#{requestBody := #{content := #{<<"application/json">> := _}}}, Operation),
+
+    %% Verify all responses
+    #{responses := Responses} = Operation,
+    ?assertMatch(#{<<"200">> := _,
+                   <<"201">> := _,
+                   <<"400">> := _},
+                 Responses),
+
+    %% Verify 201 has Location header
+    #{<<"201">> := Response201} = Responses,
+    ?assertMatch(#{headers := #{<<"Location">> := _}}, Response201).
