@@ -96,7 +96,7 @@ endpoint(Method, Path) when is_atom(Method) andalso is_binary(Path) ->
       responses => #{},
       parameters => []}.
 
--doc("Creates a response builder for constructing response specifications.\nThis function creates a response builder that can be incrementally configured with body and headers\nbefore being added to an endpoint using add_response/3.\n\n### Example\n```erlang\nResponse = erldantic_openapi:response(200, <<\"Success\">>),\nResponse2 = erldantic_openapi:with_response_body(Response, Module, Schema),\nResponse3 = erldantic_openapi:with_header(Response2, <<\"X-Rate-Limit\">>, Module, HeaderSpec),\nEndpoint = erldantic_openapi:add_response(Endpoint1, 200, Response3).\n```\n\n### Returns\nResponse builder map with status code and description").
+-doc("Creates a response builder for constructing response specifications.\nThis function creates a response builder that can be incrementally configured with body and headers\nbefore being added to an endpoint using add_response/2.\n\n### Example\n```erlang\nResponse = erldantic_openapi:response(200, <<\"Success\">>),\nResponse2 = erldantic_openapi:response_with_body(Response, Module, Schema),\nResponse3 = erldantic_openapi:response_with_header(Response2, <<\"X-Rate-Limit\">>, Module, HeaderSpec),\nEndpoint = erldantic_openapi:add_response(Endpoint1, Response3).\n```\n\n### Returns\nResponse builder map with status code and description").
 -doc(#{params =>
            #{"Description" => "Human-readable description of the response",
              "StatusCode" => "HTTP status code (e.g., 200, 404, 500)"}}).
@@ -155,7 +155,7 @@ response_with_body(Response, Module, Schema, ContentType)
 -doc("Adds a header to a response builder.\nThis function adds a header specification to the response being built.\nMultiple headers can be added by calling this function multiple times.\n\n### Returns\nUpdated response builder with header added").
 -doc(#{params =>
            #{"HeaderName" => "Name of the response header (e.g., \"X-Rate-Limit\")",
-             "HeaderSpec" => "Header specification (response_header_spec map)",
+             "HeaderSpec" => "Header specification (response_header_input_spec map)",
              "Module" => "Module containing the type definition",
              "Response" => "Response builder created with response/2"}}).
 
@@ -176,6 +176,7 @@ response_with_header(Response, HeaderName, Module, HeaderSpec)
 -doc("Adds a request body specification to an endpoint.\nThis function sets the request body schema for the endpoint.\nTypically used with POST, PUT, and PATCH endpoints.\n\n### Returns\nUpdated endpoint map with request body set").
 -doc(#{params =>
            #{"Endpoint" => "Endpoint map to add the request body to",
+             "Module" => "Module containing the type definition",
              "Schema" => "Schema reference or direct type (erldantic:ed_type_or_ref())"}}).
 
 -spec with_request_body(Endpoint :: endpoint_spec(),
@@ -209,6 +210,7 @@ with_request_body(Endpoint, Module, Schema, ContentType)
 -doc("Adds a parameter specification to an endpoint.\nThis function adds a parameter (path, query, header, or cookie) to the endpoint.\nMultiple parameters can be added by calling this function multiple times.\n\n### Parameter Specification\nThe parameter spec should be a map with these keys:\n- name: Parameter name (binary)\n- in: Parameter location (path | query | header | cookie)\n- required: Whether the parameter is required (boolean)\n- schema: Schema reference or direct type (erldantic:ed_type_or_ref())\n\n### Returns\nUpdated endpoint map with the new parameter added").
 -doc(#{params =>
            #{"Endpoint" => "Endpoint map to add the parameter to",
+             "Module" => "Module containing the type definition",
              "ParameterSpec" => "Parameter specification map"}}).
 
 -spec with_parameter(Endpoint :: endpoint_spec(),
@@ -227,7 +229,8 @@ with_parameter(Endpoint, Module, #{name := Name} = ParameterSpec)
 -doc("Generates a complete OpenAPI 3.0 specification from a list of endpoints.\nThis function takes a list of endpoint specifications and generates a complete OpenAPI document\nwith paths, operations, and component schemas.\n\n### Returns\n{ok, OpenAPISpec} containing the complete OpenAPI 3.0 document, or {error, Errors} if generation fails").
 -doc(#{params =>
            #{"Endpoints" =>
-                 "List of endpoint specifications created with endpoint/2 and with_* functions"}}).
+                 "List of endpoint specifications created with endpoint/2 and with_* functions",
+             "MetaData" => "OpenAPI metadata map with title and version"}}).
 
 -spec endpoints_to_openapi(MetaData :: openapi_metadata(),
                            Endpoints :: [endpoint_spec()]) ->
@@ -352,9 +355,7 @@ generate_response(#{description := Description} = ResponseSpec)
         end,
 
     %% Add headers if present
-    case maps:get(headers, ResponseSpec, undefined) of
-        undefined ->
-            BaseResponse;
+    case maps:get(headers, ResponseSpec, #{}) of
         HeadersSpec when map_size(HeadersSpec) =:= 0 ->
             BaseResponse;
         HeadersSpec ->
