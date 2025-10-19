@@ -107,7 +107,7 @@ response(StatusCode, Description)
     when is_integer(StatusCode) andalso is_binary(Description) ->
     #{status_code => StatusCode, description => Description}.
 
--doc("Adds a complete response specification to an endpoint.\nThis function adds a response that was built using the response builder pattern:\nresponse/2, with_response_body/3-4, and with_header/4.\n\n### Example\n```erlang\nResponse = erldantic_openapi:response(200, <<\"Success\">>),\nResponse2 = erldantic_openapi:with_response_body(Response, Module, Schema),\nResponse3 = erldantic_openapi:with_header(Response2, <<\"X-Rate-Limit\">>, Module, HeaderSpec),\nEndpoint = erldantic_openapi:add_response(Endpoint1, Response3).\n```\n\n### Returns\nUpdated endpoint map with the response added").
+-doc("Adds a complete response specification to an endpoint.\nThis function adds a response that was built using the response builder pattern:\nresponse/2, response_with_body/3-4, and response_with_header/4.\n\n### Example\n```erlang\nResponse = erldantic_openapi:response(200, <<\"Success\">>),\nResponse2 = erldantic_openapi:response_with_body(Response, Module, Schema),\nResponse3 = erldantic_openapi:response_with_header(Response2, <<\"X-Rate-Limit\">>, Module, HeaderSpec),\nEndpoint = erldantic_openapi:add_response(Endpoint1, Response3).\n```\n\n### Returns\nUpdated endpoint map with the response added").
 -doc(#{params =>
            #{"Endpoint" => "Endpoint map to add the response to",
              "Response" => "Response specification built with response/2 and related functions"}}).
