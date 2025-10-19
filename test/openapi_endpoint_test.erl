@@ -22,10 +22,8 @@
 
 %% Test basic endpoint creation
 basic_endpoint_test() ->
-    %% Create a simple GET endpoint
     Endpoint = erldantic_openapi:endpoint(get, <<"/users">>),
 
-    %% Should return a basic endpoint structure
     ?assertEqual(#{method => get,
                    path => <<"/users">>,
                    responses => #{},
@@ -40,7 +38,6 @@ endpoint_with_response_test() ->
     Endpoint1 = erldantic_openapi:endpoint(get, <<"/users">>),
     Endpoint = erldantic_openapi:add_response(Endpoint1, ResponseWithBody),
 
-    %% Should have the response in the responses map
     ?assertMatch(#{responses :=
                        #{200 :=
                              #{description := <<"List of users">>, schema := {record, user_list}}}},
@@ -60,7 +57,6 @@ endpoint_with_multiple_responses_test() ->
     Endpoint2 = erldantic_openapi:add_response(Endpoint1, Response201WithBody),
     Endpoint = erldantic_openapi:add_response(Endpoint2, Response400WithBody),
 
-    %% Should have both responses
     ?assertMatch(#{responses :=
                        #{201 := #{description := <<"User created">>, schema := {record, user}},
                          400 :=
@@ -74,7 +70,6 @@ endpoint_with_request_body_test() ->
     Endpoint =
         erldantic_openapi:with_request_body(Endpoint1, ?MODULE, {record, create_user_request}),
 
-    %% Should have request body
     ?assertMatch(#{request_body :=
                        #{schema := {record, create_user_request}, module := ?MODULE}},
                  Endpoint).
@@ -89,7 +84,6 @@ endpoint_with_path_parameter_test() ->
     Endpoint1 = erldantic_openapi:endpoint(get, <<"/users/{id}">>),
     Endpoint = erldantic_openapi:with_parameter(Endpoint1, ?MODULE, PathParam),
 
-    %% Should have the parameter
     ?assertMatch(#{parameters :=
                        [#{name := <<"id">>,
                           in := path,
@@ -107,7 +101,6 @@ endpoint_with_query_parameter_test() ->
     Endpoint1 = erldantic_openapi:endpoint(get, <<"/users">>),
     Endpoint = erldantic_openapi:with_parameter(Endpoint1, ?MODULE, QueryParam),
 
-    %% Should have the parameter
     ?assertMatch(#{parameters :=
                        [#{name := <<"limit">>,
                           in := query,
@@ -123,13 +116,11 @@ single_endpoint_to_openapi_test() ->
     Endpoint1 = erldantic_openapi:endpoint(get, <<"/users">>),
     Endpoint = erldantic_openapi:add_response(Endpoint1, ResponseWithBody),
 
-    %% Generate OpenAPI spec
     {ok, OpenAPISpec} =
         erldantic_openapi:endpoints_to_openapi(#{title => <<"API Documentation">>,
                                                  version => <<"1.0.0">>},
                                                [Endpoint]),
 
-    %% Should be valid OpenAPI 3.0 structure with complete path and operation
     ?assertMatch(#{openapi := <<"3.0.0">>,
                    info := #{title := _, version := _},
                    paths := #{<<"/users">> := #{get := #{responses := #{<<"200">> := _}}}}},
@@ -172,13 +163,11 @@ multiple_endpoints_to_openapi_test() ->
 
     Endpoints = [Endpoint1WithResp, Endpoint2WithResp, Endpoint3WithResp2],
 
-    %% Generate OpenAPI spec
     {ok, OpenAPISpec} =
         erldantic_openapi:endpoints_to_openapi(#{title => <<"API Documentation">>,
                                                  version => <<"1.0.0">>},
                                                Endpoints),
 
-    %% Should have all paths with correct operations
     #{paths := #{<<"/users/{id}">> := UsersIdPath}} = OpenAPISpec,
     ?assertMatch(#{paths :=
                        #{<<"/users">> := #{get := _, post := _}, <<"/users/{id}">> := _}},
@@ -195,19 +184,16 @@ openapi_with_components_test() ->
         erldantic_openapi:with_request_body(Endpoint1, ?MODULE, {record, create_user_request}),
     Endpoint = erldantic_openapi:add_response(Endpoint2, ResponseWithBody),
 
-    %% Generate OpenAPI spec
     {ok, OpenAPISpec} =
         erldantic_openapi:endpoints_to_openapi(#{title => <<"API Documentation">>,
                                                  version => <<"1.0.0">>},
                                                [Endpoint]),
 
-    %% Should have components section with schemas
     ?assertMatch(#{components := #{schemas := _}}, OpenAPISpec),
 
     Components = maps:get(components, OpenAPISpec),
     Schemas = maps:get(schemas, Components),
 
-    %% Should have schemas for the referenced types
     ?assert(maps:is_key(<<"User">>, Schemas) orelse maps:is_key(<<"user">>, Schemas)),
     ?assert(maps:is_key(<<"CreateUserRequest">>, Schemas)
             orelse maps:is_key(<<"create_user_request">>, Schemas)).
@@ -220,7 +206,6 @@ error_handling_test() ->
     Endpoint1 = erldantic_openapi:endpoint(get, <<"/users">>),
     Endpoint = erldantic_openapi:add_response(Endpoint1, ResponseWithBody),
 
-    %% Should handle error gracefully
     Result =
         erldantic_openapi:endpoints_to_openapi(#{title => <<"API Documentation">>,
                                                  version => <<"1.0.0">>},
@@ -238,7 +223,6 @@ endpoint_with_direct_types_test() ->
     Endpoint2 = erldantic_openapi:with_request_body(Endpoint1, ?MODULE, StringType),
     Endpoint = erldantic_openapi:add_response(Endpoint2, ResponseWithBody),
 
-    %% Should work with direct types
     ?assertMatch(#{request_body := #{schema := StringType, module := ?MODULE}}, Endpoint),
     ?assertMatch(#{responses := #{200 := #{schema := IntegerType, module := ?MODULE}}},
                  Endpoint).
@@ -260,7 +244,6 @@ endpoint_with_mixed_types_test() ->
     Endpoint2 = erldantic_openapi:add_response(Endpoint1, ResponseWithBody),
     Endpoint = erldantic_openapi:with_parameter(Endpoint2, ?MODULE, QueryParam),
 
-    %% Should handle both types correctly
     ?assertMatch(#{responses := #{200 := #{schema := TypeRef, module := ?MODULE}}}, Endpoint),
     ?assertMatch(#{parameters := [#{schema := DirectStringType, module := ?MODULE}]},
                  Endpoint).
@@ -287,7 +270,6 @@ endpoint_with_complex_direct_types_test() ->
     Endpoint3 = erldantic_openapi:add_response(Endpoint2, Response200WithBody),
     Endpoint = erldantic_openapi:add_response(Endpoint3, Response400WithBody),
 
-    %% Should handle complex types
     ?assertMatch(#{request_body := #{schema := MapType, module := ?MODULE}}, Endpoint),
     ?assertMatch(#{responses :=
                        #{200 := #{schema := ListType, module := ?MODULE},
@@ -305,7 +287,6 @@ endpoint_with_custom_response_content_type_test() ->
     Endpoint1 = erldantic_openapi:endpoint(get, <<"/users">>),
     Endpoint = erldantic_openapi:add_response(Endpoint1, ResponseWithBody),
 
-    %% Should have the response with custom content type
     ?assertMatch(#{responses :=
                        #{200 :=
                              #{description := <<"List of users">>,
@@ -322,7 +303,6 @@ endpoint_with_custom_request_body_content_type_test() ->
                                             {record, create_user_request},
                                             <<"application/xml">>),
 
-    %% Should have request body with custom content type
     ?assertMatch(#{request_body :=
                        #{schema := {record, create_user_request},
                          module := ?MODULE,
@@ -342,7 +322,6 @@ endpoint_with_both_custom_content_types_test() ->
                                             <<"application/xml">>),
     Endpoint = erldantic_openapi:add_response(Endpoint2, ResponseWithBody),
 
-    %% Should have both custom content types
     ?assertMatch(#{request_body := #{content_type := <<"application/xml">>},
                    responses := #{201 := #{content_type := <<"text/plain">>}}},
                  Endpoint).
@@ -357,10 +336,8 @@ endpoint_default_content_type_test() ->
         erldantic_openapi:with_request_body(Endpoint1, ?MODULE, {record, create_user_request}),
     Endpoint = erldantic_openapi:add_response(Endpoint2, ResponseWithBody),
 
-    %% Should not have content_type field (defaults to application/json in generation)
-    #{request_body := RequestBody, responses := Responses} = Endpoint,
+    #{request_body := RequestBody, responses := #{201 := Response201}} = Endpoint,
     ?assertNot(maps:is_key(content_type, RequestBody)),
-    #{201 := Response201} = Responses,
     ?assertNot(maps:is_key(content_type, Response201)).
 
 %% Test adding response header
@@ -377,14 +354,14 @@ endpoint_with_response_header_test() ->
     Endpoint1 = erldantic_openapi:endpoint(get, <<"/users">>),
     Endpoint = erldantic_openapi:add_response(Endpoint1, Response),
 
-    %% Should have the header in the response
-    #{responses := #{200 := AddedResponse}} = Endpoint,
-    ?assertMatch(#{headers := #{<<"X-Rate-Limit">> := _}}, AddedResponse),
-    #{headers := #{<<"X-Rate-Limit">> := Header}} = AddedResponse,
-    ?assertMatch(#{schema := #ed_simple_type{type = integer},
-                   description := <<"Request limit">>,
-                   required := false},
-                 Header).
+    ?assertMatch(#{responses :=
+                       #{200 :=
+                             #{headers :=
+                                   #{<<"X-Rate-Limit">> :=
+                                         #{schema := #ed_simple_type{type = integer},
+                                           description := <<"Request limit">>,
+                                           required := false}}}}},
+                 Endpoint).
 
 %% Test adding multiple response headers
 endpoint_with_multiple_response_headers_test() ->
@@ -404,10 +381,9 @@ endpoint_with_multiple_response_headers_test() ->
     Endpoint1 = erldantic_openapi:endpoint(get, <<"/users">>),
     Endpoint = erldantic_openapi:add_response(Endpoint1, Response),
 
-    %% Should have both headers in the response
-    #{responses := #{200 := AddedResponse}} = Endpoint,
-    ?assertMatch(#{headers := #{<<"X-Rate-Limit">> := _, <<"X-Request-ID">> := _}},
-                 AddedResponse).
+    ?assertMatch(#{responses :=
+                       #{200 := #{headers := #{<<"X-Rate-Limit">> := _, <<"X-Request-ID">> := _}}}},
+                 Endpoint).
 
 %% Test adding response headers to different status codes
 endpoint_with_headers_on_different_responses_test() ->
@@ -433,10 +409,10 @@ endpoint_with_headers_on_different_responses_test() ->
     Endpoint2 = erldantic_openapi:add_response(Endpoint1, Response201),
     Endpoint = erldantic_openapi:add_response(Endpoint2, Response429),
 
-    %% Should have different headers on different responses
-    #{responses := #{201 := AddedResponse201, 429 := AddedResponse429}} = Endpoint,
-    ?assertMatch(#{headers := #{<<"Location">> := _}}, AddedResponse201),
-    ?assertMatch(#{headers := #{<<"Retry-After">> := _}}, AddedResponse429).
+    ?assertMatch(#{responses :=
+                       #{201 := #{headers := #{<<"Location">> := _}},
+                         429 := #{headers := #{<<"Retry-After">> := _}}}},
+                 Endpoint).
 
 %% Test response builder pattern - basic usage
 response_builder_basic_test() ->
@@ -446,7 +422,6 @@ response_builder_basic_test() ->
     Endpoint1 = erldantic_openapi:endpoint(get, <<"/users">>),
     Endpoint = erldantic_openapi:add_response(Endpoint1, Response),
 
-    %% Verify the response was added correctly
     #{responses := #{200 := AddedResponse}} = Endpoint,
     ?assertMatch(#{description := <<"Success">>,
                    schema := {record, user_list},
@@ -465,7 +440,6 @@ response_builder_with_content_type_test() ->
     Endpoint1 = erldantic_openapi:endpoint(get, <<"/users">>),
     Endpoint = erldantic_openapi:add_response(Endpoint1, Response),
 
-    %% Verify
     #{responses := #{200 := AddedResponse}} = Endpoint,
     ?assertMatch(#{content_type := <<"application/xml">>}, AddedResponse).
 
@@ -489,7 +463,6 @@ response_builder_with_headers_test() ->
     Endpoint1 = erldantic_openapi:endpoint(get, <<"/users">>),
     Endpoint = erldantic_openapi:add_response(Endpoint1, Response),
 
-    %% Verify
     #{responses := #{200 := AddedResponse}} = Endpoint,
     ?assertMatch(#{headers := #{<<"X-Rate-Limit">> := _, <<"X-Request-ID">> := _}},
                  AddedResponse).
@@ -518,7 +491,6 @@ response_builder_complete_test() ->
     Endpoint1 = erldantic_openapi:endpoint(post, <<"/users">>),
     Endpoint = erldantic_openapi:add_response(Endpoint1, Response),
 
-    %% Verify all parts
     #{responses := #{201 := AddedResponse}} = Endpoint,
     ?assertMatch(#{description := <<"User created">>,
                    schema := {record, user},
@@ -541,8 +513,9 @@ response_builder_multiple_responses_test() ->
     Endpoint2 = erldantic_openapi:add_response(Endpoint1, SuccessResponse),
     Endpoint = erldantic_openapi:add_response(Endpoint2, ErrorResponse),
 
-    %% Verify both responses
-    #{responses := #{200 := Success200, 404 := Error404}} = Endpoint,
-    ?assertMatch(#{description := <<"Success">>, schema := {record, user}}, Success200),
-    ?assertMatch(#{description := <<"Not found">>, schema := {record, error_response}},
-                 Error404).
+    ?assertMatch(#{responses :=
+                       #{200 := #{description := <<"Success">>, schema := {record, user}},
+                         404 :=
+                             #{description := <<"Not found">>,
+                               schema := {record, error_response}}}},
+                 Endpoint).
