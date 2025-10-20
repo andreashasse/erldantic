@@ -8,6 +8,7 @@
 -export([get_type/0]).
 
 -doc("my doc get type").
+-doc(#{hej => hopp}).
 -spec get_type() -> my_type().
 get_type() ->
     42.
