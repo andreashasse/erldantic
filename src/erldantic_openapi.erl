@@ -1,29 +1,50 @@
 -module(erldantic_openapi).
 
--export([endpoint/2, with_response/5, with_request_body/3, with_parameter/3,
-         endpoints_to_openapi/2]).
+-export([endpoint/2, with_request_body/3, with_request_body/4, with_parameter/3,
+         endpoints_to_openapi/2, response/2, response_with_body/3, response_with_body/4,
+         response_with_header/4, add_response/2]).
 
--ignore_xref([{erldantic_openapi, type_to_schema, 2},
-              {erldantic_openapi, record_to_schema, 2},
-              {erldantic_openapi, endpoint, 2},
-              {erldantic_openapi, with_response, 5},
+-ignore_xref([{erldantic_openapi, endpoint, 2},
               {erldantic_openapi, with_request_body, 3},
+              {erldantic_openapi, with_request_body, 4},
               {erldantic_openapi, with_parameter, 3},
-              {erldantic_openapi, endpoints_to_openapi, 2}]).
+              {erldantic_openapi, endpoints_to_openapi, 2},
+              {erldantic_openapi, response, 2},
+              {erldantic_openapi, response_with_body, 3},
+              {erldantic_openapi, response_with_body, 4},
+              {erldantic_openapi, response_with_header, 4},
+              {erldantic_openapi, add_response, 2}]).
 
 -include("../include/erldantic.hrl").
 
 -compile(nowarn_unused_type).
 
+-define(DEFAULT_CONTENT_TYPE, <<"application/json">>).
+
 -type http_method() :: get | put | post | delete | options | head | patch | trace.
 -type http_status_code() :: 100..599.
 -type parameter_location() :: path | query | header | cookie.
 -type openapi_schema() :: json:encode_value() | #{'$ref' := binary()}.
--type request_body_spec() :: #{schema := erldantic:ed_type_or_ref(), module := module()}.
--type response_spec() ::
-    #{description := binary(),
+-type request_body_spec() ::
+    #{schema := erldantic:ed_type_or_ref(),
+      module := module(),
+      content_type => binary()}.
+-type response_header_input_spec() ::
+    #{description => binary(),
+      required => boolean(),
+      schema := erldantic:ed_type_or_ref()}.
+-type response_header_spec() ::
+    #{description => binary(),
+      required => boolean(),
       schema := erldantic:ed_type_or_ref(),
       module := module()}.
+-type response_spec() ::
+    #{description := binary(),
+      schema => erldantic:ed_type_or_ref(),
+      module => module(),
+      status_code => http_status_code(),
+      content_type => binary(),
+      headers => #{binary() => response_header_spec()}}.
 -type parameter_spec() ::
     #{name := binary(),
       in := parameter_location(),
@@ -43,7 +64,13 @@
       requestBody => openapi_request_body(),
       parameters => [openapi_parameter()]}.
 -type openapi_response() ::
-    #{description := binary(), content := #{binary() => #{schema := openapi_schema()}}}.
+    #{description := binary(),
+      content => #{binary() => #{schema := openapi_schema()}},
+      headers => #{binary() => openapi_header()}}.
+-type openapi_header() ::
+    #{description => binary(),
+      required => boolean(),
+      schema := openapi_schema()}.
 -type openapi_request_body() ::
     #{required := boolean(), content := #{binary() => #{schema := openapi_schema()}}}.
 -type openapi_parameter() ::
@@ -69,34 +96,87 @@ endpoint(Method, Path) when is_atom(Method) andalso is_binary(Path) ->
       responses => #{},
       parameters => []}.
 
--doc("Adds a response specification to an endpoint.\nThis function adds a response with the specified status code, description, and schema.\nMultiple responses can be added to the same endpoint by calling this function multiple times.\n\n### Returns\nUpdated endpoint map with the new response added").
+-doc("Creates a response builder for constructing response specifications.\nThis function creates a response builder that can be incrementally configured with body and headers\nbefore being added to an endpoint using add_response/2.\n\n### Example\n```erlang\nResponse = erldantic_openapi:response(200, <<\"Success\">>),\nResponse2 = erldantic_openapi:response_with_body(Response, Module, Schema),\nResponse3 = erldantic_openapi:response_with_header(Response2, <<\"X-Rate-Limit\">>, Module, HeaderSpec),\nEndpoint = erldantic_openapi:add_response(Endpoint1, Response3).\n```\n\n### Returns\nResponse builder map with status code and description").
 -doc(#{params =>
            #{"Description" => "Human-readable description of the response",
-             "Endpoint" => "Endpoint map to add the response to",
-             "Schema" => "Schema reference or direct type (erldantic:ed_type_or_ref())",
              "StatusCode" => "HTTP status code (e.g., 200, 404, 500)"}}).
 
--spec with_response(Endpoint :: endpoint_spec(),
-                    StatusCode :: http_status_code(),
-                    Description :: binary(),
-                    Module :: module(),
-                    Schema :: erldantic:ed_type_or_ref()) ->
-                       endpoint_spec().
-with_response(Endpoint, StatusCode, Description, Module, Schema)
-    when is_map(Endpoint)
-         andalso is_integer(StatusCode)
-         andalso is_binary(Description)
-         andalso is_atom(Module) ->
-    ResponseSpec =
-        #{description => Description,
-          schema => Schema,
-          module => Module},
+-spec response(StatusCode :: http_status_code(), Description :: binary()) ->
+                  response_spec().
+response(StatusCode, Description)
+    when is_integer(StatusCode) andalso is_binary(Description) ->
+    #{status_code => StatusCode, description => Description}.
+
+-doc("Adds a complete response specification to an endpoint.\nThis function adds a response that was built using the response builder pattern:\nresponse/2, response_with_body/3-4, and response_with_header/4.\n\n### Example\n```erlang\nResponse = erldantic_openapi:response(200, <<\"Success\">>),\nResponse2 = erldantic_openapi:response_with_body(Response, Module, Schema),\nResponse3 = erldantic_openapi:response_with_header(Response2, <<\"X-Rate-Limit\">>, Module, HeaderSpec),\nEndpoint = erldantic_openapi:add_response(Endpoint1, Response3).\n```\n\n### Returns\nUpdated endpoint map with the response added").
+-doc(#{params =>
+           #{"Endpoint" => "Endpoint map to add the response to",
+             "Response" => "Response specification built with response/2 and related functions"}}).
+
+-spec add_response(Endpoint :: endpoint_spec(), Response :: response_spec()) ->
+                      endpoint_spec().
+add_response(Endpoint, Response) when is_map(Endpoint) andalso is_map(Response) ->
+    {StatusCode, ResponseWithoutStatusCode} = maps:take(status_code, Response),
     Responses = maps:get(responses, Endpoint, #{}),
-    Endpoint#{responses => Responses#{StatusCode => ResponseSpec}}.
+    Endpoint#{responses => Responses#{StatusCode => ResponseWithoutStatusCode}}.
+
+-doc("Adds a response body to a response builder.\nThis function sets the schema and module for the response body.\nUse this with response/2 to build up a complete response specification.\n\n### Returns\nUpdated response builder with body schema added").
+-doc(#{params =>
+           #{"Module" => "Module containing the type definition",
+             "Response" => "Response builder created with response/2",
+             "Schema" => "Schema reference or direct type (erldantic:ed_type_or_ref())"}}).
+
+-spec response_with_body(Response :: response_spec(),
+                         Module :: module(),
+                         Schema :: erldantic:ed_type_or_ref()) ->
+                            response_spec().
+response_with_body(Response, Module, Schema)
+    when is_map(Response) andalso is_atom(Module) ->
+    Response#{schema => Schema, module => Module}.
+
+-doc("Adds a response body with custom content type to a response builder.\nThis function sets the schema, module, and content type for the response body.\nUse this with response/2 to build up a complete response specification.\n\n### Returns\nUpdated response builder with body schema and content type added").
+-doc(#{params =>
+           #{"ContentType" =>
+                 "Content type for the response body (e.g., \"application/json\", \"application/xml\")",
+             "Module" => "Module containing the type definition",
+             "Response" => "Response builder created with response/2",
+             "Schema" => "Schema reference or direct type (erldantic:ed_type_or_ref())"}}).
+
+-spec response_with_body(Response :: response_spec(),
+                         Module :: module(),
+                         Schema :: erldantic:ed_type_or_ref(),
+                         ContentType :: binary()) ->
+                            response_spec().
+response_with_body(Response, Module, Schema, ContentType)
+    when is_map(Response) andalso is_atom(Module) andalso is_binary(ContentType) ->
+    Response#{schema => Schema,
+              module => Module,
+              content_type => ContentType}.
+
+-doc("Adds a header to a response builder.\nThis function adds a header specification to the response being built.\nMultiple headers can be added by calling this function multiple times.\n\n### Returns\nUpdated response builder with header added").
+-doc(#{params =>
+           #{"HeaderName" => "Name of the response header (e.g., \"X-Rate-Limit\")",
+             "HeaderSpec" => "Header specification (response_header_input_spec map)",
+             "Module" => "Module containing the type definition",
+             "Response" => "Response builder created with response/2"}}).
+
+-spec response_with_header(Response :: response_spec(),
+                           HeaderName :: binary(),
+                           Module :: module(),
+                           HeaderSpec :: response_header_input_spec()) ->
+                              response_spec().
+response_with_header(Response, HeaderName, Module, HeaderSpec)
+    when is_map(Response)
+         andalso is_binary(HeaderName)
+         andalso is_atom(Module)
+         andalso is_map(HeaderSpec) ->
+    Headers = maps:get(headers, Response, #{}),
+    HeaderSpecWithModule = HeaderSpec#{module => Module},
+    Response#{headers => Headers#{HeaderName => HeaderSpecWithModule}}.
 
 -doc("Adds a request body specification to an endpoint.\nThis function sets the request body schema for the endpoint.\nTypically used with POST, PUT, and PATCH endpoints.\n\n### Returns\nUpdated endpoint map with request body set").
 -doc(#{params =>
            #{"Endpoint" => "Endpoint map to add the request body to",
+             "Module" => "Module containing the type definition",
              "Schema" => "Schema reference or direct type (erldantic:ed_type_or_ref())"}}).
 
 -spec with_request_body(Endpoint :: endpoint_spec(),
@@ -107,9 +187,30 @@ with_request_body(Endpoint, Module, Schema)
     when is_map(Endpoint) andalso is_atom(Module) ->
     Endpoint#{request_body => #{schema => Schema, module => Module}}.
 
+-doc("Adds a request body specification with custom content type to an endpoint.\nThis function sets the request body schema and content type for the endpoint.\nTypically used with POST, PUT, and PATCH endpoints.\n\n### Returns\nUpdated endpoint map with request body set").
+-doc(#{params =>
+           #{"ContentType" =>
+                 "Content type for the request body (e.g., \"application/json\", \"application/xml\")",
+             "Endpoint" => "Endpoint map to add the request body to",
+             "Module" => "Module containing the type definition",
+             "Schema" => "Schema reference or direct type (erldantic:ed_type_or_ref())"}}).
+
+-spec with_request_body(Endpoint :: endpoint_spec(),
+                        Module :: module(),
+                        Schema :: erldantic:ed_type_or_ref(),
+                        ContentType :: binary()) ->
+                           endpoint_spec().
+with_request_body(Endpoint, Module, Schema, ContentType)
+    when is_map(Endpoint) andalso is_atom(Module) andalso is_binary(ContentType) ->
+    Endpoint#{request_body =>
+                  #{schema => Schema,
+                    module => Module,
+                    content_type => ContentType}}.
+
 -doc("Adds a parameter specification to an endpoint.\nThis function adds a parameter (path, query, header, or cookie) to the endpoint.\nMultiple parameters can be added by calling this function multiple times.\n\n### Parameter Specification\nThe parameter spec should be a map with these keys:\n- name: Parameter name (binary)\n- in: Parameter location (path | query | header | cookie)\n- required: Whether the parameter is required (boolean)\n- schema: Schema reference or direct type (erldantic:ed_type_or_ref())\n\n### Returns\nUpdated endpoint map with the new parameter added").
 -doc(#{params =>
            #{"Endpoint" => "Endpoint map to add the parameter to",
+             "Module" => "Module containing the type definition",
              "ParameterSpec" => "Parameter specification map"}}).
 
 -spec with_parameter(Endpoint :: endpoint_spec(),
@@ -128,7 +229,8 @@ with_parameter(Endpoint, Module, #{name := Name} = ParameterSpec)
 -doc("Generates a complete OpenAPI 3.0 specification from a list of endpoints.\nThis function takes a list of endpoint specifications and generates a complete OpenAPI document\nwith paths, operations, and component schemas.\n\n### Returns\n{ok, OpenAPISpec} containing the complete OpenAPI 3.0 document, or {error, Errors} if generation fails").
 -doc(#{params =>
            #{"Endpoints" =>
-                 "List of endpoint specifications created with endpoint/2 and with_* functions"}}).
+                 "List of endpoint specifications created with endpoint/2 and with_* functions",
+             "MetaData" => "OpenAPI metadata map with title and version"}}).
 
 -spec endpoints_to_openapi(MetaData :: openapi_metadata(),
                            Endpoints :: [endpoint_spec()]) ->
@@ -219,30 +321,76 @@ generate_operation(Endpoint) ->
     end.
 
 -spec generate_response(response_spec()) -> openapi_response().
-generate_response(#{description := Description,
-                    schema := Schema,
-                    module := Module})
+generate_response(#{description := Description} = ResponseSpec)
     when is_binary(Description) ->
-    ModuleTypeInfo = erldantic_abstract_code:types_in_module(Module),
-
-    SchemaContent =
-        case Schema of
-            {type, Name, Arity} ->
-                SchemaName = type_ref_to_component_name({type, Name, Arity}),
-                #{'$ref' => <<"#/components/schemas/", SchemaName/binary>>};
-            {record, Name} ->
-                SchemaName = type_ref_to_component_name({record, Name}),
-                #{'$ref' => <<"#/components/schemas/", SchemaName/binary>>};
-            DirectType ->
-                {ok, InlineSchema} = erldantic_json_schema:to_schema(ModuleTypeInfo, DirectType),
-                InlineSchema
+    %% Build base response with optional content
+    BaseResponse =
+        case {maps:get(schema, ResponseSpec, undefined),
+              maps:get(module, ResponseSpec, undefined)}
+        of
+            {undefined, _} ->
+                %% No schema means header-only response (no content)
+                #{description => Description};
+            {_, undefined} ->
+                %% Schema without module should not happen, but handle defensively
+                #{description => Description};
+            {Schema, Module} ->
+                ModuleTypeInfo = erldantic_abstract_code:types_in_module(Module),
+                SchemaContent =
+                    case Schema of
+                        {type, Name, Arity} ->
+                            SchemaName = type_ref_to_component_name({type, Name, Arity}),
+                            #{'$ref' => <<"#/components/schemas/", SchemaName/binary>>};
+                        {record, Name} ->
+                            SchemaName = type_ref_to_component_name({record, Name}),
+                            #{'$ref' => <<"#/components/schemas/", SchemaName/binary>>};
+                        DirectType ->
+                            {ok, InlineSchema} =
+                                erldantic_json_schema:to_schema(ModuleTypeInfo, DirectType),
+                            InlineSchema
+                    end,
+                ContentType = maps:get(content_type, ResponseSpec, ?DEFAULT_CONTENT_TYPE),
+                #{description => Description,
+                  content => #{ContentType => #{schema => SchemaContent}}}
         end,
 
-    #{description => Description,
-      content => #{<<"application/json">> => #{schema => SchemaContent}}}.
+    %% Add headers if present
+    case maps:get(headers, ResponseSpec, #{}) of
+        HeadersSpec when map_size(HeadersSpec) =:= 0 ->
+            BaseResponse;
+        HeadersSpec ->
+            GeneratedHeaders =
+                maps:map(fun(_HeaderName, HeaderSpec) -> generate_response_header(HeaderSpec) end,
+                         HeadersSpec),
+            BaseResponse#{headers => GeneratedHeaders}
+    end.
+
+-spec generate_response_header(response_header_spec()) -> openapi_header().
+generate_response_header(#{schema := Schema, module := Module} = HeaderSpec) ->
+    ModuleTypeInfo = erldantic_abstract_code:types_in_module(Module),
+    {ok, InlineSchema} = erldantic_json_schema:to_schema(ModuleTypeInfo, Schema),
+
+    BaseHeader = #{schema => InlineSchema},
+
+    %% Add optional description
+    HeaderWithDesc =
+        case maps:get(description, HeaderSpec, undefined) of
+            undefined ->
+                BaseHeader;
+            Description ->
+                BaseHeader#{description => Description}
+        end,
+
+    %% Add optional required flag
+    case maps:get(required, HeaderSpec, undefined) of
+        undefined ->
+            HeaderWithDesc;
+        Required ->
+            HeaderWithDesc#{required => Required}
+    end.
 
 -spec generate_request_body(request_body_spec()) -> openapi_request_body().
-generate_request_body(#{schema := Schema, module := Module}) ->
+generate_request_body(#{schema := Schema, module := Module} = RequestBodySpec) ->
     ModuleTypeInfo = erldantic_abstract_code:types_in_module(Module),
     SchemaContent =
         case Schema of
@@ -257,7 +405,8 @@ generate_request_body(#{schema := Schema, module := Module}) ->
                 InlineSchema
         end,
 
-    #{required => true, content => #{<<"application/json">> => #{schema => SchemaContent}}}.
+    ContentType = maps:get(content_type, RequestBodySpec, ?DEFAULT_CONTENT_TYPE),
+    #{required => true, content => #{ContentType => #{schema => SchemaContent}}}.
 
 -spec generate_parameter(parameter_spec()) -> openapi_parameter().
 generate_parameter(#{name := Name,
@@ -309,12 +458,23 @@ collect_endpoint_schema_refs(#{responses := Responses, parameters := Parameters}
 -spec collect_response_refs(#{http_status_code() => response_spec()}) ->
                                [{module(), erldantic:ed_type_or_ref()}].
 collect_response_refs(Responses) ->
-    maps:fold(fun(_StatusCode, #{schema := Schema, module := Module}, Acc) ->
-                 case erldantic_type:is_type_reference(Schema) of
-                     true ->
-                         [{Module, Schema} | Acc];
-                     false ->
-                         Acc
+    maps:fold(fun(_StatusCode, ResponseSpec, Acc) ->
+                 case {maps:get(schema, ResponseSpec, undefined),
+                       maps:get(module, ResponseSpec, undefined)}
+                 of
+                     {undefined, _} ->
+                         %% Header-only response, no schema reference
+                         Acc;
+                     {_, undefined} ->
+                         %% Schema without module should not happen
+                         Acc;
+                     {Schema, Module} ->
+                         case erldantic_type:is_type_reference(Schema) of
+                             true ->
+                                 [{Module, Schema} | Acc];
+                             false ->
+                                 Acc
+                         end
                  end
               end,
               [],
