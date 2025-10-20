@@ -9,7 +9,15 @@
 
 %% API
 
--doc "Converts a string value to an Erlang value based on a type specification.\nThis function validates the given string value against the specified type definition\nand converts it to the corresponding Erlang value.\n\n### Returns\n{ok, ErlangValue} if conversion succeeds, or {error, Errors} if validation fails".
+-doc """
+Converts a string value to an Erlang value based on a type specification.
+
+This function validates the given string value against the specified type definition
+and converts it to the corresponding Erlang value.
+
+### Returns
+{ok, ErlangValue} if conversion succeeds, or {error, Errors} if validation fails
+""".
 -doc #{
     params =>
         #{
@@ -90,7 +98,15 @@ from_string(_TypeInfo, Type, String) ->
         }
     ]}.
 
--doc "Converts an Erlang value to a string based on a type specification.\nThis function validates the given Erlang value against the specified type definition\nand converts it to a string representation.\n\n### Returns\n{ok, String} if conversion succeeds, or {error, Errors} if validation fails".
+-doc """
+Converts an Erlang value to a string based on a type specification.
+
+This function validates the given Erlang value against the specified type definition
+and converts it to a string representation.
+
+### Returns
+{ok, String} if conversion succeeds, or {error, Errors} if validation fails
+""".
 -doc #{
     params =>
         #{

@@ -115,7 +115,15 @@
         components => #{schemas => #{binary() => openapi_schema()}}
     }.
 
--doc "Creates a basic endpoint specification.\nThis function creates the foundation for an endpoint with the specified HTTP method and path.\nAdditional details like responses, request body, and parameters can be added using the with_* functions.\n\n### Returns\nEndpoint map with method and path set".
+-doc """
+Creates a basic endpoint specification.
+
+This function creates the foundation for an endpoint with the specified HTTP method and path.
+Additional details like responses, request body, and parameters can be added using the with_* functions.
+
+### Returns
+Endpoint map with method and path set
+""".
 -doc #{
     params =>
         #{
@@ -133,7 +141,23 @@ endpoint(Method, Path) when is_atom(Method) andalso is_binary(Path) ->
         parameters => []
     }.
 
--doc "Creates a response builder for constructing response specifications.\nThis function creates a response builder that can be incrementally configured with body and headers\nbefore being added to an endpoint using add_response/2.\n\n### Example\n```erlang\nResponse = erldantic_openapi:response(200, <<\"Success\">>),\nResponse2 = erldantic_openapi:response_with_body(Response, Module, Schema),\nResponse3 = erldantic_openapi:response_with_header(Response2, <<\"X-Rate-Limit\">>, Module, HeaderSpec),\nEndpoint = erldantic_openapi:add_response(Endpoint1, Response3).\n```\n\n### Returns\nResponse builder map with status code and description".
+-doc """
+Creates a response builder for constructing response specifications.
+
+This function creates a response builder that can be incrementally configured with body and headers
+before being added to an endpoint using add_response/2.
+
+### Example
+```erlang
+Response = erldantic_openapi:response(200, <<"Success">>),
+Response2 = erldantic_openapi:response_with_body(Response, Module, Schema),
+Response3 = erldantic_openapi:response_with_header(Response2, <<"X-Rate-Limit">>, Module, HeaderSpec),
+Endpoint = erldantic_openapi:add_response(Endpoint1, Response3).
+```
+
+### Returns
+Response builder map with status code and description
+""".
 -doc #{
     params =>
         #{
@@ -149,7 +173,23 @@ response(StatusCode, Description) when
 ->
     #{status_code => StatusCode, description => Description}.
 
--doc "Adds a complete response specification to an endpoint.\nThis function adds a response that was built using the response builder pattern:\nresponse/2, response_with_body/3-4, and response_with_header/4.\n\n### Example\n```erlang\nResponse = erldantic_openapi:response(200, <<\"Success\">>),\nResponse2 = erldantic_openapi:response_with_body(Response, Module, Schema),\nResponse3 = erldantic_openapi:response_with_header(Response2, <<\"X-Rate-Limit\">>, Module, HeaderSpec),\nEndpoint = erldantic_openapi:add_response(Endpoint1, Response3).\n```\n\n### Returns\nUpdated endpoint map with the response added".
+-doc """
+Adds a complete response specification to an endpoint.
+
+This function adds a response that was built using the response builder pattern:
+response/2, response_with_body/3-4, and response_with_header/4.
+
+### Example
+```erlang
+Response = erldantic_openapi:response(200, <<"Success">>),
+Response2 = erldantic_openapi:response_with_body(Response, Module, Schema),
+Response3 = erldantic_openapi:response_with_header(Response2, <<"X-Rate-Limit">>, Module, HeaderSpec),
+Endpoint = erldantic_openapi:add_response(Endpoint1, Response3).
+```
+
+### Returns
+Updated endpoint map with the response added
+""".
 -doc #{
     params =>
         #{
@@ -165,7 +205,15 @@ add_response(Endpoint, Response) when is_map(Endpoint) andalso is_map(Response) 
     Responses = maps:get(responses, Endpoint, #{}),
     Endpoint#{responses => Responses#{StatusCode => ResponseWithoutStatusCode}}.
 
--doc "Adds a response body to a response builder.\nThis function sets the schema and module for the response body.\nUse this with response/2 to build up a complete response specification.\n\n### Returns\nUpdated response builder with body schema added".
+-doc """
+Adds a response body to a response builder.
+
+This function sets the schema and module for the response body.
+Use this with response/2 to build up a complete response specification.
+
+### Returns
+Updated response builder with body schema added
+""".
 -doc #{
     params =>
         #{
@@ -186,7 +234,15 @@ response_with_body(Response, Module, Schema) when
 ->
     Response#{schema => Schema, module => Module}.
 
--doc "Adds a response body with custom content type to a response builder.\nThis function sets the schema, module, and content type for the response body.\nUse this with response/2 to build up a complete response specification.\n\n### Returns\nUpdated response builder with body schema and content type added".
+-doc """
+Adds a response body with custom content type to a response builder.
+
+This function sets the schema, module, and content type for the response body.
+Use this with response/2 to build up a complete response specification.
+
+### Returns
+Updated response builder with body schema and content type added
+""".
 -doc #{
     params =>
         #{
@@ -214,7 +270,15 @@ response_with_body(Response, Module, Schema, ContentType) when
         content_type => ContentType
     }.
 
--doc "Adds a header to a response builder.\nThis function adds a header specification to the response being built.\nMultiple headers can be added by calling this function multiple times.\n\n### Returns\nUpdated response builder with header added".
+-doc """
+Adds a header to a response builder.
+
+This function adds a header specification to the response being built.
+Multiple headers can be added by calling this function multiple times.
+
+### Returns
+Updated response builder with header added
+""".
 -doc #{
     params =>
         #{
@@ -242,7 +306,15 @@ response_with_header(Response, HeaderName, Module, HeaderSpec) when
     HeaderSpecWithModule = HeaderSpec#{module => Module},
     Response#{headers => Headers#{HeaderName => HeaderSpecWithModule}}.
 
--doc "Adds a request body specification to an endpoint.\nThis function sets the request body schema for the endpoint.\nTypically used with POST, PUT, and PATCH endpoints.\n\n### Returns\nUpdated endpoint map with request body set".
+-doc """
+Adds a request body specification to an endpoint.
+
+This function sets the request body schema for the endpoint.
+Typically used with POST, PUT, and PATCH endpoints.
+
+### Returns
+Updated endpoint map with request body set
+""".
 -doc #{
     params =>
         #{
@@ -263,7 +335,15 @@ with_request_body(Endpoint, Module, Schema) when
 ->
     Endpoint#{request_body => #{schema => Schema, module => Module}}.
 
--doc "Adds a request body specification with custom content type to an endpoint.\nThis function sets the request body schema and content type for the endpoint.\nTypically used with POST, PUT, and PATCH endpoints.\n\n### Returns\nUpdated endpoint map with request body set".
+-doc """
+Adds a request body specification with custom content type to an endpoint.
+
+This function sets the request body schema and content type for the endpoint.
+Typically used with POST, PUT, and PATCH endpoints.
+
+### Returns
+Updated endpoint map with request body set
+""".
 -doc #{
     params =>
         #{
@@ -294,7 +374,22 @@ with_request_body(Endpoint, Module, Schema, ContentType) when
             }
     }.
 
--doc "Adds a parameter specification to an endpoint.\nThis function adds a parameter (path, query, header, or cookie) to the endpoint.\nMultiple parameters can be added by calling this function multiple times.\n\n### Parameter Specification\nThe parameter spec should be a map with these keys:\n- name: Parameter name (binary)\n- in: Parameter location (path | query | header | cookie)\n- required: Whether the parameter is required (boolean)\n- schema: Schema reference or direct type (erldantic:ed_type_or_ref())\n\n### Returns\nUpdated endpoint map with the new parameter added".
+-doc """
+Adds a parameter specification to an endpoint.
+
+This function adds a parameter (path, query, header, or cookie) to the endpoint.
+Multiple parameters can be added by calling this function multiple times.
+
+### Parameter Specification
+The parameter spec should be a map with these keys:
+- name: Parameter name (binary)
+- in: Parameter location (path | query | header | cookie)
+- required: Whether the parameter is required (boolean)
+- schema: Schema reference or direct type (erldantic:ed_type_or_ref())
+
+### Returns
+Updated endpoint map with the new parameter added
+""".
 -doc #{
     params =>
         #{
@@ -320,7 +415,15 @@ with_parameter(Endpoint, Module, #{name := Name} = ParameterSpec) when
     ParameterWithModule = ParameterSpec#{module => Module},
     Endpoint#{parameters => [ParameterWithModule | Parameters]}.
 
--doc "Generates a complete OpenAPI 3.0 specification from a list of endpoints.\nThis function takes a list of endpoint specifications and generates a complete OpenAPI document\nwith paths, operations, and component schemas.\n\n### Returns\n{ok, OpenAPISpec} containing the complete OpenAPI 3.0 document, or {error, Errors} if generation fails".
+-doc """
+Generates a complete OpenAPI 3.0 specification from a list of endpoints.
+
+This function takes a list of endpoint specifications and generates a complete OpenAPI document
+with paths, operations, and component schemas.
+
+### Returns
+{ok, OpenAPISpec} containing the complete OpenAPI 3.0 document, or {error, Errors} if generation fails
+""".
 -doc #{
     params =>
         #{

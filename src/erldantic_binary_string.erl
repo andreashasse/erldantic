@@ -12,7 +12,15 @@
 
 %% API
 
--doc "Converts a binary string value to an Erlang value based on a type specification.\nThis function validates the given binary string value against the specified type definition\nand converts it to the corresponding Erlang value.\n\n### Returns\n{ok, ErlangValue} if conversion succeeds, or {error, Errors} if validation fails".
+-doc """
+Converts a binary string value to an Erlang value based on a type specification.
+
+This function validates the given binary string value against the specified type definition
+and converts it to the corresponding Erlang value.
+
+### Returns
+{ok, ErlangValue} if conversion succeeds, or {error, Errors} if validation fails
+""".
 -doc #{
     params =>
         #{
@@ -101,7 +109,15 @@ from_binary_string(_TypeInfo, Type, BinaryString) ->
         }
     ]}.
 
--doc "Converts an Erlang value to a binary string based on a type specification.\nThis function validates the given Erlang value against the specified type definition\nand converts it to a binary string representation.\n\n### Returns\n{ok, BinaryString} if conversion succeeds, or {error, Errors} if validation fails".
+-doc """
+Converts an Erlang value to a binary string based on a type specification.
+
+This function validates the given Erlang value against the specified type definition
+and converts it to a binary string representation.
+
+### Returns
+{ok, BinaryString} if conversion succeeds, or {error, Errors} if validation fails
+""".
 -doc #{
     params =>
         #{
