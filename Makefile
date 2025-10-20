@@ -6,14 +6,13 @@ compile:
 	rebar3 compile
 
 format:
-	rebar3 compile
-	rebar3 format
+	rebar3 fmt
+
+format_verify:
+	rebar3 fmt --check
 
 hank:
 	rebar3 hank
-
-format_verify:
-	rebar3 format --verify
 
 test:
 	@if command -v elixirc >/dev/null 2>&1; then \

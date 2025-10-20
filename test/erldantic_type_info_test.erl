@@ -19,9 +19,11 @@ add_and_get_type_test() ->
 add_and_get_record_test() ->
     TypeInfo0 = erldantic_type_info:new(),
     Record =
-        #ed_rec{name = user,
-                fields = [{id, #ed_simple_type{type = integer}}],
-                arity = 2},
+        #ed_rec{
+            name = user,
+            fields = [{id, #ed_simple_type{type = integer}}],
+            arity = 2
+        },
     TypeInfo1 = erldantic_type_info:add_record(TypeInfo0, user, Record),
 
     ?assertEqual({ok, Record}, erldantic_type_info:get_record(TypeInfo1, user)),
@@ -30,8 +32,10 @@ add_and_get_record_test() ->
 add_and_get_function_test() ->
     TypeInfo0 = erldantic_type_info:new(),
     FuncSpec =
-        #ed_function_spec{args = [#ed_simple_type{type = integer}],
-                          return = #ed_simple_type{type = boolean}},
+        #ed_function_spec{
+            args = [#ed_simple_type{type = integer}],
+            return = #ed_simple_type{type = boolean}
+        },
     TypeInfo1 = erldantic_type_info:add_function(TypeInfo0, test_func, 1, FuncSpec),
 
     ?assertEqual({ok, FuncSpec}, erldantic_type_info:get_function(TypeInfo1, test_func, 1)),
