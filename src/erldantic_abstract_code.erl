@@ -34,8 +34,9 @@ types_in_module(Module) ->
     end.
 
 types_in_module_path(FilePath) ->
-    case beam_lib:chunks(FilePath, [abstract_code]) of
-        {ok, {_Module, [{abstract_code, {_, Forms}}]}} ->
+    case beam_lib:chunks(FilePath, [abstract_code, "Docs"]) of
+        {ok, {_Module, [{abstract_code, {_, Forms}}, {"Docs", Docs}]}} ->
+            io:format("Docs found in module:~n~p~n", [binary_to_term(Docs)]),
             NamedTypes = lists:filtermap(fun(F) -> type_in_form(F) end, Forms),
             build_type_info(NamedTypes);
         {ok, {Module, [{abstract_code, no_abstract_code}]}} ->
