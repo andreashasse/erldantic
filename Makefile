@@ -1,6 +1,6 @@
-.PHONY: all compile format test cover clean
+.PHONY: all compile format test cover clean doc
 
-all: compile format test cover
+all: compile format test cover doc
 
 compile:
 	rebar3 compile
@@ -46,3 +46,6 @@ type_check:
 	else \
 		exit 0; \
 	fi
+
+doc:
+	rebar3 ex_doc
