@@ -1,4 +1,4 @@
--module(range_test).
+-module(char_test).
 
 -include_lib("eunit/include/eunit.hrl").
 
