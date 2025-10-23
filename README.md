@@ -227,6 +227,11 @@ For example, `integer() | undefined` will become `undefined` in records and maps
 
 When using types with `term`, `erldantic_json` will not reject any data, which means it can return data that `json.erl` cannot convert to JSON.
 
+
+### Char
+
+Char is currently handled as integer, which is probably not what you want. Try to not use the char type for now. This is documented in `test/char_test.erl`.
+
 ### Unsupported Types
 
 Each format supports a subset of Erlang types. For JSON serialization and schema, the following are not supported:
