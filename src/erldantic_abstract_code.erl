@@ -2,7 +2,9 @@
 
 -include("../include/erldantic_internal.hrl").
 
--export([types_in_module/1]).
+-include_lib("kernel/include/eep48.hrl").
+
+-export([andreas/1, types_in_module/1]).
 
 -define(is_primary_type(PrimaryType),
         PrimaryType =:= string
@@ -33,9 +35,31 @@ types_in_module(Module) ->
             types_in_module_path(FilePath)
     end.
 
+-spec andreas(term()) -> term().
+andreas(FilePath) ->
+    case beam_lib:chunks(code:which(FilePath), [abstract_code, "Docs"]) of
+        {ok, {_Module, [{abstract_code, {_, _Forms}}, {"Docs", DocsV1}]}} ->
+            do_andreas(DocsV1);
+        A ->
+            A
+    end.
+
+do_andreas(DocsV1) ->
+    #docs_v1{docs = Docs} = binary_to_term(DocsV1),
+    lists:map(fun({KindNameArity, _Anno, _Signature, #{<<"en">> := DocString}, Metadata}) ->
+                 case maps:find(example, Metadata) of
+                     {ok, Example} ->
+                         {KindNameArity, DocString, Example};
+                     error ->
+                         {KindNameArity, DocString, undefined}
+                 end
+              end,
+              Docs).
+
 types_in_module_path(FilePath) ->
-    case beam_lib:chunks(FilePath, [abstract_code]) of
-        {ok, {_Module, [{abstract_code, {_, Forms}}]}} ->
+    case beam_lib:chunks(FilePath, [abstract_code, "Docs"]) of
+        {ok, {_Module, [{abstract_code, {_, Forms}}, {"Docs", Docs}]}} ->
+            io:format("Docs found in module:~n~p~n", [binary_to_term(Docs)]),
             NamedTypes = lists:filtermap(fun(F) -> type_in_form(F) end, Forms),
             build_type_info(NamedTypes);
         {ok, {Module, [{abstract_code, no_abstract_code}]}} ->
