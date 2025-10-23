@@ -771,7 +771,7 @@ arg_names(_) ->
 ) ->
     erldantic:ed_type().
 type_replace_vars(_TypeInfo, #ed_var{name = Name}, NamedTypes) ->
-    maps:get(Name, NamedTypes, #ed_simple_type{type = term});
+    maps:get(Name, NamedTypes);
 type_replace_vars(TypeInfo, #ed_type_with_variables{type = Type}, NamedTypes) ->
     case Type of
         #ed_union{types = UnionTypes} ->
