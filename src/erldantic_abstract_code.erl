@@ -4,7 +4,7 @@
 
 -include_lib("kernel/include/eep48.hrl").
 
--export([andreas/1, types_in_module/1]).
+-export([types_in_module/1]).
 
 -define(is_primary_type(PrimaryType),
     PrimaryType =:= string orelse
@@ -36,27 +36,6 @@ types_in_module(Module) ->
         FilePath ->
             types_in_module_path(FilePath)
     end.
-
--spec andreas(term()) -> term().
-andreas(FilePath) ->
-    case beam_lib:chunks(code:which(FilePath), [abstract_code, "Docs"]) of
-        {ok, {_Module, [{abstract_code, {_, _Forms}}, {"Docs", DocsV1}]}} ->
-            do_andreas(DocsV1);
-        A ->
-            A
-    end.
-
-do_andreas(DocsV1) ->
-    #docs_v1{docs = Docs} = binary_to_term(DocsV1),
-    lists:map(fun({KindNameArity, _Anno, _Signature, #{<<"en">> := DocString}, Metadata}) ->
-                 case maps:find(example, Metadata) of
-                     {ok, Example} ->
-                         {KindNameArity, DocString, Example};
-                     error ->
-                         {KindNameArity, DocString, undefined}
-                 end
-              end,
-              Docs).
 
 types_in_module_path(FilePath) ->
     case beam_lib:chunks(FilePath, [abstract_code]) of
@@ -202,6 +181,8 @@ record_field_types(Attrs) ->
 field_info_to_type({ann_type, _, [{var, _, _VarName}, Type]}) ->
     field_info_to_type(Type);
 field_info_to_type({atom, _, Value}) when is_atom(Value) ->
+    [#ed_literal{value = Value}];
+field_info_to_type({char, _, Value}) when is_integer(Value) ->
     [#ed_literal{value = Value}];
 field_info_to_type({integer, _, Value}) when is_integer(Value) ->
     [#ed_literal{value = Value}];
@@ -397,6 +378,8 @@ field_info_to_type({TypeOrOpaque, _, Type, TypeAttrs}) when
             [#ed_simple_type{type = none}]
     end.
 
+integer_value({char, _, Value}) when is_integer(Value) ->
+    Value;
 integer_value({integer, _, Value}) when is_integer(Value) ->
     Value;
 integer_value({op, _, Operator, Left, Right}) ->
