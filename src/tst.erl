@@ -1,6 +1,10 @@
 -module(tst).
+
 -moduledoc("my module doc").
+
 -doc("type doc").
+-doc(#{example => 12}).
+
 -type my_type() :: integer() | atom().
 
 -export_type([my_type/0]).
@@ -8,7 +12,8 @@
 -export([get_type/0]).
 
 -doc("my doc get type").
--doc(#{hej => hopp}).
+-doc(#{example => fixme}).
+
 -spec get_type() -> my_type().
 get_type() ->
     42.
