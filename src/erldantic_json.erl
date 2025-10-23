@@ -834,12 +834,12 @@ type_replace_vars(TypeInfo, #ed_type_with_variables{type = Type}, NamedTypes) ->
         #ed_list{type = ListType} ->
             #ed_list{type = type_replace_vars(TypeInfo, ListType, NamedTypes)}
     end;
-type_replace_vars(_TypeInfo, #ed_rec{fields = Fields} = Rec, NamedTypes) ->
+type_replace_vars(TypeInfo, #ed_rec{fields = Fields} = Rec, NamedTypes) ->
     Rec#ed_rec{
         fields =
             lists:map(
                 fun({Name, NType}) ->
-                    {Name, type_replace_vars(_TypeInfo, NType, NamedTypes)}
+                    {Name, type_replace_vars(TypeInfo, NType, NamedTypes)}
                 end,
                 Fields
             )
