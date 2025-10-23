@@ -6,7 +6,7 @@
 -export([can_be_undefined/2, is_type_reference/1]).
 
 -spec can_be_undefined(TypeInfo :: erldantic:type_info(), Type :: erldantic:ed_type()) ->
-                          boolean().
+    boolean().
 can_be_undefined(TypeInfo, Type) ->
     case Type of
         #ed_type_with_variables{type = Type2} ->

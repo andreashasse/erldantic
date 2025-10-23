@@ -35,172 +35,316 @@ simple_types_test() ->
     TypeInfo = erldantic_abstract_code:types_in_module(?MODULE),
 
     %% integer
-    ?assertEqual({ok, 42},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            #ed_simple_type{type = integer},
-                                                            <<"42">>)),
-    ?assertEqual({ok, -42},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            #ed_simple_type{type = integer},
-                                                            <<"-42">>)),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            #ed_simple_type{type = integer},
-                                                            <<"not_a_number">>)),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            #ed_simple_type{type = integer},
-                                                            <<"3.14">>)),
+    ?assertEqual(
+        {ok, 42},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = integer},
+            <<"42">>
+        )
+    ),
+    ?assertEqual(
+        {ok, -42},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = integer},
+            <<"-42">>
+        )
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = integer},
+            <<"not_a_number">>
+        )
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = integer},
+            <<"3.14">>
+        )
+    ),
 
     %% float
-    ?assertEqual({ok, 3.14},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            #ed_simple_type{type = float},
-                                                            <<"3.14">>)),
-    ?assertEqual({ok, -3.14},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            #ed_simple_type{type = float},
-                                                            <<"-3.14">>)),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            #ed_simple_type{type = float},
-                                                            <<"not_a_number">>)),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            #ed_simple_type{type = float},
-                                                            <<"42">>)),
+    ?assertEqual(
+        {ok, 3.14},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = float},
+            <<"3.14">>
+        )
+    ),
+    ?assertEqual(
+        {ok, -3.14},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = float},
+            <<"-3.14">>
+        )
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = float},
+            <<"not_a_number">>
+        )
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = float},
+            <<"42">>
+        )
+    ),
 
     %% number (tries integer first, then float)
-    ?assertEqual({ok, 42},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            #ed_simple_type{type = number},
-                                                            <<"42">>)),
-    ?assertEqual({ok, 3.14},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            #ed_simple_type{type = number},
-                                                            <<"3.14">>)),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            #ed_simple_type{type = number},
-                                                            <<"not_a_number">>)),
+    ?assertEqual(
+        {ok, 42},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = number},
+            <<"42">>
+        )
+    ),
+    ?assertEqual(
+        {ok, 3.14},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = number},
+            <<"3.14">>
+        )
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = number},
+            <<"not_a_number">>
+        )
+    ),
 
     %% boolean
-    ?assertEqual({ok, true},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            #ed_simple_type{type = boolean},
-                                                            <<"true">>)),
-    ?assertEqual({ok, false},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            #ed_simple_type{type = boolean},
-                                                            <<"false">>)),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            #ed_simple_type{type = boolean},
-                                                            <<"True">>)),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            #ed_simple_type{type = boolean},
-                                                            <<"1">>)),
+    ?assertEqual(
+        {ok, true},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = boolean},
+            <<"true">>
+        )
+    ),
+    ?assertEqual(
+        {ok, false},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = boolean},
+            <<"false">>
+        )
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = boolean},
+            <<"True">>
+        )
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = boolean},
+            <<"1">>
+        )
+    ),
 
     %% atom
-    ?assertEqual({ok, hello},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            #ed_simple_type{type = atom},
-                                                            <<"hello">>)),
-    ?assertEqual({ok, 'hello world'},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            #ed_simple_type{type = atom},
-                                                            <<"hello world">>)),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            #ed_simple_type{type = atom},
-                                                            <<"non_existing_atom_123456789">>)),
+    ?assertEqual(
+        {ok, hello},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = atom},
+            <<"hello">>
+        )
+    ),
+    ?assertEqual(
+        {ok, 'hello world'},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = atom},
+            <<"hello world">>
+        )
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = atom},
+            <<"non_existing_atom_123456789">>
+        )
+    ),
 
     %% string
-    ?assertEqual({ok, "hello"},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            #ed_simple_type{type = string},
-                                                            <<"hello">>)),
-    ?assertEqual({ok, ""},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            #ed_simple_type{type = string},
-                                                            <<"">>)),
-    ?assertEqual({ok, "hello world 123!"},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            #ed_simple_type{type = string},
-                                                            <<"hello world 123!">>)),
+    ?assertEqual(
+        {ok, "hello"},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = string},
+            <<"hello">>
+        )
+    ),
+    ?assertEqual(
+        {ok, ""},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = string},
+            <<"">>
+        )
+    ),
+    ?assertEqual(
+        {ok, "hello world 123!"},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = string},
+            <<"hello world 123!">>
+        )
+    ),
 
     %% nonempty_string
-    ?assertEqual({ok, "hello"},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            #ed_simple_type{type = nonempty_string},
-                                                            <<"hello">>)),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            #ed_simple_type{type = nonempty_string},
-                                                            <<"">>)),
+    ?assertEqual(
+        {ok, "hello"},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = nonempty_string},
+            <<"hello">>
+        )
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = nonempty_string},
+            <<"">>
+        )
+    ),
 
     %% binary
-    ?assertEqual({ok, <<"hello">>},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            #ed_simple_type{type = binary},
-                                                            <<"hello">>)),
-    ?assertEqual({ok, <<"">>},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            #ed_simple_type{type = binary},
-                                                            <<"">>)),
+    ?assertEqual(
+        {ok, <<"hello">>},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = binary},
+            <<"hello">>
+        )
+    ),
+    ?assertEqual(
+        {ok, <<"">>},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = binary},
+            <<"">>
+        )
+    ),
 
     %% nonempty_binary
-    ?assertEqual({ok, <<"hello">>},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            #ed_simple_type{type = nonempty_binary},
-                                                            <<"hello">>)),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            #ed_simple_type{type = nonempty_binary},
-                                                            <<"">>)),
+    ?assertEqual(
+        {ok, <<"hello">>},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = nonempty_binary},
+            <<"hello">>
+        )
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = nonempty_binary},
+            <<"">>
+        )
+    ),
 
     %% non_neg_integer
-    ?assertEqual({ok, 42},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            #ed_simple_type{type = non_neg_integer},
-                                                            <<"42">>)),
-    ?assertEqual({ok, 0},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            #ed_simple_type{type = non_neg_integer},
-                                                            <<"0">>)),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            #ed_simple_type{type = non_neg_integer},
-                                                            <<"-1">>)),
+    ?assertEqual(
+        {ok, 42},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = non_neg_integer},
+            <<"42">>
+        )
+    ),
+    ?assertEqual(
+        {ok, 0},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = non_neg_integer},
+            <<"0">>
+        )
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = non_neg_integer},
+            <<"-1">>
+        )
+    ),
 
     %% pos_integer
-    ?assertEqual({ok, 42},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            #ed_simple_type{type = pos_integer},
-                                                            <<"42">>)),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            #ed_simple_type{type = pos_integer},
-                                                            <<"0">>)),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            #ed_simple_type{type = pos_integer},
-                                                            <<"-1">>)),
+    ?assertEqual(
+        {ok, 42},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = pos_integer},
+            <<"42">>
+        )
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = pos_integer},
+            <<"0">>
+        )
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = pos_integer},
+            <<"-1">>
+        )
+    ),
 
     %% neg_integer
-    ?assertEqual({ok, -42},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            #ed_simple_type{type = neg_integer},
-                                                            <<"-42">>)),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            #ed_simple_type{type = neg_integer},
-                                                            <<"0">>)),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            #ed_simple_type{type = neg_integer},
-                                                            <<"42">>)),
+    ?assertEqual(
+        {ok, -42},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = neg_integer},
+            <<"-42">>
+        )
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = neg_integer},
+            <<"0">>
+        )
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = neg_integer},
+            <<"42">>
+        )
+    ),
 
     ok.
 
@@ -208,31 +352,49 @@ simple_types_test() ->
 range_test() ->
     TypeInfo = erldantic_abstract_code:types_in_module(?MODULE),
     Range =
-        #ed_range{type = integer,
-                  lower_bound = 1,
-                  upper_bound = 10},
+        #ed_range{
+            type = integer,
+            lower_bound = 1,
+            upper_bound = 10
+        },
 
     %% Valid values in range
-    ?assertEqual({ok, 1},
-                 erldantic_binary_string:from_binary_string(TypeInfo, Range, <<"1">>)),
-    ?assertEqual({ok, 5},
-                 erldantic_binary_string:from_binary_string(TypeInfo, Range, <<"5">>)),
-    ?assertEqual({ok, 10},
-                 erldantic_binary_string:from_binary_string(TypeInfo, Range, <<"10">>)),
+    ?assertEqual(
+        {ok, 1},
+        erldantic_binary_string:from_binary_string(TypeInfo, Range, <<"1">>)
+    ),
+    ?assertEqual(
+        {ok, 5},
+        erldantic_binary_string:from_binary_string(TypeInfo, Range, <<"5">>)
+    ),
+    ?assertEqual(
+        {ok, 10},
+        erldantic_binary_string:from_binary_string(TypeInfo, Range, <<"10">>)
+    ),
 
     %% Invalid values outside range
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:from_binary_string(TypeInfo, Range, <<"0">>)),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:from_binary_string(TypeInfo, Range, <<"11">>)),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:from_binary_string(TypeInfo, Range, <<"-5">>)),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:from_binary_string(TypeInfo, Range, <<"0">>)
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:from_binary_string(TypeInfo, Range, <<"11">>)
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:from_binary_string(TypeInfo, Range, <<"-5">>)
+    ),
 
     %% Invalid non-integer strings
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:from_binary_string(TypeInfo, Range, <<"not_a_number">>)),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:from_binary_string(TypeInfo, Range, <<"5.5">>)),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:from_binary_string(TypeInfo, Range, <<"not_a_number">>)
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:from_binary_string(TypeInfo, Range, <<"5.5">>)
+    ),
 
     ok.
 
@@ -242,34 +404,56 @@ literal_test() ->
 
     %% Literal atom
     AtomLiteral = #ed_literal{value = hello},
-    ?assertEqual({ok, hello},
-                 erldantic_binary_string:from_binary_string(TypeInfo, AtomLiteral, <<"hello">>)),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:from_binary_string(TypeInfo, AtomLiteral, <<"world">>)),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            AtomLiteral,
-                                                            <<"non_existing_atom_123456789">>)),
+    ?assertEqual(
+        {ok, hello},
+        erldantic_binary_string:from_binary_string(TypeInfo, AtomLiteral, <<"hello">>)
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:from_binary_string(TypeInfo, AtomLiteral, <<"world">>)
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            AtomLiteral,
+            <<"non_existing_atom_123456789">>
+        )
+    ),
 
     %% Literal integer
     IntegerLiteral = #ed_literal{value = 42},
-    ?assertEqual({ok, 42},
-                 erldantic_binary_string:from_binary_string(TypeInfo, IntegerLiteral, <<"42">>)),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:from_binary_string(TypeInfo, IntegerLiteral, <<"43">>)),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            IntegerLiteral,
-                                                            <<"not_a_number">>)),
+    ?assertEqual(
+        {ok, 42},
+        erldantic_binary_string:from_binary_string(TypeInfo, IntegerLiteral, <<"42">>)
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:from_binary_string(TypeInfo, IntegerLiteral, <<"43">>)
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            IntegerLiteral,
+            <<"not_a_number">>
+        )
+    ),
 
     %% Literal boolean
     BooleanLiteral = #ed_literal{value = true},
-    ?assertEqual({ok, true},
-                 erldantic_binary_string:from_binary_string(TypeInfo, BooleanLiteral, <<"true">>)),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:from_binary_string(TypeInfo, BooleanLiteral, <<"false">>)),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:from_binary_string(TypeInfo, BooleanLiteral, <<"True">>)),
+    ?assertEqual(
+        {ok, true},
+        erldantic_binary_string:from_binary_string(TypeInfo, BooleanLiteral, <<"true">>)
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:from_binary_string(TypeInfo, BooleanLiteral, <<"false">>)
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:from_binary_string(TypeInfo, BooleanLiteral, <<"True">>)
+    ),
 
     ok.
 
@@ -280,34 +464,58 @@ union_test() ->
     %% Simple union: integer | boolean
     Union =
         #ed_union{types = [#ed_simple_type{type = integer}, #ed_simple_type{type = boolean}]},
-    ?assertEqual({ok, 42},
-                 erldantic_binary_string:from_binary_string(TypeInfo, Union, <<"42">>)),
-    ?assertEqual({ok, true},
-                 erldantic_binary_string:from_binary_string(TypeInfo, Union, <<"true">>)),
-    ?assertEqual({ok, false},
-                 erldantic_binary_string:from_binary_string(TypeInfo, Union, <<"false">>)),
-    ?assertMatch({error, [#ed_error{type = no_match}]},
-                 erldantic_binary_string:from_binary_string(TypeInfo, Union, <<"not_matching">>)),
+    ?assertEqual(
+        {ok, 42},
+        erldantic_binary_string:from_binary_string(TypeInfo, Union, <<"42">>)
+    ),
+    ?assertEqual(
+        {ok, true},
+        erldantic_binary_string:from_binary_string(TypeInfo, Union, <<"true">>)
+    ),
+    ?assertEqual(
+        {ok, false},
+        erldantic_binary_string:from_binary_string(TypeInfo, Union, <<"false">>)
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = no_match}]},
+        erldantic_binary_string:from_binary_string(TypeInfo, Union, <<"not_matching">>)
+    ),
 
     %% Complex union with literals: 1 | 2 | true | false
     ComplexUnion =
-        #ed_union{types =
-                      [#ed_literal{value = 1},
-                       #ed_literal{value = 2},
-                       #ed_literal{value = true},
-                       #ed_literal{value = false}]},
-    ?assertEqual({ok, 1},
-                 erldantic_binary_string:from_binary_string(TypeInfo, ComplexUnion, <<"1">>)),
-    ?assertEqual({ok, 2},
-                 erldantic_binary_string:from_binary_string(TypeInfo, ComplexUnion, <<"2">>)),
-    ?assertEqual({ok, true},
-                 erldantic_binary_string:from_binary_string(TypeInfo, ComplexUnion, <<"true">>)),
-    ?assertEqual({ok, false},
-                 erldantic_binary_string:from_binary_string(TypeInfo, ComplexUnion, <<"false">>)),
-    ?assertMatch({error, [#ed_error{type = no_match}]},
-                 erldantic_binary_string:from_binary_string(TypeInfo, ComplexUnion, <<"3">>)),
-    ?assertMatch({error, [#ed_error{type = no_match}]},
-                 erldantic_binary_string:from_binary_string(TypeInfo, ComplexUnion, <<"maybe">>)),
+        #ed_union{
+            types =
+                [
+                    #ed_literal{value = 1},
+                    #ed_literal{value = 2},
+                    #ed_literal{value = true},
+                    #ed_literal{value = false}
+                ]
+        },
+    ?assertEqual(
+        {ok, 1},
+        erldantic_binary_string:from_binary_string(TypeInfo, ComplexUnion, <<"1">>)
+    ),
+    ?assertEqual(
+        {ok, 2},
+        erldantic_binary_string:from_binary_string(TypeInfo, ComplexUnion, <<"2">>)
+    ),
+    ?assertEqual(
+        {ok, true},
+        erldantic_binary_string:from_binary_string(TypeInfo, ComplexUnion, <<"true">>)
+    ),
+    ?assertEqual(
+        {ok, false},
+        erldantic_binary_string:from_binary_string(TypeInfo, ComplexUnion, <<"false">>)
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = no_match}]},
+        erldantic_binary_string:from_binary_string(TypeInfo, ComplexUnion, <<"3">>)
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = no_match}]},
+        erldantic_binary_string:from_binary_string(TypeInfo, ComplexUnion, <<"maybe">>)
+    ),
 
     ok.
 
@@ -316,80 +524,148 @@ type_reference_test() ->
     TypeInfo = erldantic_abstract_code:types_in_module(?MODULE),
 
     %% Test various type references from the module
-    ?assertEqual({ok, 42},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            {type, my_integer, 0},
-                                                            <<"42">>)),
-    ?assertEqual({ok, 3.14},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            {type, my_float, 0},
-                                                            <<"3.14">>)),
-    ?assertEqual({ok, 42},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            {type, my_number, 0},
-                                                            <<"42">>)),
-    ?assertEqual({ok, 3.14},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            {type, my_number, 0},
-                                                            <<"3.14">>)),
-    ?assertEqual({ok, true},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            {type, my_boolean, 0},
-                                                            <<"true">>)),
-    ?assertEqual({ok, hello},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            {type, my_atom, 0},
-                                                            <<"hello">>)),
-    ?assertEqual({ok, "test"},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            {type, my_string, 0},
-                                                            <<"test">>)),
-    ?assertEqual({ok, <<"test">>},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            {type, my_binary, 0},
-                                                            <<"test">>)),
+    ?assertEqual(
+        {ok, 42},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            {type, my_integer, 0},
+            <<"42">>
+        )
+    ),
+    ?assertEqual(
+        {ok, 3.14},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            {type, my_float, 0},
+            <<"3.14">>
+        )
+    ),
+    ?assertEqual(
+        {ok, 42},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            {type, my_number, 0},
+            <<"42">>
+        )
+    ),
+    ?assertEqual(
+        {ok, 3.14},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            {type, my_number, 0},
+            <<"3.14">>
+        )
+    ),
+    ?assertEqual(
+        {ok, true},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            {type, my_boolean, 0},
+            <<"true">>
+        )
+    ),
+    ?assertEqual(
+        {ok, hello},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            {type, my_atom, 0},
+            <<"hello">>
+        )
+    ),
+    ?assertEqual(
+        {ok, "test"},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            {type, my_string, 0},
+            <<"test">>
+        )
+    ),
+    ?assertEqual(
+        {ok, <<"test">>},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            {type, my_binary, 0},
+            <<"test">>
+        )
+    ),
 
     %% Test range type
-    ?assertEqual({ok, 5},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            {type, my_range, 0},
-                                                            <<"5">>)),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            {type, my_range, 0},
-                                                            <<"15">>)),
+    ?assertEqual(
+        {ok, 5},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            {type, my_range, 0},
+            <<"5">>
+        )
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            {type, my_range, 0},
+            <<"15">>
+        )
+    ),
 
     %% Test literal types
-    ?assertEqual({ok, hello},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            {type, my_literal_atom, 0},
-                                                            <<"hello">>)),
-    ?assertEqual({ok, 42},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            {type, my_literal_integer, 0},
-                                                            <<"42">>)),
-    ?assertEqual({ok, true},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            {type, my_literal_boolean, 0},
-                                                            <<"true">>)),
+    ?assertEqual(
+        {ok, hello},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            {type, my_literal_atom, 0},
+            <<"hello">>
+        )
+    ),
+    ?assertEqual(
+        {ok, 42},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            {type, my_literal_integer, 0},
+            <<"42">>
+        )
+    ),
+    ?assertEqual(
+        {ok, true},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            {type, my_literal_boolean, 0},
+            <<"true">>
+        )
+    ),
 
     %% Test union types
-    ?assertEqual({ok, 42},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            {type, my_union, 0},
-                                                            <<"42">>)),
-    ?assertEqual({ok, true},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            {type, my_union, 0},
-                                                            <<"true">>)),
-    ?assertEqual({ok, 1},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            {type, my_complex_union, 0},
-                                                            <<"1">>)),
-    ?assertEqual({ok, false},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            {type, my_complex_union, 0},
-                                                            <<"false">>)),
+    ?assertEqual(
+        {ok, 42},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            {type, my_union, 0},
+            <<"42">>
+        )
+    ),
+    ?assertEqual(
+        {ok, true},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            {type, my_union, 0},
+            <<"true">>
+        )
+    ),
+    ?assertEqual(
+        {ok, 1},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            {type, my_complex_union, 0},
+            <<"1">>
+        )
+    ),
+    ?assertEqual(
+        {ok, false},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            {type, my_complex_union, 0},
+            <<"false">>
+        )
+    ),
 
     ok.
 
@@ -398,42 +674,74 @@ unsupported_test() ->
     TypeInfo = erldantic_abstract_code:types_in_module(?MODULE),
 
     %% Record types are not supported for binary string conversion
-    ?assertMatch({error, [#ed_error{type = no_match}]},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            {record, some_record},
-                                                            <<"test">>)),
+    ?assertMatch(
+        {error, [#ed_error{type = no_match}]},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            {record, some_record},
+            <<"test">>
+        )
+    ),
 
     %% Unsupported simple types should error
-    ?assertError({type_not_supported, _},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            #ed_simple_type{type = pid},
-                                                            <<"test">>)),
-    ?assertError({type_not_supported, _},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            #ed_simple_type{type = port},
-                                                            <<"test">>)),
-    ?assertError({type_not_supported, _},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            #ed_simple_type{type = reference},
-                                                            <<"test">>)),
-    ?assertError({type_not_supported, _},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            #ed_simple_type{type = bitstring},
-                                                            <<"test">>)),
-    ?assertError({type_not_supported, _},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            #ed_simple_type{type =
-                                                                                nonempty_bitstring},
-                                                            <<"test">>)),
-    ?assertError({type_not_supported, _},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            #ed_simple_type{type = none},
-                                                            <<"test">>)),
+    ?assertError(
+        {type_not_supported, _},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = pid},
+            <<"test">>
+        )
+    ),
+    ?assertError(
+        {type_not_supported, _},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = port},
+            <<"test">>
+        )
+    ),
+    ?assertError(
+        {type_not_supported, _},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = reference},
+            <<"test">>
+        )
+    ),
+    ?assertError(
+        {type_not_supported, _},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = bitstring},
+            <<"test">>
+        )
+    ),
+    ?assertError(
+        {type_not_supported, _},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            #ed_simple_type{
+                type =
+                    nonempty_bitstring
+            },
+            <<"test">>
+        )
+    ),
+    ?assertError(
+        {type_not_supported, _},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = none},
+            <<"test">>
+        )
+    ),
 
     %% Unknown type should give type mismatch error
     UnknownType = #ed_tuple{fields = any},
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:from_binary_string(TypeInfo, UnknownType, <<"test">>)),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:from_binary_string(TypeInfo, UnknownType, <<"test">>)
+    ),
 
     ok.
 
@@ -442,56 +750,98 @@ edge_cases_test() ->
     TypeInfo = erldantic_abstract_code:types_in_module(?MODULE),
 
     %% Empty strings
-    ?assertEqual({ok, ""},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            #ed_simple_type{type = string},
-                                                            <<"">>)),
-    ?assertEqual({ok, <<"">>},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            #ed_simple_type{type = binary},
-                                                            <<"">>)),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            #ed_simple_type{type = nonempty_string},
-                                                            <<"">>)),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            #ed_simple_type{type = nonempty_binary},
-                                                            <<"">>)),
+    ?assertEqual(
+        {ok, ""},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = string},
+            <<"">>
+        )
+    ),
+    ?assertEqual(
+        {ok, <<"">>},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = binary},
+            <<"">>
+        )
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = nonempty_string},
+            <<"">>
+        )
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = nonempty_binary},
+            <<"">>
+        )
+    ),
 
     %% Large numbers
-    ?assertEqual({ok, 999999999999},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            #ed_simple_type{type = integer},
-                                                            <<"999999999999">>)),
-    ?assertEqual({ok, -999999999999},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            #ed_simple_type{type = integer},
-                                                            <<"-999999999999">>)),
+    ?assertEqual(
+        {ok, 999999999999},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = integer},
+            <<"999999999999">>
+        )
+    ),
+    ?assertEqual(
+        {ok, -999999999999},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = integer},
+            <<"-999999999999">>
+        )
+    ),
 
     %% Special float values
-    ?assertEqual({ok, 0.0},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            #ed_simple_type{type = float},
-                                                            <<"0.0">>)),
-    ?assertEqual({ok, -0.0},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            #ed_simple_type{type = float},
-                                                            <<"-0.0">>)),
+    ?assertEqual(
+        {ok, 0.0},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = float},
+            <<"0.0">>
+        )
+    ),
+    ?assertEqual(
+        {ok, -0.0},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = float},
+            <<"-0.0">>
+        )
+    ),
 
     %% Boundary values for ranges
     Range =
-        #ed_range{type = integer,
-                  lower_bound = -5,
-                  upper_bound = 5},
-    ?assertEqual({ok, -5},
-                 erldantic_binary_string:from_binary_string(TypeInfo, Range, <<"-5">>)),
-    ?assertEqual({ok, 5},
-                 erldantic_binary_string:from_binary_string(TypeInfo, Range, <<"5">>)),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:from_binary_string(TypeInfo, Range, <<"-6">>)),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:from_binary_string(TypeInfo, Range, <<"6">>)),
+        #ed_range{
+            type = integer,
+            lower_bound = -5,
+            upper_bound = 5
+        },
+    ?assertEqual(
+        {ok, -5},
+        erldantic_binary_string:from_binary_string(TypeInfo, Range, <<"-5">>)
+    ),
+    ?assertEqual(
+        {ok, 5},
+        erldantic_binary_string:from_binary_string(TypeInfo, Range, <<"5">>)
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:from_binary_string(TypeInfo, Range, <<"-6">>)
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:from_binary_string(TypeInfo, Range, <<"6">>)
+    ),
 
     ok.
 
@@ -500,164 +850,300 @@ to_binary_string_simple_types_test() ->
     TypeInfo = erldantic_abstract_code:types_in_module(?MODULE),
 
     %% integer
-    ?assertEqual({ok, <<"42">>},
-                 erldantic_binary_string:to_binary_string(TypeInfo,
-                                                          #ed_simple_type{type = integer},
-                                                          42)),
-    ?assertEqual({ok, <<"-42">>},
-                 erldantic_binary_string:to_binary_string(TypeInfo,
-                                                          #ed_simple_type{type = integer},
-                                                          -42)),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:to_binary_string(TypeInfo,
-                                                          #ed_simple_type{type = integer},
-                                                          "not_integer")),
+    ?assertEqual(
+        {ok, <<"42">>},
+        erldantic_binary_string:to_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = integer},
+            42
+        )
+    ),
+    ?assertEqual(
+        {ok, <<"-42">>},
+        erldantic_binary_string:to_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = integer},
+            -42
+        )
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:to_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = integer},
+            "not_integer"
+        )
+    ),
 
     %% float
-    ?assertEqual({ok, <<"3.14000000000000012434e+00">>},
-                 erldantic_binary_string:to_binary_string(TypeInfo,
-                                                          #ed_simple_type{type = float},
-                                                          3.14)),
-    ?assertEqual({ok, <<"-3.14000000000000012434e+00">>},
-                 erldantic_binary_string:to_binary_string(TypeInfo,
-                                                          #ed_simple_type{type = float},
-                                                          -3.14)),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:to_binary_string(TypeInfo,
-                                                          #ed_simple_type{type = float},
-                                                          42)),
+    ?assertEqual(
+        {ok, <<"3.14000000000000012434e+00">>},
+        erldantic_binary_string:to_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = float},
+            3.14
+        )
+    ),
+    ?assertEqual(
+        {ok, <<"-3.14000000000000012434e+00">>},
+        erldantic_binary_string:to_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = float},
+            -3.14
+        )
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:to_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = float},
+            42
+        )
+    ),
 
     %% number
-    ?assertEqual({ok, <<"42">>},
-                 erldantic_binary_string:to_binary_string(TypeInfo,
-                                                          #ed_simple_type{type = number},
-                                                          42)),
-    ?assertEqual({ok, <<"3.14000000000000012434e+00">>},
-                 erldantic_binary_string:to_binary_string(TypeInfo,
-                                                          #ed_simple_type{type = number},
-                                                          3.14)),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:to_binary_string(TypeInfo,
-                                                          #ed_simple_type{type = number},
-                                                          "not_number")),
+    ?assertEqual(
+        {ok, <<"42">>},
+        erldantic_binary_string:to_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = number},
+            42
+        )
+    ),
+    ?assertEqual(
+        {ok, <<"3.14000000000000012434e+00">>},
+        erldantic_binary_string:to_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = number},
+            3.14
+        )
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:to_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = number},
+            "not_number"
+        )
+    ),
 
     %% boolean
-    ?assertEqual({ok, <<"true">>},
-                 erldantic_binary_string:to_binary_string(TypeInfo,
-                                                          #ed_simple_type{type = boolean},
-                                                          true)),
-    ?assertEqual({ok, <<"false">>},
-                 erldantic_binary_string:to_binary_string(TypeInfo,
-                                                          #ed_simple_type{type = boolean},
-                                                          false)),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:to_binary_string(TypeInfo,
-                                                          #ed_simple_type{type = boolean},
-                                                          "true")),
+    ?assertEqual(
+        {ok, <<"true">>},
+        erldantic_binary_string:to_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = boolean},
+            true
+        )
+    ),
+    ?assertEqual(
+        {ok, <<"false">>},
+        erldantic_binary_string:to_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = boolean},
+            false
+        )
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:to_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = boolean},
+            "true"
+        )
+    ),
 
     %% atom
-    ?assertEqual({ok, <<"hello">>},
-                 erldantic_binary_string:to_binary_string(TypeInfo,
-                                                          #ed_simple_type{type = atom},
-                                                          hello)),
-    ?assertEqual({ok, <<"hello world">>},
-                 erldantic_binary_string:to_binary_string(TypeInfo,
-                                                          #ed_simple_type{type = atom},
-                                                          'hello world')),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:to_binary_string(TypeInfo,
-                                                          #ed_simple_type{type = atom},
-                                                          "hello")),
+    ?assertEqual(
+        {ok, <<"hello">>},
+        erldantic_binary_string:to_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = atom},
+            hello
+        )
+    ),
+    ?assertEqual(
+        {ok, <<"hello world">>},
+        erldantic_binary_string:to_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = atom},
+            'hello world'
+        )
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:to_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = atom},
+            "hello"
+        )
+    ),
 
     %% string
-    ?assertEqual({ok, <<"hello">>},
-                 erldantic_binary_string:to_binary_string(TypeInfo,
-                                                          #ed_simple_type{type = string},
-                                                          "hello")),
-    ?assertEqual({ok, <<"">>},
-                 erldantic_binary_string:to_binary_string(TypeInfo,
-                                                          #ed_simple_type{type = string},
-                                                          "")),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:to_binary_string(TypeInfo,
-                                                          #ed_simple_type{type = string},
-                                                          <<"binary">>)),
+    ?assertEqual(
+        {ok, <<"hello">>},
+        erldantic_binary_string:to_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = string},
+            "hello"
+        )
+    ),
+    ?assertEqual(
+        {ok, <<"">>},
+        erldantic_binary_string:to_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = string},
+            ""
+        )
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:to_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = string},
+            <<"binary">>
+        )
+    ),
 
     %% nonempty_string
-    ?assertEqual({ok, <<"hello">>},
-                 erldantic_binary_string:to_binary_string(TypeInfo,
-                                                          #ed_simple_type{type = nonempty_string},
-                                                          "hello")),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:to_binary_string(TypeInfo,
-                                                          #ed_simple_type{type = nonempty_string},
-                                                          "")),
+    ?assertEqual(
+        {ok, <<"hello">>},
+        erldantic_binary_string:to_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = nonempty_string},
+            "hello"
+        )
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:to_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = nonempty_string},
+            ""
+        )
+    ),
 
     %% binary
-    ?assertEqual({ok, <<"hello">>},
-                 erldantic_binary_string:to_binary_string(TypeInfo,
-                                                          #ed_simple_type{type = binary},
-                                                          <<"hello">>)),
-    ?assertEqual({ok, <<"">>},
-                 erldantic_binary_string:to_binary_string(TypeInfo,
-                                                          #ed_simple_type{type = binary},
-                                                          <<"">>)),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:to_binary_string(TypeInfo,
-                                                          #ed_simple_type{type = binary},
-                                                          "string")),
+    ?assertEqual(
+        {ok, <<"hello">>},
+        erldantic_binary_string:to_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = binary},
+            <<"hello">>
+        )
+    ),
+    ?assertEqual(
+        {ok, <<"">>},
+        erldantic_binary_string:to_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = binary},
+            <<"">>
+        )
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:to_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = binary},
+            "string"
+        )
+    ),
 
     %% nonempty_binary
-    ?assertEqual({ok, <<"hello">>},
-                 erldantic_binary_string:to_binary_string(TypeInfo,
-                                                          #ed_simple_type{type = nonempty_binary},
-                                                          <<"hello">>)),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:to_binary_string(TypeInfo,
-                                                          #ed_simple_type{type = nonempty_binary},
-                                                          <<"">>)),
+    ?assertEqual(
+        {ok, <<"hello">>},
+        erldantic_binary_string:to_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = nonempty_binary},
+            <<"hello">>
+        )
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:to_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = nonempty_binary},
+            <<"">>
+        )
+    ),
 
     %% non_neg_integer
-    ?assertEqual({ok, <<"42">>},
-                 erldantic_binary_string:to_binary_string(TypeInfo,
-                                                          #ed_simple_type{type = non_neg_integer},
-                                                          42)),
-    ?assertEqual({ok, <<"0">>},
-                 erldantic_binary_string:to_binary_string(TypeInfo,
-                                                          #ed_simple_type{type = non_neg_integer},
-                                                          0)),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:to_binary_string(TypeInfo,
-                                                          #ed_simple_type{type = non_neg_integer},
-                                                          -1)),
+    ?assertEqual(
+        {ok, <<"42">>},
+        erldantic_binary_string:to_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = non_neg_integer},
+            42
+        )
+    ),
+    ?assertEqual(
+        {ok, <<"0">>},
+        erldantic_binary_string:to_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = non_neg_integer},
+            0
+        )
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:to_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = non_neg_integer},
+            -1
+        )
+    ),
 
     %% pos_integer
-    ?assertEqual({ok, <<"42">>},
-                 erldantic_binary_string:to_binary_string(TypeInfo,
-                                                          #ed_simple_type{type = pos_integer},
-                                                          42)),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:to_binary_string(TypeInfo,
-                                                          #ed_simple_type{type = pos_integer},
-                                                          0)),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:to_binary_string(TypeInfo,
-                                                          #ed_simple_type{type = pos_integer},
-                                                          -1)),
+    ?assertEqual(
+        {ok, <<"42">>},
+        erldantic_binary_string:to_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = pos_integer},
+            42
+        )
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:to_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = pos_integer},
+            0
+        )
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:to_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = pos_integer},
+            -1
+        )
+    ),
 
     %% neg_integer
-    ?assertEqual({ok, <<"-42">>},
-                 erldantic_binary_string:to_binary_string(TypeInfo,
-                                                          #ed_simple_type{type = neg_integer},
-                                                          -42)),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:to_binary_string(TypeInfo,
-                                                          #ed_simple_type{type = neg_integer},
-                                                          0)),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:to_binary_string(TypeInfo,
-                                                          #ed_simple_type{type = neg_integer},
-                                                          42)),
+    ?assertEqual(
+        {ok, <<"-42">>},
+        erldantic_binary_string:to_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = neg_integer},
+            -42
+        )
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:to_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = neg_integer},
+            0
+        )
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:to_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = neg_integer},
+            42
+        )
+    ),
 
     ok.
 
@@ -665,29 +1151,43 @@ to_binary_string_simple_types_test() ->
 to_binary_string_range_test() ->
     TypeInfo = erldantic_abstract_code:types_in_module(?MODULE),
     Range =
-        #ed_range{type = integer,
-                  lower_bound = 1,
-                  upper_bound = 10},
+        #ed_range{
+            type = integer,
+            lower_bound = 1,
+            upper_bound = 10
+        },
 
     %% Valid values in range
     ?assertEqual({ok, <<"1">>}, erldantic_binary_string:to_binary_string(TypeInfo, Range, 1)),
     ?assertEqual({ok, <<"5">>}, erldantic_binary_string:to_binary_string(TypeInfo, Range, 5)),
-    ?assertEqual({ok, <<"10">>},
-                 erldantic_binary_string:to_binary_string(TypeInfo, Range, 10)),
+    ?assertEqual(
+        {ok, <<"10">>},
+        erldantic_binary_string:to_binary_string(TypeInfo, Range, 10)
+    ),
 
     %% Invalid values outside range
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:to_binary_string(TypeInfo, Range, 0)),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:to_binary_string(TypeInfo, Range, 11)),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:to_binary_string(TypeInfo, Range, -5)),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:to_binary_string(TypeInfo, Range, 0)
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:to_binary_string(TypeInfo, Range, 11)
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:to_binary_string(TypeInfo, Range, -5)
+    ),
 
     %% Invalid non-integer values
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:to_binary_string(TypeInfo, Range, "5")),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:to_binary_string(TypeInfo, Range, 5.5)),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:to_binary_string(TypeInfo, Range, "5")
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:to_binary_string(TypeInfo, Range, 5.5)
+    ),
 
     ok.
 
@@ -697,30 +1197,46 @@ to_binary_string_literal_test() ->
 
     %% Literal atom
     AtomLiteral = #ed_literal{value = hello},
-    ?assertEqual({ok, <<"hello">>},
-                 erldantic_binary_string:to_binary_string(TypeInfo, AtomLiteral, hello)),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:to_binary_string(TypeInfo, AtomLiteral, world)),
+    ?assertEqual(
+        {ok, <<"hello">>},
+        erldantic_binary_string:to_binary_string(TypeInfo, AtomLiteral, hello)
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:to_binary_string(TypeInfo, AtomLiteral, world)
+    ),
 
     %% Literal integer
     IntegerLiteral = #ed_literal{value = 42},
-    ?assertEqual({ok, <<"42">>},
-                 erldantic_binary_string:to_binary_string(TypeInfo, IntegerLiteral, 42)),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:to_binary_string(TypeInfo, IntegerLiteral, 43)),
+    ?assertEqual(
+        {ok, <<"42">>},
+        erldantic_binary_string:to_binary_string(TypeInfo, IntegerLiteral, 42)
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:to_binary_string(TypeInfo, IntegerLiteral, 43)
+    ),
 
     %% Literal boolean
     BooleanLiteralTrue = #ed_literal{value = true},
-    ?assertEqual({ok, <<"true">>},
-                 erldantic_binary_string:to_binary_string(TypeInfo, BooleanLiteralTrue, true)),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:to_binary_string(TypeInfo, BooleanLiteralTrue, false)),
+    ?assertEqual(
+        {ok, <<"true">>},
+        erldantic_binary_string:to_binary_string(TypeInfo, BooleanLiteralTrue, true)
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:to_binary_string(TypeInfo, BooleanLiteralTrue, false)
+    ),
 
     BooleanLiteralFalse = #ed_literal{value = false},
-    ?assertEqual({ok, <<"false">>},
-                 erldantic_binary_string:to_binary_string(TypeInfo, BooleanLiteralFalse, false)),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:to_binary_string(TypeInfo, BooleanLiteralFalse, true)),
+    ?assertEqual(
+        {ok, <<"false">>},
+        erldantic_binary_string:to_binary_string(TypeInfo, BooleanLiteralFalse, false)
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:to_binary_string(TypeInfo, BooleanLiteralFalse, true)
+    ),
 
     ok.
 
@@ -731,34 +1247,58 @@ to_binary_string_union_test() ->
     %% Simple union: integer | boolean
     Union =
         #ed_union{types = [#ed_simple_type{type = integer}, #ed_simple_type{type = boolean}]},
-    ?assertEqual({ok, <<"42">>},
-                 erldantic_binary_string:to_binary_string(TypeInfo, Union, 42)),
-    ?assertEqual({ok, <<"true">>},
-                 erldantic_binary_string:to_binary_string(TypeInfo, Union, true)),
-    ?assertEqual({ok, <<"false">>},
-                 erldantic_binary_string:to_binary_string(TypeInfo, Union, false)),
-    ?assertMatch({error, [#ed_error{type = no_match}]},
-                 erldantic_binary_string:to_binary_string(TypeInfo, Union, "not_matching")),
+    ?assertEqual(
+        {ok, <<"42">>},
+        erldantic_binary_string:to_binary_string(TypeInfo, Union, 42)
+    ),
+    ?assertEqual(
+        {ok, <<"true">>},
+        erldantic_binary_string:to_binary_string(TypeInfo, Union, true)
+    ),
+    ?assertEqual(
+        {ok, <<"false">>},
+        erldantic_binary_string:to_binary_string(TypeInfo, Union, false)
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = no_match}]},
+        erldantic_binary_string:to_binary_string(TypeInfo, Union, "not_matching")
+    ),
 
     %% Complex union with literals: 1 | 2 | true | false
     ComplexUnion =
-        #ed_union{types =
-                      [#ed_literal{value = 1},
-                       #ed_literal{value = 2},
-                       #ed_literal{value = true},
-                       #ed_literal{value = false}]},
-    ?assertEqual({ok, <<"1">>},
-                 erldantic_binary_string:to_binary_string(TypeInfo, ComplexUnion, 1)),
-    ?assertEqual({ok, <<"2">>},
-                 erldantic_binary_string:to_binary_string(TypeInfo, ComplexUnion, 2)),
-    ?assertEqual({ok, <<"true">>},
-                 erldantic_binary_string:to_binary_string(TypeInfo, ComplexUnion, true)),
-    ?assertEqual({ok, <<"false">>},
-                 erldantic_binary_string:to_binary_string(TypeInfo, ComplexUnion, false)),
-    ?assertMatch({error, [#ed_error{type = no_match}]},
-                 erldantic_binary_string:to_binary_string(TypeInfo, ComplexUnion, 3)),
-    ?assertMatch({error, [#ed_error{type = no_match}]},
-                 erldantic_binary_string:to_binary_string(TypeInfo, ComplexUnion, "maybe")),
+        #ed_union{
+            types =
+                [
+                    #ed_literal{value = 1},
+                    #ed_literal{value = 2},
+                    #ed_literal{value = true},
+                    #ed_literal{value = false}
+                ]
+        },
+    ?assertEqual(
+        {ok, <<"1">>},
+        erldantic_binary_string:to_binary_string(TypeInfo, ComplexUnion, 1)
+    ),
+    ?assertEqual(
+        {ok, <<"2">>},
+        erldantic_binary_string:to_binary_string(TypeInfo, ComplexUnion, 2)
+    ),
+    ?assertEqual(
+        {ok, <<"true">>},
+        erldantic_binary_string:to_binary_string(TypeInfo, ComplexUnion, true)
+    ),
+    ?assertEqual(
+        {ok, <<"false">>},
+        erldantic_binary_string:to_binary_string(TypeInfo, ComplexUnion, false)
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = no_match}]},
+        erldantic_binary_string:to_binary_string(TypeInfo, ComplexUnion, 3)
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = no_match}]},
+        erldantic_binary_string:to_binary_string(TypeInfo, ComplexUnion, "maybe")
+    ),
 
     ok.
 
@@ -767,58 +1307,104 @@ to_binary_string_type_reference_test() ->
     TypeInfo = erldantic_abstract_code:types_in_module(?MODULE),
 
     %% Test various type references from the module
-    ?assertEqual({ok, <<"42">>},
-                 erldantic_binary_string:to_binary_string(TypeInfo, {type, my_integer, 0}, 42)),
-    ?assertEqual({ok, <<"3.14000000000000012434e+00">>},
-                 erldantic_binary_string:to_binary_string(TypeInfo, {type, my_float, 0}, 3.14)),
-    ?assertEqual({ok, <<"42">>},
-                 erldantic_binary_string:to_binary_string(TypeInfo, {type, my_number, 0}, 42)),
-    ?assertEqual({ok, <<"3.14000000000000012434e+00">>},
-                 erldantic_binary_string:to_binary_string(TypeInfo, {type, my_number, 0}, 3.14)),
-    ?assertEqual({ok, <<"true">>},
-                 erldantic_binary_string:to_binary_string(TypeInfo, {type, my_boolean, 0}, true)),
-    ?assertEqual({ok, <<"hello">>},
-                 erldantic_binary_string:to_binary_string(TypeInfo, {type, my_atom, 0}, hello)),
-    ?assertEqual({ok, <<"test">>},
-                 erldantic_binary_string:to_binary_string(TypeInfo, {type, my_string, 0}, "test")),
-    ?assertEqual({ok, <<"test">>},
-                 erldantic_binary_string:to_binary_string(TypeInfo,
-                                                          {type, my_binary, 0},
-                                                          <<"test">>)),
+    ?assertEqual(
+        {ok, <<"42">>},
+        erldantic_binary_string:to_binary_string(TypeInfo, {type, my_integer, 0}, 42)
+    ),
+    ?assertEqual(
+        {ok, <<"3.14000000000000012434e+00">>},
+        erldantic_binary_string:to_binary_string(TypeInfo, {type, my_float, 0}, 3.14)
+    ),
+    ?assertEqual(
+        {ok, <<"42">>},
+        erldantic_binary_string:to_binary_string(TypeInfo, {type, my_number, 0}, 42)
+    ),
+    ?assertEqual(
+        {ok, <<"3.14000000000000012434e+00">>},
+        erldantic_binary_string:to_binary_string(TypeInfo, {type, my_number, 0}, 3.14)
+    ),
+    ?assertEqual(
+        {ok, <<"true">>},
+        erldantic_binary_string:to_binary_string(TypeInfo, {type, my_boolean, 0}, true)
+    ),
+    ?assertEqual(
+        {ok, <<"hello">>},
+        erldantic_binary_string:to_binary_string(TypeInfo, {type, my_atom, 0}, hello)
+    ),
+    ?assertEqual(
+        {ok, <<"test">>},
+        erldantic_binary_string:to_binary_string(TypeInfo, {type, my_string, 0}, "test")
+    ),
+    ?assertEqual(
+        {ok, <<"test">>},
+        erldantic_binary_string:to_binary_string(
+            TypeInfo,
+            {type, my_binary, 0},
+            <<"test">>
+        )
+    ),
 
     %% Test range type
-    ?assertEqual({ok, <<"5">>},
-                 erldantic_binary_string:to_binary_string(TypeInfo, {type, my_range, 0}, 5)),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:to_binary_string(TypeInfo, {type, my_range, 0}, 15)),
+    ?assertEqual(
+        {ok, <<"5">>},
+        erldantic_binary_string:to_binary_string(TypeInfo, {type, my_range, 0}, 5)
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:to_binary_string(TypeInfo, {type, my_range, 0}, 15)
+    ),
 
     %% Test literal types
-    ?assertEqual({ok, <<"hello">>},
-                 erldantic_binary_string:to_binary_string(TypeInfo,
-                                                          {type, my_literal_atom, 0},
-                                                          hello)),
-    ?assertEqual({ok, <<"42">>},
-                 erldantic_binary_string:to_binary_string(TypeInfo,
-                                                          {type, my_literal_integer, 0},
-                                                          42)),
-    ?assertEqual({ok, <<"true">>},
-                 erldantic_binary_string:to_binary_string(TypeInfo,
-                                                          {type, my_literal_boolean, 0},
-                                                          true)),
+    ?assertEqual(
+        {ok, <<"hello">>},
+        erldantic_binary_string:to_binary_string(
+            TypeInfo,
+            {type, my_literal_atom, 0},
+            hello
+        )
+    ),
+    ?assertEqual(
+        {ok, <<"42">>},
+        erldantic_binary_string:to_binary_string(
+            TypeInfo,
+            {type, my_literal_integer, 0},
+            42
+        )
+    ),
+    ?assertEqual(
+        {ok, <<"true">>},
+        erldantic_binary_string:to_binary_string(
+            TypeInfo,
+            {type, my_literal_boolean, 0},
+            true
+        )
+    ),
 
     %% Test union types
-    ?assertEqual({ok, <<"42">>},
-                 erldantic_binary_string:to_binary_string(TypeInfo, {type, my_union, 0}, 42)),
-    ?assertEqual({ok, <<"true">>},
-                 erldantic_binary_string:to_binary_string(TypeInfo, {type, my_union, 0}, true)),
-    ?assertEqual({ok, <<"1">>},
-                 erldantic_binary_string:to_binary_string(TypeInfo,
-                                                          {type, my_complex_union, 0},
-                                                          1)),
-    ?assertEqual({ok, <<"false">>},
-                 erldantic_binary_string:to_binary_string(TypeInfo,
-                                                          {type, my_complex_union, 0},
-                                                          false)),
+    ?assertEqual(
+        {ok, <<"42">>},
+        erldantic_binary_string:to_binary_string(TypeInfo, {type, my_union, 0}, 42)
+    ),
+    ?assertEqual(
+        {ok, <<"true">>},
+        erldantic_binary_string:to_binary_string(TypeInfo, {type, my_union, 0}, true)
+    ),
+    ?assertEqual(
+        {ok, <<"1">>},
+        erldantic_binary_string:to_binary_string(
+            TypeInfo,
+            {type, my_complex_union, 0},
+            1
+        )
+    ),
+    ?assertEqual(
+        {ok, <<"false">>},
+        erldantic_binary_string:to_binary_string(
+            TypeInfo,
+            {type, my_complex_union, 0},
+            false
+        )
+    ),
 
     ok.
 
@@ -827,42 +1413,74 @@ to_binary_string_unsupported_test() ->
     TypeInfo = erldantic_abstract_code:types_in_module(?MODULE),
 
     %% Record types are not supported for binary string conversion
-    ?assertMatch({error, [#ed_error{type = no_match}]},
-                 erldantic_binary_string:to_binary_string(TypeInfo,
-                                                          {record, some_record},
-                                                          some_value)),
+    ?assertMatch(
+        {error, [#ed_error{type = no_match}]},
+        erldantic_binary_string:to_binary_string(
+            TypeInfo,
+            {record, some_record},
+            some_value
+        )
+    ),
 
     %% Unsupported simple types should error
-    ?assertError({type_not_supported, _},
-                 erldantic_binary_string:to_binary_string(TypeInfo,
-                                                          #ed_simple_type{type = pid},
-                                                          self())),
-    ?assertError({type_not_supported, _},
-                 erldantic_binary_string:to_binary_string(TypeInfo,
-                                                          #ed_simple_type{type = port},
-                                                          test)),
-    ?assertError({type_not_supported, _},
-                 erldantic_binary_string:to_binary_string(TypeInfo,
-                                                          #ed_simple_type{type = reference},
-                                                          test)),
-    ?assertError({type_not_supported, _},
-                 erldantic_binary_string:to_binary_string(TypeInfo,
-                                                          #ed_simple_type{type = bitstring},
-                                                          test)),
-    ?assertError({type_not_supported, _},
-                 erldantic_binary_string:to_binary_string(TypeInfo,
-                                                          #ed_simple_type{type =
-                                                                              nonempty_bitstring},
-                                                          test)),
-    ?assertError({type_not_supported, _},
-                 erldantic_binary_string:to_binary_string(TypeInfo,
-                                                          #ed_simple_type{type = none},
-                                                          test)),
+    ?assertError(
+        {type_not_supported, _},
+        erldantic_binary_string:to_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = pid},
+            self()
+        )
+    ),
+    ?assertError(
+        {type_not_supported, _},
+        erldantic_binary_string:to_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = port},
+            test
+        )
+    ),
+    ?assertError(
+        {type_not_supported, _},
+        erldantic_binary_string:to_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = reference},
+            test
+        )
+    ),
+    ?assertError(
+        {type_not_supported, _},
+        erldantic_binary_string:to_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = bitstring},
+            test
+        )
+    ),
+    ?assertError(
+        {type_not_supported, _},
+        erldantic_binary_string:to_binary_string(
+            TypeInfo,
+            #ed_simple_type{
+                type =
+                    nonempty_bitstring
+            },
+            test
+        )
+    ),
+    ?assertError(
+        {type_not_supported, _},
+        erldantic_binary_string:to_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = none},
+            test
+        )
+    ),
 
     %% Unknown type should give type mismatch error
     UnknownType = #ed_tuple{fields = any},
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:to_binary_string(TypeInfo, UnknownType, some_value)),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:to_binary_string(TypeInfo, UnknownType, some_value)
+    ),
 
     ok.
 
@@ -872,24 +1490,36 @@ literal_edge_cases_test() ->
 
     %% Test unsupported literal types (not atom, integer, or boolean)
     StringLiteral = #ed_literal{value = "hello"},
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:from_binary_string(TypeInfo, StringLiteral, <<"hello">>)),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:to_binary_string(TypeInfo, StringLiteral, "hello")),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:from_binary_string(TypeInfo, StringLiteral, <<"hello">>)
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:to_binary_string(TypeInfo, StringLiteral, "hello")
+    ),
 
     %% Test float literal
     FloatLiteral = #ed_literal{value = 3.14},
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:from_binary_string(TypeInfo, FloatLiteral, <<"3.14">>)),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:to_binary_string(TypeInfo, FloatLiteral, 3.14)),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:from_binary_string(TypeInfo, FloatLiteral, <<"3.14">>)
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:to_binary_string(TypeInfo, FloatLiteral, 3.14)
+    ),
 
     %% Test list literal
     ListLiteral = #ed_literal{value = [1, 2, 3]},
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:from_binary_string(TypeInfo, ListLiteral, <<"[1,2,3]">>)),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:to_binary_string(TypeInfo, ListLiteral, [1, 2, 3])),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:from_binary_string(TypeInfo, ListLiteral, <<"[1,2,3]">>)
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:to_binary_string(TypeInfo, ListLiteral, [1, 2, 3])
+    ),
 
     ok.
 
@@ -904,8 +1534,10 @@ remote_type_test() ->
     RemoteType = #ed_remote_type{mfargs = {non_existent_module, some_type, []}},
 
     %% This should fail when trying to get the module types
-    ?assertError(_,
-                 erldantic_binary_string:from_binary_string(TypeInfo, RemoteType, <<"test">>)),
+    ?assertError(
+        _,
+        erldantic_binary_string:from_binary_string(TypeInfo, RemoteType, <<"test">>)
+    ),
     ?assertError(_, erldantic_binary_string:to_binary_string(TypeInfo, RemoteType, test)),
 
     ok.
@@ -924,41 +1556,63 @@ type_variables_test() ->
     %% 3. Parameterized types without instantiation show expected error behavior
     %% Test simple variable (should fall through to error case since no instantiation)
     Var = #ed_var{name = 'T'},
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:from_binary_string(TypeInfo, Var, <<"test">>)),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:to_binary_string(TypeInfo, Var, test)),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:from_binary_string(TypeInfo, Var, <<"test">>)
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:to_binary_string(TypeInfo, Var, test)
+    ),
 
     %% Test parameterized type without concrete instantiation
     %% These should show that the type variable mechanism exists but requires instantiation
     ParamType = #ed_type_with_variables{vars = ['T'], type = #ed_var{name = 'T'}},
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:from_binary_string(TypeInfo, ParamType, <<"42">>)),
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:to_binary_string(TypeInfo, ParamType, 42)),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:from_binary_string(TypeInfo, ParamType, <<"42">>)
+    ),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:to_binary_string(TypeInfo, ParamType, 42)
+    ),
 
     %% Test that the apply_args function exists and works (indirectly through the module interface)
     %% This demonstrates that the type variable replacement mechanism is in place
     %% We can test that parameterized types exist in the type info but need instantiation
     %% by checking they're parsed correctly (they don't crash, but need type arguments to work)
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            {type, my_parameterized, 1},
-                                                            <<"42">>)),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            {type, my_parameterized, 1},
+            <<"42">>
+        )
+    ),
 
     %% Test constrained type variable - this should work like a regular integer type
-    ?assertEqual({ok, 42},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            {type, my_var_integer, 0},
-                                                            <<"42">>)),
-    ?assertEqual({ok, <<"42">>},
-                 erldantic_binary_string:to_binary_string(TypeInfo, {type, my_var_integer, 0}, 42)),
+    ?assertEqual(
+        {ok, 42},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            {type, my_var_integer, 0},
+            <<"42">>
+        )
+    ),
+    ?assertEqual(
+        {ok, <<"42">>},
+        erldantic_binary_string:to_binary_string(TypeInfo, {type, my_var_integer, 0}, 42)
+    ),
 
     %% Test that it rejects non-integer values
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            {type, my_var_integer, 0},
-                                                            <<"not_a_number">>)),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            {type, my_var_integer, 0},
+            <<"not_a_number">>
+        )
+    ),
 
     ok.
 
@@ -968,22 +1622,34 @@ from_binary_string_invalid_input_test() ->
 
     %% Test that passing non-binary input returns proper error
     %% Passing string instead of binary
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            #ed_simple_type{type = binary},
-                                                            "string")),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = binary},
+            "string"
+        )
+    ),
 
     %% Passing integer instead of binary
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            #ed_simple_type{type = integer},
-                                                            42)),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = integer},
+            42
+        )
+    ),
 
     %% Passing atom instead of binary
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:from_binary_string(TypeInfo,
-                                                            #ed_simple_type{type = atom},
-                                                            hello)),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:from_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = atom},
+            hello
+        )
+    ),
 
     ok.
 
@@ -993,27 +1659,43 @@ to_binary_string_invalid_input_test() ->
 
     %% These should fail with type_mismatch because the input doesn't match the expected type
     %% Passing string when expecting to convert from binary
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:to_binary_string(TypeInfo,
-                                                          #ed_simple_type{type = binary},
-                                                          "string")),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:to_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = binary},
+            "string"
+        )
+    ),
 
     %% Passing binary when expecting to convert from string
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:to_binary_string(TypeInfo,
-                                                          #ed_simple_type{type = string},
-                                                          <<"binary">>)),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:to_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = string},
+            <<"binary">>
+        )
+    ),
 
     %% Passing list when expecting integer
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:to_binary_string(TypeInfo,
-                                                          #ed_simple_type{type = integer},
-                                                          [1, 2, 3])),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:to_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = integer},
+            [1, 2, 3]
+        )
+    ),
 
     %% Passing string when expecting atom
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]},
-                 erldantic_binary_string:to_binary_string(TypeInfo,
-                                                          #ed_simple_type{type = atom},
-                                                          "hello")),
+    ?assertMatch(
+        {error, [#ed_error{type = type_mismatch}]},
+        erldantic_binary_string:to_binary_string(
+            TypeInfo,
+            #ed_simple_type{type = atom},
+            "hello"
+        )
+    ),
 
     ok.

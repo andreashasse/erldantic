@@ -17,23 +17,39 @@ type_in_form_test() ->
     TypeInfo = erldantic_abstract_code:types_in_module(?MODULE),
 
     {ok, PersonAliasType} = erldantic_type_info:get_type(TypeInfo, person_alias, 0),
-    ?assertMatch(#ed_rec_ref{record_name = person,
-                             field_types =
-                                 [{name, #ed_simple_type{type = string}},
-                                  {age, #ed_simple_type{type = integer}}]},
-                 PersonAliasType),
+    ?assertMatch(
+        #ed_rec_ref{
+            record_name = person,
+            field_types =
+                [
+                    {name, #ed_simple_type{type = string}},
+                    {age, #ed_simple_type{type = integer}}
+                ]
+        },
+        PersonAliasType
+    ),
 
     {ok, AddressAliasType} = erldantic_type_info:get_type(TypeInfo, address_alias, 0),
-    ?assertMatch(#ed_rec_ref{record_name = address,
-                             field_types =
-                                 [{street, #ed_simple_type{type = string}},
-                                  {city, #ed_simple_type{type = string}}]},
-                 AddressAliasType),
+    ?assertMatch(
+        #ed_rec_ref{
+            record_name = address,
+            field_types =
+                [
+                    {street, #ed_simple_type{type = string}},
+                    {city, #ed_simple_type{type = string}}
+                ]
+        },
+        AddressAliasType
+    ),
 
     {ok, PersonNewAgeType} = erldantic_type_info:get_type(TypeInfo, person_new_age, 0),
-    ?assertMatch(#ed_rec_ref{record_name = person,
-                             field_types = [{age, #ed_simple_type{type = non_neg_integer}}]},
-                 PersonNewAgeType),
+    ?assertMatch(
+        #ed_rec_ref{
+            record_name = person,
+            field_types = [{age, #ed_simple_type{type = non_neg_integer}}]
+        },
+        PersonNewAgeType
+    ),
 
     {ok, PersonTType} = erldantic_type_info:get_type(TypeInfo, person_t, 0),
     ?assertMatch(#ed_rec_ref{record_name = person, field_types = []}, PersonTType).
@@ -56,13 +72,20 @@ to_json_person_alias_test() ->
 
 to_json_person_alias_bad_test() ->
     Person = #person{name = "John", age = "not_an_integer"},
-    ?assertEqual({error,
-                  [#ed_error{location = [age],
-                             type = type_mismatch,
-                             ctx =
-                                 #{type => #ed_simple_type{type = integer},
-                                   value => "not_an_integer"}}]},
-                 to_json_person_alias(Person)).
+    ?assertEqual(
+        {error, [
+            #ed_error{
+                location = [age],
+                type = type_mismatch,
+                ctx =
+                    #{
+                        type => #ed_simple_type{type = integer},
+                        value => "not_an_integer"
+                    }
+            }
+        ]},
+        to_json_person_alias(Person)
+    ).
 
 to_json_person_new_age_test() ->
     Person = #person{name = "John", age = 0},
@@ -70,12 +93,17 @@ to_json_person_new_age_test() ->
 
 to_json_person_new_age_bad_test() ->
     Person = #person{name = "John", age = -1},
-    ?assertEqual({error,
-                  [#ed_error{location = [age],
-                             type = type_mismatch,
-                             ctx =
-                                 #{type => #ed_simple_type{type = non_neg_integer}, value => -1}}]},
-                 to_json_person_new_age(Person)).
+    ?assertEqual(
+        {error, [
+            #ed_error{
+                location = [age],
+                type = type_mismatch,
+                ctx =
+                    #{type => #ed_simple_type{type = non_neg_integer}, value => -1}
+            }
+        ]},
+        to_json_person_new_age(Person)
+    ).
 
 to_json_person_t_test() ->
     Person = #person{name = "John", age = 0},
@@ -87,13 +115,20 @@ from_json_person_alias_test() ->
 
 from_json_person_alias_bad_test() ->
     Json = #{<<"name">> => <<"John">>, <<"age">> => <<"not_an_integer">>},
-    ?assertEqual({error,
-                  [#ed_error{location = [age],
-                             type = type_mismatch,
-                             ctx =
-                                 #{type => #ed_simple_type{type = integer},
-                                   value => <<"not_an_integer">>}}]},
-                 from_json_person_alias(Json)).
+    ?assertEqual(
+        {error, [
+            #ed_error{
+                location = [age],
+                type = type_mismatch,
+                ctx =
+                    #{
+                        type => #ed_simple_type{type = integer},
+                        value => <<"not_an_integer">>
+                    }
+            }
+        ]},
+        from_json_person_alias(Json)
+    ).
 
 from_json_person_new_age_test() ->
     Json = #{<<"name">> => <<"John">>, <<"age">> => 30},
@@ -101,12 +136,17 @@ from_json_person_new_age_test() ->
 
 from_json_person_new_age_bad_test() ->
     Json = #{<<"name">> => <<"John">>, <<"age">> => -1},
-    ?assertEqual({error,
-                  [#ed_error{location = [age],
-                             type = type_mismatch,
-                             ctx =
-                                 #{type => #ed_simple_type{type = non_neg_integer}, value => -1}}]},
-                 from_json_person_new_age(Json)).
+    ?assertEqual(
+        {error, [
+            #ed_error{
+                location = [age],
+                type = type_mismatch,
+                ctx =
+                    #{type => #ed_simple_type{type = non_neg_integer}, value => -1}
+            }
+        ]},
+        from_json_person_new_age(Json)
+    ).
 
 from_json_person_t_test() ->
     Json = #{<<"name">> => <<"John">>, <<"age">> => 30},
@@ -114,41 +154,52 @@ from_json_person_t_test() ->
 
 from_json_person_t_bad_test() ->
     Json = #{<<"name">> => <<"John">>, <<"age">> => <<"not_an_integer">>},
-    ?assertEqual({error,
-                  [#ed_error{location = [age],
-                             type = type_mismatch,
-                             ctx =
-                                 #{type => #ed_simple_type{type = integer},
-                                   value => <<"not_an_integer">>}}]},
-                 from_json_person_t(Json)).
+    ?assertEqual(
+        {error, [
+            #ed_error{
+                location = [age],
+                type = type_mismatch,
+                ctx =
+                    #{
+                        type => #ed_simple_type{type = integer},
+                        value => <<"not_an_integer">>
+                    }
+            }
+        ]},
+        from_json_person_t(Json)
+    ).
 
 to_json_address_alias_test() ->
     Address = #address{street = "Main St", city = "Boston"},
-    ?assertEqual({ok, #{street => <<"Main St">>, city => <<"Boston">>}},
-                 to_json_address_alias(Address)).
+    ?assertEqual(
+        {ok, #{street => <<"Main St">>, city => <<"Boston">>}},
+        to_json_address_alias(Address)
+    ).
 
 from_json_address_alias_test() ->
     Json = #{<<"street">> => <<"Main St">>, <<"city">> => <<"Boston">>},
-    ?assertEqual({ok, #address{street = "Main St", city = "Boston"}},
-                 from_json_address_alias(Json)).
+    ?assertEqual(
+        {ok, #address{street = "Main St", city = "Boston"}},
+        from_json_address_alias(Json)
+    ).
 
 -spec to_json_person_new_age(person_new_age()) ->
-                                {ok, json:encode_value()} | {error, [erldantic:error()]}.
+    {ok, json:encode_value()} | {error, [erldantic:error()]}.
 to_json_person_new_age(Data) ->
     erldantic_json:to_json(?MODULE, {type, person_new_age, 0}, Data).
 
 -spec to_json_person_t(person_t()) ->
-                          {ok, json:encode_value()} | {error, [erldantic:error()]}.
+    {ok, json:encode_value()} | {error, [erldantic:error()]}.
 to_json_person_t(Data) ->
     erldantic_json:to_json(?MODULE, {type, person_t, 0}, Data).
 
 -spec to_json_person(#person{}) ->
-                        {ok, json:encode_value()} | {error, [erldantic:error()]}.
+    {ok, json:encode_value()} | {error, [erldantic:error()]}.
 to_json_person(Person) ->
     erldantic_json:to_json(?MODULE, {record, person}, Person).
 
 -spec from_json_person(json:decode_value()) ->
-                          {ok, #person{}} | {error, [erldantic:error()]}.
+    {ok, #person{}} | {error, [erldantic:error()]}.
 from_json_person(Person) ->
     erldantic_json:from_json(?MODULE, {record, person}, Person).
 
@@ -157,7 +208,7 @@ to_json_person_alias(Data) ->
     erldantic_json:to_json(?MODULE, {type, person_alias, 0}, Data).
 
 -spec from_json_person_new_age(term()) ->
-                                  {ok, person_new_age()} | {error, [erldantic:error()]}.
+    {ok, person_new_age()} | {error, [erldantic:error()]}.
 from_json_person_new_age(Data) ->
     erldantic_json:from_json(?MODULE, {type, person_new_age, 0}, Data).
 
@@ -166,16 +217,16 @@ from_json_person_t(Data) ->
     erldantic_json:from_json(?MODULE, {type, person_t, 0}, Data).
 
 -spec from_json_person_alias(term()) ->
-                                {ok, person_alias()} | {error, [erldantic:error()]}.
+    {ok, person_alias()} | {error, [erldantic:error()]}.
 from_json_person_alias(Data) ->
     erldantic_json:from_json(?MODULE, {type, person_alias, 0}, Data).
 
 -spec to_json_address_alias(term()) ->
-                               {ok, address_alias()} | {error, [erldantic:error()]}.
+    {ok, address_alias()} | {error, [erldantic:error()]}.
 to_json_address_alias(Data) ->
     erldantic_json:to_json(?MODULE, {type, address_alias, 0}, Data).
 
 -spec from_json_address_alias(term()) ->
-                                 {ok, address_alias()} | {error, [erldantic:error()]}.
+    {ok, address_alias()} | {error, [erldantic:error()]}.
 from_json_address_alias(Data) ->
     erldantic_json:from_json(?MODULE, {type, address_alias, 0}, Data).

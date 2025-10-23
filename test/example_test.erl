@@ -16,24 +16,34 @@
 -type verified() ::
     #{source := one_time_code | gut_feeling, string() => string()} | undefined.
 -type email_contact() ::
-    #email_contact{address :: string(),
-                   verified :: verified(),
-                   domain :: string()}.
+    #email_contact{
+        address :: string(),
+        verified :: verified(),
+        domain :: string()
+    }.
 -type phone_contact() ::
-    #phone_contact{number :: string(),
-                   verified :: verified(),
-                   sms_capable :: boolean()}.
+    #phone_contact{
+        number :: string(),
+        verified :: verified(),
+        sms_capable :: boolean()
+    }.
 -type contacts() :: [email_contact() | phone_contact()].
 
 example_json_roundtrip_test() ->
     Contacts =
-        [#email_contact{address = "john.doe@example.com",
-                        verified = #{source => one_time_code, "code" => "123456"},
-                        domain = "example.com"},
-         #phone_contact{number = "+1-555-123-4567",
-                        verified = #{source => gut_feeling, "confidence" => "high"},
-                        sms_capable = true},
-         #email_contact{address = "alice@company.org", domain = "company.org"}],
+        [
+            #email_contact{
+                address = "john.doe@example.com",
+                verified = #{source => one_time_code, "code" => "123456"},
+                domain = "example.com"
+            },
+            #phone_contact{
+                number = "+1-555-123-4567",
+                verified = #{source => gut_feeling, "confidence" => "high"},
+                sms_capable = true
+            },
+            #email_contact{address = "alice@company.org", domain = "company.org"}
+        ],
 
     Json = contacts_to_json(Contacts),
     %% io:format("JSON Output: ~p~n", [Json]),
@@ -41,9 +51,11 @@ example_json_roundtrip_test() ->
 
 bad_source_json_test() ->
     BadSourceJson =
-        <<"[{\"number\":\"+1-555-123-4567\",
-             \"verified\":{\"source\":\"a_bad_source\"},
-             \"sms_capable\":true}]">>,
+        <<
+            "[{\"number\":\"+1-555-123-4567\",\n"
+            "             \"verified\":{\"source\":\"a_bad_source\"},\n"
+            "             \"sms_capable\":true}]"
+        >>,
     ?assertMatch({error, [#ed_error{}]}, json_to_contacts(BadSourceJson)).
 
 -spec json_to_contacts(binary()) -> {ok, contacts()} | {error, [erldantic:error()]}.

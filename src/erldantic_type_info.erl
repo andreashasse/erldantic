@@ -36,11 +36,11 @@ get_record(#type_info{records = Records}, Name) ->
     maps:find(Name, Records).
 
 -spec add_function(type_info(), atom(), arity(), [erldantic:ed_function_spec()]) ->
-                      type_info().
+    type_info().
 add_function(#type_info{functions = Functions} = TypeInfo, Name, Arity, FuncSpec) ->
     TypeInfo#type_info{functions = Functions#{{Name, Arity} => FuncSpec}}.
 
 -spec get_function(type_info(), atom(), arity()) ->
-                      {ok, [erldantic:ed_function_spec()]} | error.
+    {ok, [erldantic:ed_function_spec()]} | error.
 get_function(#type_info{functions = Functions}, Name, Arity) ->
     maps:find({Name, Arity}, Functions).

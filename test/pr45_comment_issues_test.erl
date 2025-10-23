@@ -68,7 +68,9 @@ correct_schemas_test() ->
     CorrectBinarySchema = #{type => <<"string">>},
 
     %% What atom literal schema should look like:
-    CorrectAtomLiteralSchema = #{enum => [<<"ok">>]}, %% String, not atom
+
+    %% String, not atom
+    CorrectAtomLiteralSchema = #{enum => [<<"ok">>]},
 
     %% Current implementation now matches these correct schemas
     {ok, CurrentBinary} = erldantic_json_schema:to_schema(?MODULE, {type, my_binary, 0}),

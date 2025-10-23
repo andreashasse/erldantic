@@ -38,10 +38,8 @@
 
 %% Record types
 -record(user, {id :: integer(), name :: string(), email :: string()}).
--record(product,
-        {id :: integer(), name :: string(), price :: float(), tags :: [string()]}).
--record(user_with_optional,
-        {id :: integer(), name :: string(), email :: string() | undefined}).
+-record(product, {id :: integer(), name :: string(), price :: float(), tags :: [string()]}).
+-record(user_with_optional, {id :: integer(), name :: string(), email :: string() | undefined}).
 
 %% Type aliases for records to avoid unused warnings
 -type user() :: #user{}.
@@ -51,166 +49,232 @@
 %% Test simple type mappings
 simple_types_test() ->
     %% integer
-    ?assertEqual({ok, #{type => <<"integer">>}},
-                 erldantic_json_schema:to_schema(?MODULE, {type, my_integer, 0})),
+    ?assertEqual(
+        {ok, #{type => <<"integer">>}},
+        erldantic_json_schema:to_schema(?MODULE, {type, my_integer, 0})
+    ),
 
     %% string
-    ?assertEqual({ok, #{type => <<"string">>}},
-                 erldantic_json_schema:to_schema(?MODULE, {type, my_string, 0})),
+    ?assertEqual(
+        {ok, #{type => <<"string">>}},
+        erldantic_json_schema:to_schema(?MODULE, {type, my_string, 0})
+    ),
 
     %% boolean
-    ?assertEqual({ok, #{type => <<"boolean">>}},
-                 erldantic_json_schema:to_schema(?MODULE, {type, my_boolean, 0})),
+    ?assertEqual(
+        {ok, #{type => <<"boolean">>}},
+        erldantic_json_schema:to_schema(?MODULE, {type, my_boolean, 0})
+    ),
 
     %% number
-    ?assertEqual({ok, #{type => <<"number">>}},
-                 erldantic_json_schema:to_schema(?MODULE, {type, my_number, 0})),
+    ?assertEqual(
+        {ok, #{type => <<"number">>}},
+        erldantic_json_schema:to_schema(?MODULE, {type, my_number, 0})
+    ),
 
     %% atom (mapped to string)
-    ?assertEqual({ok, #{type => <<"string">>}},
-                 erldantic_json_schema:to_schema(?MODULE, {type, my_atom, 0})),
+    ?assertEqual(
+        {ok, #{type => <<"string">>}},
+        erldantic_json_schema:to_schema(?MODULE, {type, my_atom, 0})
+    ),
 
     %% binary (mapped to string)
-    ?assertEqual({ok, #{type => <<"string">>}},
-                 erldantic_json_schema:to_schema(?MODULE, {type, my_binary, 0})),
+    ?assertEqual(
+        {ok, #{type => <<"string">>}},
+        erldantic_json_schema:to_schema(?MODULE, {type, my_binary, 0})
+    ),
 
     %% float
-    ?assertEqual({ok, #{type => <<"number">>, format => <<"float">>}},
-                 erldantic_json_schema:to_schema(?MODULE, {type, my_float, 0})),
+    ?assertEqual(
+        {ok, #{type => <<"number">>, format => <<"float">>}},
+        erldantic_json_schema:to_schema(?MODULE, {type, my_float, 0})
+    ),
 
     %% iodata (mapped to string)
-    ?assertEqual({ok, #{type => <<"string">>}},
-                 erldantic_json_schema:to_schema(?MODULE, {type, my_iodata, 0})),
+    ?assertEqual(
+        {ok, #{type => <<"string">>}},
+        erldantic_json_schema:to_schema(?MODULE, {type, my_iodata, 0})
+    ),
 
     %% iolist (mapped to string)
-    ?assertEqual({ok, #{type => <<"string">>}},
-                 erldantic_json_schema:to_schema(?MODULE, {type, my_iolist, 0})).
+    ?assertEqual(
+        {ok, #{type => <<"string">>}},
+        erldantic_json_schema:to_schema(?MODULE, {type, my_iolist, 0})
+    ).
 
 %% Test range type mappings
 range_types_test() ->
     %% Custom range 1..10
-    ?assertEqual({ok,
-                  #{type => <<"integer">>,
-                    minimum => 1,
-                    maximum => 10}},
-                 erldantic_json_schema:to_schema(?MODULE, {type, my_range, 0})),
+    ?assertEqual(
+        {ok, #{
+            type => <<"integer">>,
+            minimum => 1,
+            maximum => 10
+        }},
+        erldantic_json_schema:to_schema(?MODULE, {type, my_range, 0})
+    ),
 
     %% byte (0..255)
-    ?assertEqual({ok,
-                  #{type => <<"integer">>,
-                    minimum => 0,
-                    maximum => 255}},
-                 erldantic_json_schema:to_schema(?MODULE, {type, my_byte, 0})),
+    ?assertEqual(
+        {ok, #{
+            type => <<"integer">>,
+            minimum => 0,
+            maximum => 255
+        }},
+        erldantic_json_schema:to_schema(?MODULE, {type, my_byte, 0})
+    ),
 
     %% char (0..1114111)
-    ?assertEqual({ok,
-                  #{type => <<"integer">>,
-                    minimum => 0,
-                    maximum => 1114111}},
-                 erldantic_json_schema:to_schema(?MODULE, {type, my_char, 0})).
+    ?assertEqual(
+        {ok, #{
+            type => <<"integer">>,
+            minimum => 0,
+            maximum => 1114111
+        }},
+        erldantic_json_schema:to_schema(?MODULE, {type, my_char, 0})
+    ).
 
 %% Test literal type mappings
 literal_types_test() ->
     %% Literal atom (converted to binary string)
-    ?assertEqual({ok, #{enum => [<<"hello">>]}},
-                 erldantic_json_schema:to_schema(?MODULE, {type, my_literal_atom, 0})),
+    ?assertEqual(
+        {ok, #{enum => [<<"hello">>]}},
+        erldantic_json_schema:to_schema(?MODULE, {type, my_literal_atom, 0})
+    ),
 
     %% Literal integer
-    ?assertEqual({ok, #{enum => [42]}},
-                 erldantic_json_schema:to_schema(?MODULE, {type, my_literal_integer, 0})).
+    ?assertEqual(
+        {ok, #{enum => [42]}},
+        erldantic_json_schema:to_schema(?MODULE, {type, my_literal_integer, 0})
+    ).
 
 %% Test list type mappings
 list_types_test() ->
     %% Regular list
-    ?assertEqual({ok, #{type => <<"array">>, items => #{type => <<"integer">>}}},
-                 erldantic_json_schema:to_schema(?MODULE, {type, my_list, 0})),
+    ?assertEqual(
+        {ok, #{type => <<"array">>, items => #{type => <<"integer">>}}},
+        erldantic_json_schema:to_schema(?MODULE, {type, my_list, 0})
+    ),
 
     %% Non-empty list
-    ?assertEqual({ok,
-                  #{type => <<"array">>,
-                    items => #{type => <<"string">>},
-                    minItems => 1}},
-                 erldantic_json_schema:to_schema(?MODULE, {type, my_nonempty_list, 0})).
+    ?assertEqual(
+        {ok, #{
+            type => <<"array">>,
+            items => #{type => <<"string">>},
+            minItems => 1
+        }},
+        erldantic_json_schema:to_schema(?MODULE, {type, my_nonempty_list, 0})
+    ).
 
 %% Test union type mappings
 union_types_test() ->
     %% Simple union
-    ?assertEqual({ok, #{oneOf => [#{type => <<"integer">>}, #{type => <<"string">>}]}},
-                 erldantic_json_schema:to_schema(?MODULE, {type, my_union, 0})),
+    ?assertEqual(
+        {ok, #{oneOf => [#{type => <<"integer">>}, #{type => <<"string">>}]}},
+        erldantic_json_schema:to_schema(?MODULE, {type, my_union, 0})
+    ),
 
     %% Optional type (union with undefined) - now returns just the non-undefined type
-    ?assertEqual({ok, #{type => <<"integer">>}},
-                 erldantic_json_schema:to_schema(?MODULE, {type, my_optional, 0})).
+    ?assertEqual(
+        {ok, #{type => <<"integer">>}},
+        erldantic_json_schema:to_schema(?MODULE, {type, my_optional, 0})
+    ).
 
 %% Test map type mappings
 map_types_test() ->
     %% Fixed map fields - order doesn't matter, just check structure
-    ?assertEqual({ok,
-                  #{type => <<"object">>,
-                    properties =>
-                        #{name => #{type => <<"string">>}, age => #{type => <<"integer">>}},
-                    required => [age, name],
-                    additionalProperties => false}},
-                 erldantic_json_schema:to_schema(?MODULE, {type, my_map, 0})),
+    ?assertEqual(
+        {ok, #{
+            type => <<"object">>,
+            properties =>
+                #{name => #{type => <<"string">>}, age => #{type => <<"integer">>}},
+            required => [age, name],
+            additionalProperties => false
+        }},
+        erldantic_json_schema:to_schema(?MODULE, {type, my_map, 0})
+    ),
 
     %% Structured map with specific fields
-    ?assertEqual({ok,
-                  #{type => <<"object">>,
-                    properties =>
-                        #{config => #{type => <<"string">>}, timeout => #{type => <<"integer">>}},
-                    required => [timeout, config],
-                    additionalProperties => false}},
-                 erldantic_json_schema:to_schema(?MODULE, {type, my_flexible_map, 0})).
+    ?assertEqual(
+        {ok, #{
+            type => <<"object">>,
+            properties =>
+                #{config => #{type => <<"string">>}, timeout => #{type => <<"integer">>}},
+            required => [timeout, config],
+            additionalProperties => false
+        }},
+        erldantic_json_schema:to_schema(?MODULE, {type, my_flexible_map, 0})
+    ).
 
 %% Test generic map types with additional properties
 generic_map_types_test() ->
     %% Generic map with atom keys and integer values
-    ?assertEqual({ok, #{type => <<"object">>, additionalProperties => true}},
-                 erldantic_json_schema:to_schema(?MODULE, {type, my_generic_map, 0})),
+    ?assertEqual(
+        {ok, #{type => <<"object">>, additionalProperties => true}},
+        erldantic_json_schema:to_schema(?MODULE, {type, my_generic_map, 0})
+    ),
 
     %% Mixed map with both specific and generic fields
-    ?assertEqual({ok,
-                  #{type => <<"object">>,
-                    properties => #{name => #{type => <<"string">>}},
-                    required => [name],
-                    additionalProperties => true}},
-                 erldantic_json_schema:to_schema(?MODULE, {type, my_mixed_map, 0})).
+    ?assertEqual(
+        {ok, #{
+            type => <<"object">>,
+            properties => #{name => #{type => <<"string">>}},
+            required => [name],
+            additionalProperties => true
+        }},
+        erldantic_json_schema:to_schema(?MODULE, {type, my_mixed_map, 0})
+    ).
 
 %% Test record type mappings
 record_types_test() ->
     %% Simple record - check the actual return format
-    ?assertEqual({ok,
-                  #{type => <<"object">>,
-                    properties =>
-                        #{id => #{type => <<"integer">>},
-                          name => #{type => <<"string">>},
-                          email => #{type => <<"string">>}},
-                    required => [id, name, email]}},
-                 erldantic_json_schema:to_schema(?MODULE, {record, user})),
+    ?assertEqual(
+        {ok, #{
+            type => <<"object">>,
+            properties =>
+                #{
+                    id => #{type => <<"integer">>},
+                    name => #{type => <<"string">>},
+                    email => #{type => <<"string">>}
+                },
+            required => [id, name, email]
+        }},
+        erldantic_json_schema:to_schema(?MODULE, {record, user})
+    ),
     %% Record with array field
     ExpectedProps =
-        #{id => #{type => <<"integer">>},
-          name => #{type => <<"string">>},
-          price => #{type => <<"number">>, format => <<"float">>},
-          tags => #{type => <<"array">>, items => #{type => <<"string">>}}},
-    ?assertEqual({ok,
-                  #{type => <<"object">>,
-                    properties => ExpectedProps,
-                    required => [id, name, price, tags]}},
-                 erldantic_json_schema:to_schema(?MODULE, {record, product})).
+        #{
+            id => #{type => <<"integer">>},
+            name => #{type => <<"string">>},
+            price => #{type => <<"number">>, format => <<"float">>},
+            tags => #{type => <<"array">>, items => #{type => <<"string">>}}
+        },
+    ?assertEqual(
+        {ok, #{
+            type => <<"object">>,
+            properties => ExpectedProps,
+            required => [id, name, price, tags]
+        }},
+        erldantic_json_schema:to_schema(?MODULE, {record, product})
+    ).
 
 %% Test record with optional field
 record_with_optional_fields_test() ->
     %% Record with optional email field (can be undefined)
     %% The field appears as simple string type and is excluded from required fields
-    ?assertEqual({ok,
-                  #{type => <<"object">>,
-                    properties =>
-                        #{id => #{type => <<"integer">>},
-                          name => #{type => <<"string">>},
-                          email => #{type => <<"string">>}},
-                    required => [id, name]}},
-                 erldantic_json_schema:to_schema(?MODULE, {record, user_with_optional})).
+    ?assertEqual(
+        {ok, #{
+            type => <<"object">>,
+            properties =>
+                #{
+                    id => #{type => <<"integer">>},
+                    name => #{type => <<"string">>},
+                    email => #{type => <<"string">>}
+                },
+            required => [id, name]
+        }},
+        erldantic_json_schema:to_schema(?MODULE, {record, user_with_optional})
+    ).
 
 %% Test error handling
 error_handling_test() ->

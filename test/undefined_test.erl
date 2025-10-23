@@ -11,17 +11,20 @@
 -type maybe_map() :: string_map() | undefined.
 
 %% Record definition with typed fields
--record(undefined_test_record,
-        {string_field :: maybe_string(),
-         int_field :: maybe_integer(),
-         list_field :: maybe_list(),
-         map_field :: maybe_map()}).
+-record(undefined_test_record, {
+    string_field :: maybe_string(),
+    int_field :: maybe_integer(),
+    list_field :: maybe_list(),
+    map_field :: maybe_map()
+}).
 
 %% Define map type
 -type test_map() ::
-    #{key1 := string(),
-      key2 := maybe_string(),
-      key3 := integer()}.
+    #{
+        key1 := string(),
+        key2 := maybe_string(),
+        key3 := integer()
+    }.
 %% Define list type that can contain undefined values
 -type maybe_int_list() :: [integer() | undefined].
 
@@ -29,10 +32,12 @@
 undefined_record_test() ->
     % Create record with all fields set to undefined
     Record1 =
-        #undefined_test_record{string_field = undefined,
-                               int_field = undefined,
-                               list_field = undefined,
-                               map_field = undefined},
+        #undefined_test_record{
+            string_field = undefined,
+            int_field = undefined,
+            list_field = undefined,
+            map_field = undefined
+        },
 
     % Convert to JSON
     {ok, Json1} = to_json(Record1),
@@ -42,10 +47,12 @@ undefined_record_test() ->
 
     % Create record with some fields defined and some undefined
     Record2 =
-        #undefined_test_record{string_field = "hello",
-                               int_field = undefined,
-                               list_field = [1, 2, 3],
-                               map_field = undefined},
+        #undefined_test_record{
+            string_field = "hello",
+            int_field = undefined,
+            list_field = [1, 2, 3],
+            map_field = undefined
+        },
 
     % Convert to JSON
     {ok, Json2} = to_json(Record2),
@@ -67,9 +74,11 @@ undefined_record_test() ->
 undefined_map_test() ->
     % Create map with undefined value
     MapWithUndefined =
-        #{key1 => "value1",
-          key2 => undefined,
-          key3 => 123},
+        #{
+            key1 => "value1",
+            key2 => undefined,
+            key3 => 123
+        },
 
     % Convert to JSON using map type
     {ok, JsonMap} = to_json_map(MapWithUndefined),
@@ -81,10 +90,14 @@ undefined_map_test() ->
     {ok, MapFromJson} = from_json_map(#{<<"key1">> => <<"value1">>, <<"key3">> => 123}),
 
     % Verify missing keys are set to undefined
-    ?assertEqual(#{key1 => "value1",
-                   key2 => undefined,
-                   key3 => 123},
-                 MapFromJson).
+    ?assertEqual(
+        #{
+            key1 => "value1",
+            key2 => undefined,
+            key3 => 123
+        },
+        MapFromJson
+    ).
 
 %% Test with lists containing undefined values
 undefined_list_test() ->
@@ -150,11 +163,11 @@ from_json_list(Json) ->
 
 %% Helper functions for maybe_string type
 -spec to_json_maybe_string(maybe_string()) ->
-                              {ok, binary() | undefined} | {error, [erldantic:error()]}.
+    {ok, binary() | undefined} | {error, [erldantic:error()]}.
 to_json_maybe_string(MaybeString) ->
     erldantic_json:to_json(?MODULE, {type, maybe_string, 0}, MaybeString).
 
 -spec from_json_maybe_string(binary() | undefined) ->
-                                {ok, maybe_string()} | {error, [erldantic:error()]}.
+    {ok, maybe_string()} | {error, [erldantic:error()]}.
 from_json_maybe_string(Json) ->
     erldantic_json:from_json(?MODULE, {type, maybe_string, 0}, Json).

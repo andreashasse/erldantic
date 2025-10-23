@@ -1,10 +1,10 @@
-{application,
- erldantic,
- [{description, "An OTP library"},
-  {vsn, "0.1.0"},
-  {registered, []},
-  {applications, [kernel, stdlib]},
-  {env, [{check_unicode, false}, {use_module_types_cache, false}]},
-  {modules, []},
-  {licenses, ["Apache-2.0"]},
-  {links, []}]}.
+{application, erldantic, [
+    {description, "An OTP library"},
+    {vsn, "0.1.0"},
+    {registered, []},
+    {applications, [kernel, stdlib]},
+    {env, [{check_unicode, false}, {use_module_types_cache, false}]},
+    {modules, []},
+    {licenses, ["Apache-2.0"]},
+    {links, []}
+]}.

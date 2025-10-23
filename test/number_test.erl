@@ -22,11 +22,19 @@ validate_number_test() ->
 
     % Test with invalid data
     {error, Errors} = to_json(InvalidData),
-    ?assertMatch([#ed_error{type = type_mismatch,
-                            ctx =
-                                #{type := #ed_simple_type{type = number},
-                                  value := "not a number"}}],
-                 Errors),
+    ?assertMatch(
+        [
+            #ed_error{
+                type = type_mismatch,
+                ctx =
+                    #{
+                        type := #ed_simple_type{type = number},
+                        value := "not a number"
+                    }
+            }
+        ],
+        Errors
+    ),
 
     % Test JSON conversion using from_json
     ValidIntegerJson = #{<<"name">> => <<"Integer">>, <<"value">> => 42},
@@ -41,17 +49,25 @@ validate_number_test() ->
 
     % Test from_json with invalid data
     {error, FromErrors} = from_json(InvalidJson),
-    ?assertMatch([#ed_error{type = type_mismatch,
-                            ctx =
-                                #{type := #ed_simple_type{type = number},
-                                  value := <<"not a number">>}}],
-                 FromErrors).
+    ?assertMatch(
+        [
+            #ed_error{
+                type = type_mismatch,
+                ctx =
+                    #{
+                        type := #ed_simple_type{type = number},
+                        value := <<"not a number">>
+                    }
+            }
+        ],
+        FromErrors
+    ).
 
 -spec to_json(number_data()) -> {ok, json:encode_value()} | {error, [erldantic:error()]}.
 to_json(Data) ->
     erldantic_json:to_json(?MODULE, {type, number_data, 0}, Data).
 
 -spec from_json(json:encode_value()) ->
-                   {ok, number_data()} | {error, [erldantic:error()]}.
+    {ok, number_data()} | {error, [erldantic:error()]}.
 from_json(Json) ->
     erldantic_json:from_json(?MODULE, {type, number_data, 0}, Json).

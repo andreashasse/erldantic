@@ -24,14 +24,26 @@ validate_accesses_test() ->
 
     % Test with invalid data
     {error, Errors} = to_json_accesses(InvalidData),
-    ?assertMatch([#ed_error{type = no_match,
-                            ctx =
-                                #{type :=
-                                      #ed_union{types =
-                                                    [#ed_literal{value = read},
-                                                     #ed_literal{value = write}]},
-                                  value := invalid}}],
-                 Errors),
+    ?assertMatch(
+        [
+            #ed_error{
+                type = no_match,
+                ctx =
+                    #{
+                        type :=
+                            #ed_union{
+                                types =
+                                    [
+                                        #ed_literal{value = read},
+                                        #ed_literal{value = write}
+                                    ]
+                            },
+                        value := invalid
+                    }
+            }
+        ],
+        Errors
+    ),
 
     % Test JSON conversion using from_json
     ValidJson1 = [<<"read">>],
@@ -48,21 +60,33 @@ validate_accesses_test() ->
 
     % Test from_json with invalid data
     {error, FromErrors} = from_json_accesses(InvalidJson),
-    ?assertMatch([#ed_error{type = no_match,
-                            ctx =
-                                #{type :=
-                                      #ed_union{types =
-                                                    [#ed_literal{value = read},
-                                                     #ed_literal{value = write}]},
-                                  value := <<"invalid">>}}],
-                 FromErrors).
+    ?assertMatch(
+        [
+            #ed_error{
+                type = no_match,
+                ctx =
+                    #{
+                        type :=
+                            #ed_union{
+                                types =
+                                    [
+                                        #ed_literal{value = read},
+                                        #ed_literal{value = write}
+                                    ]
+                            },
+                        value := <<"invalid">>
+                    }
+            }
+        ],
+        FromErrors
+    ).
 
 -spec to_json_accesses(accesses()) ->
-                          {ok, json:encode_value()} | {error, [erldantic:error()]}.
+    {ok, json:encode_value()} | {error, [erldantic:error()]}.
 to_json_accesses(Data) ->
     erldantic_json:to_json(?MODULE, {type, accesses, 0}, Data).
 
 -spec from_json_accesses(json:encode_value()) ->
-                            {ok, accesses()} | {error, [erldantic:error()]}.
+    {ok, accesses()} | {error, [erldantic:error()]}.
 from_json_accesses(Json) ->
     erldantic_json:from_json(?MODULE, {type, accesses, 0}, Json).

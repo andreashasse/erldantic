@@ -15,15 +15,25 @@ missing_test() ->
     TypeInfo = erldantic_abstract_code:types_in_module(?MODULE),
     %% arity
     {ok, PersonRecord} = erldantic_type_info:get_record(TypeInfo, person),
-    ?assertEqual(#ed_rec{name = person,
-                         fields =
-                             [{name, #ed_simple_type{type = string}},
-                              {age, #ed_simple_type{type = pos_integer}}],
-                         arity = 3},
-                 PersonRecord),
-    ?assertEqual({ok, #{name => <<"John">>, age => 1}},
-                 erldantic_json:to_json(?MODULE, {record, person}, #person{name = "John"}),
-                 "Default value for age picked up when constructing the record, no change needed for to_json"),
-    ?assertMatch({error, [#ed_error{location = [age], type = missing_data}]},
-                 erldantic_json:from_json(?MODULE, {record, person}, #{<<"name">> => <<"John">>}),
-                 "Default value not picked up here, should it?").
+    ?assertEqual(
+        #ed_rec{
+            name = person,
+            fields =
+                [
+                    {name, #ed_simple_type{type = string}},
+                    {age, #ed_simple_type{type = pos_integer}}
+                ],
+            arity = 3
+        },
+        PersonRecord
+    ),
+    ?assertEqual(
+        {ok, #{name => <<"John">>, age => 1}},
+        erldantic_json:to_json(?MODULE, {record, person}, #person{name = "John"}),
+        "Default value for age picked up when constructing the record, no change needed for to_json"
+    ),
+    ?assertMatch(
+        {error, [#ed_error{location = [age], type = missing_data}]},
+        erldantic_json:from_json(?MODULE, {record, person}, #{<<"name">> => <<"John">>}),
+        "Default value not picked up here, should it?"
+    ).
