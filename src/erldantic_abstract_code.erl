@@ -70,7 +70,7 @@ type_in_form({attribute, _, record, {RecordName, Fields}})
               fields = FieldInfos,
               arity = length(FieldInfos) + 1}}};
 type_in_form({attribute, _, TypeOrOpaque, {TypeName, {_, _, record, Attrs}, [] = Args}})
-    when is_atom(TypeName) andalso (TypeOrOpaque =:= type orelse TypeOrOpaque =:= opaque) ->
+    when is_atom(TypeName) andalso (TypeOrOpaque =:= type orelse TypeOrOpaque =:= opaque orelse TypeOrOpaque =:= ntype) ->
     %% FIXME: Sort out why this function clause differs from all others.
     true = is_list(Attrs),
     {RecordName, FieldTypes} = record_field_types(Attrs),
@@ -80,7 +80,7 @@ type_in_form({attribute, _, TypeOrOpaque, {TypeName, {_, _, record, Attrs}, [] =
 type_in_form({attribute, _, TypeOrOpaque, {TypeName, Type, Args}})
     when is_atom(TypeName)
          andalso is_list(Args)
-         andalso (TypeOrOpaque =:= type orelse TypeOrOpaque =:= opaque) ->
+         andalso (TypeOrOpaque =:= type orelse TypeOrOpaque =:= opaque orelse TypeOrOpaque =:= ntype) ->
     [FieldInfo] = field_info_to_type(Type),
     Vars = lists:map(fun({var, _, VarName}) when is_atom(VarName) -> VarName end, Args),
     TypeArity = length(Args),
@@ -131,7 +131,7 @@ type_in_form({attribute, _, spec, {{FunctionName, Arity}, FunctionTypes}})
 type_in_form({attribute, _, spec, Spec}) ->
     error({bug_spec_not_handled, Spec});
 type_in_form({attribute, _, TypeOrOpaque, _} = T)
-    when TypeOrOpaque =:= opaque orelse TypeOrOpaque =:= type ->
+    when TypeOrOpaque =:= opaque orelse TypeOrOpaque =:= type orelse TypeOrOpaque =:= ntype ->
     error({not_supported, T});
 type_in_form(_) ->
     false.
@@ -170,18 +170,18 @@ field_info_to_type({remote_type, _, [{atom, _, Module}, {atom, _, Type}, Args]})
                   end,
                   Args),
     [#ed_remote_type{mfargs = {Module, Type, MyArgs}}];
-field_info_to_type({Type, _, map, any}) when Type =:= type orelse Type =:= opaque ->
+field_info_to_type({Type, _, map, any}) when Type =:= type orelse Type =:= opaque orelse Type =:= ntype ->
     MapFields =
         [{map_field_type_assoc, #ed_simple_type{type = term}, #ed_simple_type{type = term}}],
     [#ed_map{fields = MapFields, struct_name = undefined}];
-field_info_to_type({Type, _, tuple, any}) when Type =:= type orelse Type =:= opaque ->
+field_info_to_type({Type, _, tuple, any}) when Type =:= type orelse Type =:= opaque orelse Type =:= ntype ->
     [#ed_tuple{fields = any}];
 field_info_to_type({user_type, _, Type, TypeAttrs})
     when is_atom(Type) andalso is_list(TypeAttrs) ->
     TAttrs = lists:flatmap(fun field_info_to_type/1, TypeAttrs),
     [#ed_user_type_ref{type_name = Type, variables = TAttrs}];
 field_info_to_type({TypeOrOpaque, _, Type, TypeAttrs})
-    when is_list(TypeAttrs) andalso (TypeOrOpaque =:= type orelse TypeOrOpaque =:= opaque) ->
+    when is_list(TypeAttrs) andalso (TypeOrOpaque =:= type orelse TypeOrOpaque =:= opaque orelse TypeOrOpaque =:= ntype) ->
     case Type of
         record ->
             {SubTypeRecordName, FieldTypes} = record_field_types(TypeAttrs),
