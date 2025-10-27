@@ -64,11 +64,16 @@ an error if the data doesn't match the expected type.
 ### Example:
 
 ```
+-module(my_module).
+-type user_id() :: pos_integer().
+-type status() :: active | inactive | pending.
+-record(user, {id :: user_id(), name :: binary(), age :: integer(), status :: status()}).
+
 1> erldantic:decode(json, my_module, user_id, <<"123">>).
 {ok, 123}
 
-2> erldantic:decode(json, my_module, user, <<"{\"id\":42,\"name\":\"Bob\",\"age\":25}">>).
-{ok, #user{id = 42, name = <<"Bob">>, age = 25}}
+2> erldantic:decode(json, my_module, user, <<"{\"id\":42,\"name\":\"Bob\",\"age\":25, \"status\":\"active\"}">>).
+{ok, #user{id = 42, name = <<"Bob">>, age = 25, status = active}}
 
 3> erldantic:decode(binary_string, my_module, status, <<"active">>).
 {ok, active}
@@ -111,17 +116,19 @@ and returns an error if the data doesn't match the expected type.
 ### Example:
 
 ```
+-module(my_module).
+-type user_id() :: pos_integer().
+-type status() :: active | inactive | pending.
+-record(user, {id :: user_id(), name :: binary(), age :: integer(), status :: status()}).
+
 1> erldantic:encode(json, my_module, user_id, 123).
 {ok, <<"123">>}
 
-2> User = #user{id = 42, name = <<"Bob">>, age = 25}.
+2> User = #user{id = 42, name = <<"Bob">>, age = 25, status = active}.
 3> erldantic:encode(json, my_module, user, User).
-{ok, <<"{\"id\":42,\"name\":\"Bob\",\"age\":25}">>}
+{ok, <<"{\"id\":42,\"name\":\"Bob\",\"age\":25, \"status\":\"active\"}">>}
 
-4> erldantic:encode(binary_string, my_module, status, active).
-{ok, <<"active">>}
-
-5> erldantic:encode(json, my_module, user_id, -5).
+4> erldantic:encode(json, my_module, user_id, -5).
 {error, [#ed_error{type = type_mismatch, ...}]}
 ```
 """.
@@ -156,11 +163,16 @@ Generates a schema for the specified type in the given format.
 ### Example:
 
 ```
+-module(my_module).
+-type user_id() :: pos_integer().
+-type status() :: active | inactive | pending.
+-record(user, {id :: user_id(), name :: binary(), age :: integer(), status :: status()}).
+
 1> erldantic:schema(json_schema, my_module, user).
 {ok, <<"{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"integer\"},...}}">>}
 
 2> erldantic:schema(json_schema, my_module, status).
-{ok, <<"{\"enum\":[\"active\",\"inactive\",\"pending\"]}">>}
+{ok, <<"{\"oneOf\":[{\"enum\":[\"active\"]},{\"enum\":[\"inactive\"]},{\"enum\":[\"pending\"]}]}">>}
 
 3> erldantic:schema(json_schema, my_module, {type, user_id, 0}).
 {ok, <<"{\"type\":\"integer\",\"minimum\":1}">>}
