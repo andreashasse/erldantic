@@ -21,14 +21,18 @@
 
 %% Test map types
 -type user_map() ::
-    #{id := user_id(),
-      name := binary(),
-      age := age()}.
+    #{
+        id := user_id(),
+        name := binary(),
+        age := age()
+    }.
 %% Map with optional fields
 -type config_map() ::
-    #{host := string(),
-      port := port_number(),
-      timeout => pos_integer()}.
+    #{
+        host := string(),
+        port := port_number(),
+        timeout => pos_integer()
+    }.
 %% Nested map with non-empty list
 -type group_map() :: #{name := string(), members := [user_id(), ...]}.
 %% Nested maps
@@ -67,8 +71,10 @@ decode_type_json_range_test() ->
 decode_type_json_nonempty_list_test() ->
     % Valid non-empty list
     JsonValid = <<"[\"tag1\",\"tag2\",\"tag3\"]">>,
-    ?assertEqual({ok, ["tag1", "tag2", "tag3"]},
-                 erldantic:decode(json, ?MODULE, tags, JsonValid)),
+    ?assertEqual(
+        {ok, ["tag1", "tag2", "tag3"]},
+        erldantic:decode(json, ?MODULE, tags, JsonValid)
+    ),
 
     % Single element list
     JsonSingle = <<"[\"single\"]">>,
@@ -83,25 +89,31 @@ decode_type_json_map_test() ->
     % Simple map with all required fields
     Json = <<"{\"id\":1,\"name\":\"Alice\",\"age\":30}">>,
     Expected =
-        #{id => 1,
-          name => <<"Alice">>,
-          age => 30},
+        #{
+            id => 1,
+            name => <<"Alice">>,
+            age => 30
+        },
     ?assertEqual({ok, Expected}, erldantic:decode(json, ?MODULE, user_map, Json)).
 
 decode_type_json_map_with_optional_test() ->
     % Config map with all fields
     JsonAll = <<"{\"host\":\"localhost\",\"port\":8080,\"timeout\":5000}">>,
     ExpectedAll =
-        #{host => "localhost",
-          port => 8080,
-          timeout => 5000},
+        #{
+            host => "localhost",
+            port => 8080,
+            timeout => 5000
+        },
     ?assertEqual({ok, ExpectedAll}, erldantic:decode(json, ?MODULE, config_map, JsonAll)),
 
     % Config map with only required fields
     JsonRequired = <<"{\"host\":\"localhost\",\"port\":8080}">>,
     ExpectedRequired = #{host => "localhost", port => 8080},
-    ?assertEqual({ok, ExpectedRequired},
-                 erldantic:decode(json, ?MODULE, config_map, JsonRequired)).
+    ?assertEqual(
+        {ok, ExpectedRequired},
+        erldantic:decode(json, ?MODULE, config_map, JsonRequired)
+    ).
 
 decode_type_json_map_with_nonempty_list_test() ->
     % Group with non-empty members list
@@ -119,11 +131,15 @@ decode_type_json_nested_map_test() ->
     Json =
         <<"{\"user\":{\"id\":1,\"name\":\"Alice\",\"age\":30},\"tags\":[\"tag1\",\"tag2\"]}">>,
     Expected =
-        #{user =>
-              #{id => 1,
-                name => <<"Alice">>,
-                age => 30},
-          tags => ["tag1", "tag2"]},
+        #{
+            user =>
+                #{
+                    id => 1,
+                    name => <<"Alice">>,
+                    age => 30
+                },
+            tags => ["tag1", "tag2"]
+        },
     ?assertEqual({ok, Expected}, erldantic:decode(json, ?MODULE, nested_map, Json)).
 
 decode_type_json_error_test() ->
@@ -139,17 +155,21 @@ decode_type_json_error_test() ->
 decode_record_json_test() ->
     Json = <<"{\"id\":42,\"name\":\"Bob\",\"age\":25}">>,
     Expected =
-        #user{id = 42,
-              name = <<"Bob">>,
-              age = 25},
+        #user{
+            id = 42,
+            name = <<"Bob">>,
+            age = 25
+        },
     ?assertEqual({ok, Expected}, erldantic:decode(json, ?MODULE, user, Json)).
 
 decode_record_json_with_nonempty_list_test() ->
     Json = <<"{\"id\":1,\"title\":\"First Post\",\"tags\":[\"erlang\",\"testing\"]}">>,
     Expected =
-        #post{id = 1,
-              title = <<"First Post">>,
-              tags = ["erlang", "testing"]},
+        #post{
+            id = 1,
+            title = <<"First Post">>,
+            tags = ["erlang", "testing"]
+        },
     ?assertEqual({ok, Expected}, erldantic:decode(json, ?MODULE, post, Json)).
 
 decode_record_json_error_missing_field_test() ->
@@ -191,9 +211,11 @@ encode_type_json_nonempty_list_test() ->
 
 encode_type_json_map_test() ->
     Data =
-        #{id => 1,
-          name => <<"Alice">>,
-          age => 30},
+        #{
+            id => 1,
+            name => <<"Alice">>,
+            age => 30
+        },
     {ok, JsonIoList} = erldantic:encode(json, ?MODULE, user_map, Data),
     JsonBinary = iolist_to_binary(JsonIoList),
 
@@ -204,9 +226,11 @@ encode_type_json_map_test() ->
 encode_type_json_map_with_optional_test() ->
     % With optional field
     DataWith =
-        #{host => "localhost",
-          port => 8080,
-          timeout => 5000},
+        #{
+            host => "localhost",
+            port => 8080,
+            timeout => 5000
+        },
     {ok, JsonWithIoList} = erldantic:encode(json, ?MODULE, config_map, DataWith),
     JsonWith = iolist_to_binary(JsonWithIoList),
     {ok, DecodedWith} = erldantic:decode(json, ?MODULE, config_map, JsonWith),
@@ -221,11 +245,15 @@ encode_type_json_map_with_optional_test() ->
 
 encode_type_json_nested_map_test() ->
     Data =
-        #{user =>
-              #{id => 1,
-                name => <<"Alice">>,
-                age => 30},
-          tags => ["tag1", "tag2"]},
+        #{
+            user =>
+                #{
+                    id => 1,
+                    name => <<"Alice">>,
+                    age => 30
+                },
+            tags => ["tag1", "tag2"]
+        },
     {ok, JsonIoList} = erldantic:encode(json, ?MODULE, nested_map, Data),
     JsonBinary = iolist_to_binary(JsonIoList),
     {ok, Decoded} = erldantic:decode(json, ?MODULE, nested_map, JsonBinary),
@@ -242,9 +270,11 @@ encode_type_json_error_test() ->
 
 encode_record_json_test() ->
     User =
-        #user{id = 42,
-              name = <<"Bob">>,
-              age = 25},
+        #user{
+            id = 42,
+            name = <<"Bob">>,
+            age = 25
+        },
     {ok, JsonIoList} = erldantic:encode(json, ?MODULE, user, User),
     JsonBinary = iolist_to_binary(JsonIoList),
 
@@ -254,9 +284,11 @@ encode_record_json_test() ->
 
 encode_record_json_with_nonempty_list_test() ->
     Post =
-        #post{id = 1,
-              title = <<"First Post">>,
-              tags = ["erlang", "testing"]},
+        #post{
+            id = 1,
+            title = <<"First Post">>,
+            tags = ["erlang", "testing"]
+        },
     {ok, JsonIoList} = erldantic:encode(json, ?MODULE, post, Post),
     JsonBinary = iolist_to_binary(JsonIoList),
     {ok, Decoded} = erldantic:decode(json, ?MODULE, post, JsonBinary),
@@ -274,9 +306,11 @@ decode_with_type_reference_test() ->
     % Test using {record, Name} reference
     RecordJson = <<"{\"id\":42,\"name\":\"Bob\",\"age\":25}">>,
     Expected =
-        #user{id = 42,
-              name = <<"Bob">>,
-              age = 25},
+        #user{
+            id = 42,
+            name = <<"Bob">>,
+            age = 25
+        },
     ?assertEqual({ok, Expected}, erldantic:decode(json, ?MODULE, {record, user}, RecordJson)).
 
 encode_with_type_reference_test() ->
@@ -285,9 +319,11 @@ encode_with_type_reference_test() ->
 
     % Test using {record, Name} reference
     User =
-        #user{id = 42,
-              name = <<"Bob">>,
-              age = 25},
+        #user{
+            id = 42,
+            name = <<"Bob">>,
+            age = 25
+        },
     {ok, JsonIoList} = erldantic:encode(json, ?MODULE, {record, user}, User),
     JsonBinary = iolist_to_binary(JsonIoList),
     {ok, Decoded} = erldantic:decode(json, ?MODULE, {record, user}, JsonBinary),
@@ -307,9 +343,11 @@ decode_with_type_info_test() ->
 
     MapJson = <<"{\"id\":1,\"name\":\"Alice\",\"age\":30}">>,
     Expected =
-        #{id => 1,
-          name => <<"Alice">>,
-          age => 30},
+        #{
+            id => 1,
+            name => <<"Alice">>,
+            age => 30
+        },
     ?assertEqual({ok, Expected}, erldantic:decode(json, TypeInfo, user_map, MapJson)).
 
 encode_with_type_info_test() ->
@@ -320,9 +358,11 @@ encode_with_type_info_test() ->
     ?assertEqual({ok, <<"123">>}, erldantic:encode(json, TypeInfo, user_id, 123)),
 
     Data =
-        #{id => 1,
-          name => <<"Alice">>,
-          age => 30},
+        #{
+            id => 1,
+            name => <<"Alice">>,
+            age => 30
+        },
     {ok, JsonIoList} = erldantic:encode(json, TypeInfo, user_map, Data),
     JsonBinary = iolist_to_binary(JsonIoList),
     {ok, Decoded} = erldantic:decode(json, TypeInfo, user_map, JsonBinary),
@@ -349,9 +389,11 @@ round_trip_json_type_test() ->
 
     % Test map type
     Data3 =
-        #{id => 1,
-          name => <<"Test">>,
-          age => 30},
+        #{
+            id => 1,
+            name => <<"Test">>,
+            age => 30
+        },
     {ok, Json3IoList} = erldantic:encode(json, ?MODULE, user_map, Data3),
     Json3 = iolist_to_binary(Json3IoList),
     {ok, Result3} = erldantic:decode(json, ?MODULE, user_map, Json3),
@@ -359,9 +401,11 @@ round_trip_json_type_test() ->
 
 round_trip_json_record_test() ->
     User =
-        #user{id = 99,
-              name = <<"Charlie">>,
-              age = 30},
+        #user{
+            id = 99,
+            name = <<"Charlie">>,
+            age = 30
+        },
     {ok, JsonIoList} = erldantic:encode(json, ?MODULE, user, User),
     JsonBinary = iolist_to_binary(JsonIoList),
     {ok, Result} = erldantic:decode(json, ?MODULE, user, JsonBinary),
@@ -418,7 +462,9 @@ error_handling_encode_test() ->
     ?assertMatch([#ed_error{type = type_mismatch}], Errors2),
 
     % Missing required field in map
-    InvalidMap = #{id => 1, name => <<"Alice">>}, % missing age
+
+    % missing age
+    InvalidMap = #{id => 1, name => <<"Alice">>},
     {error, Errors3} = erldantic:encode(json, ?MODULE, user_map, InvalidMap),
     ?assertMatch([#ed_error{}], Errors3).
 
@@ -447,9 +493,11 @@ api_consistency_encode_test() ->
 
     % Verify encode_record is equivalent to encode with {record, _}
     User =
-        #user{id = 42,
-              name = <<"Bob">>,
-              age = 25},
+        #user{
+            id = 42,
+            name = <<"Bob">>,
+            age = 25
+        },
     Result3 = erldantic:encode(json, ?MODULE, user, User),
     Result4 = erldantic:encode(json, ?MODULE, {record, user}, User),
     ?assertEqual(Result3, Result4).
@@ -472,14 +520,20 @@ decode_binary_string_simple_types_test() ->
     ?assertMatch([#ed_error{type = type_mismatch}], RangeErrors),
 
     % Port number
-    ?assertEqual({ok, 8080},
-                 erldantic:decode(binary_string, ?MODULE, port_number, <<"8080">>)),
+    ?assertEqual(
+        {ok, 8080},
+        erldantic:decode(binary_string, ?MODULE, port_number, <<"8080">>)
+    ),
 
     % Status (atom)
-    ?assertEqual({ok, active},
-                 erldantic:decode(binary_string, ?MODULE, status, <<"active">>)),
-    ?assertEqual({ok, inactive},
-                 erldantic:decode(binary_string, ?MODULE, status, <<"inactive">>)).
+    ?assertEqual(
+        {ok, active},
+        erldantic:decode(binary_string, ?MODULE, status, <<"active">>)
+    ),
+    ?assertEqual(
+        {ok, inactive},
+        erldantic:decode(binary_string, ?MODULE, status, <<"inactive">>)
+    ).
 
 decode_binary_string_error_test() ->
     % Invalid integer
@@ -504,14 +558,20 @@ encode_binary_string_simple_types_test() ->
     ?assertMatch([#ed_error{type = type_mismatch}], RangeErrors),
 
     % Port number
-    ?assertEqual({ok, <<"8080">>},
-                 erldantic:encode(binary_string, ?MODULE, port_number, 8080)),
+    ?assertEqual(
+        {ok, <<"8080">>},
+        erldantic:encode(binary_string, ?MODULE, port_number, 8080)
+    ),
 
     % Status (atom)
-    ?assertEqual({ok, <<"active">>},
-                 erldantic:encode(binary_string, ?MODULE, status, active)),
-    ?assertEqual({ok, <<"inactive">>},
-                 erldantic:encode(binary_string, ?MODULE, status, inactive)).
+    ?assertEqual(
+        {ok, <<"active">>},
+        erldantic:encode(binary_string, ?MODULE, status, active)
+    ),
+    ?assertEqual(
+        {ok, <<"inactive">>},
+        erldantic:encode(binary_string, ?MODULE, status, inactive)
+    ).
 
 round_trip_binary_string_test() ->
     % Integer round trip

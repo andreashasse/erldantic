@@ -19,38 +19,68 @@ simple_test() ->
 
     %% Normal opaque type
     {ok, PersonType} = erldantic_type_info:get_type(TypeInfo, person, 0),
-    ?assertEqual(#ed_map{fields =
-                             [{map_field_assoc, name, #ed_simple_type{type = binary}},
-                              {map_field_assoc, age, #ed_simple_type{type = pos_integer}}]},
-                 PersonType),
+    ?assertEqual(
+        #ed_map{
+            fields =
+                [
+                    {map_field_assoc, name, #ed_simple_type{type = binary}},
+                    {map_field_assoc, age, #ed_simple_type{type = pos_integer}}
+                ]
+        },
+        PersonType
+    ),
     Person = #{name => <<"John">>, age => 42},
     ?assertEqual({ok, Person}, erldantic_json:to_json(?MODULE, {type, person, 0}, Person)),
-    ?assertEqual({ok, Person},
-                 erldantic_json:from_json(?MODULE,
-                                          {type, person, 0},
-                                          #{<<"name">> => <<"John">>, <<"age">> => 42})),
+    ?assertEqual(
+        {ok, Person},
+        erldantic_json:from_json(
+            ?MODULE,
+            {type, person, 0},
+            #{<<"name">> => <<"John">>, <<"age">> => 42}
+        )
+    ),
 
     %% Opaque record type
     {ok, MyRecRecord} = erldantic_type_info:get_record(TypeInfo, my_rec),
-    ?assertEqual(#ed_rec{name = my_rec,
-                         fields =
-                             [{id, #ed_simple_type{type = integer}},
-                              {data, #ed_simple_type{type = term}}],
-                         arity = 3},
-                 MyRecRecord),
+    ?assertEqual(
+        #ed_rec{
+            name = my_rec,
+            fields =
+                [
+                    {id, #ed_simple_type{type = integer}},
+                    {data, #ed_simple_type{type = term}}
+                ],
+            arity = 3
+        },
+        MyRecRecord
+    ),
     {ok, MyRecTType} = erldantic_type_info:get_type(TypeInfo, my_rec_t, 0),
-    ?assertEqual(#ed_rec_ref{record_name = my_rec,
-                             field_types =
-                                 [{data, #ed_user_type_ref{type_name = person, variables = []}}]},
-                 MyRecTType),
+    ?assertEqual(
+        #ed_rec_ref{
+            record_name = my_rec,
+            field_types =
+                [{data, #ed_user_type_ref{type_name = person, variables = []}}]
+        },
+        MyRecTType
+    ),
 
-    ?assertEqual({ok, #{id => 1, data => #{name => <<"John">>, age => 42}}},
-                 erldantic_json:to_json(?MODULE,
-                                        {type, my_rec_t, 0},
-                                        #my_rec{id = 1, data = #{name => <<"John">>, age => 42}})),
-    ?assertEqual({ok, #my_rec{id = 1, data = #{name => <<"John">>, age => 42}}},
-                 erldantic_json:from_json(?MODULE,
-                                          {type, my_rec_t, 0},
-                                          #{<<"id">> => 1,
-                                            <<"data">> =>
-                                                #{<<"name">> => <<"John">>, <<"age">> => 42}})).
+    ?assertEqual(
+        {ok, #{id => 1, data => #{name => <<"John">>, age => 42}}},
+        erldantic_json:to_json(
+            ?MODULE,
+            {type, my_rec_t, 0},
+            #my_rec{id = 1, data = #{name => <<"John">>, age => 42}}
+        )
+    ),
+    ?assertEqual(
+        {ok, #my_rec{id = 1, data = #{name => <<"John">>, age => 42}}},
+        erldantic_json:from_json(
+            ?MODULE,
+            {type, my_rec_t, 0},
+            #{
+                <<"id">> => 1,
+                <<"data">> =>
+                    #{<<"name">> => <<"John">>, <<"age">> => 42}
+            }
+        )
+    ).

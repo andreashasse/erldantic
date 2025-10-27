@@ -14,20 +14,37 @@
 type_in_form_test() ->
     TypeInfo = erldantic_abstract_code:types_in_module(?MODULE),
     {ok, MapResultType} = erldantic_type_info:get_type(TypeInfo, map_result, 0),
-    ?assertEqual(#ed_user_type_ref{type_name = result,
-                                   variables =
-                                       [#ed_map{fields =
-                                                    [{map_field_type_assoc,
-                                                      #ed_simple_type{type = atom},
-                                                      #ed_simple_type{type = integer}}]}]},
-                 MapResultType),
+    ?assertEqual(
+        #ed_user_type_ref{
+            type_name = result,
+            variables =
+                [
+                    #ed_map{
+                        fields =
+                            [
+                                {map_field_type_assoc, #ed_simple_type{type = atom},
+                                    #ed_simple_type{type = integer}}
+                            ]
+                    }
+                ]
+        },
+        MapResultType
+    ),
     {ok, ResultType} = erldantic_type_info:get_type(TypeInfo, result, 1),
-    ?assertEqual(#ed_type_with_variables{type =
-                                             #ed_union{types =
-                                                           [#ed_var{name = 'OkType'},
-                                                            #ed_literal{value = error}]},
-                                         vars = ['OkType']},
-                 ResultType).
+    ?assertEqual(
+        #ed_type_with_variables{
+            type =
+                #ed_union{
+                    types =
+                        [
+                            #ed_var{name = 'OkType'},
+                            #ed_literal{value = error}
+                        ]
+                },
+            vars = ['OkType']
+        },
+        ResultType
+    ).
 
 map1_to_json_test() ->
     ?assertEqual({ok, #{a1 => 1}}, to_json_result_1(#{a1 => 1})),
@@ -38,64 +55,132 @@ map1_from_json_test() ->
     ?assertEqual({ok, error}, from_json_result_1(<<"error">>)).
 
 map1_to_json_bad_test() ->
-    ?assertEqual({error,
-                  [#ed_error{location = [],
-                             type = no_match,
-                             ctx =
-                                 #{type =>
-                                       #ed_union{types =
-                                                     [#ed_map{fields =
-                                                                  [{map_field_type_assoc,
-                                                                    #ed_simple_type{type = atom},
-                                                                    #ed_simple_type{type =
-                                                                                        integer}}]},
-                                                      #ed_literal{value = error}]},
-                                   value => #{a1 => hej}}}]},
-                 to_json_result_1(#{a1 => hej})),
-    ?assertEqual({error,
-                  [#ed_error{location = [],
-                             type = no_match,
-                             ctx =
-                                 #{type =>
-                                       #ed_union{types =
-                                                     [#ed_map{fields =
-                                                                  [{map_field_type_assoc,
-                                                                    #ed_simple_type{type = atom},
-                                                                    #ed_simple_type{type =
-                                                                                        integer}}]},
-                                                      #ed_literal{value = error}]},
-                                   value => pelle}}]},
-                 to_json_result_1(pelle)).
+    ?assertEqual(
+        {error, [
+            #ed_error{
+                location = [],
+                type = no_match,
+                ctx =
+                    #{
+                        type =>
+                            #ed_union{
+                                types =
+                                    [
+                                        #ed_map{
+                                            fields =
+                                                [
+                                                    {map_field_type_assoc,
+                                                        #ed_simple_type{type = atom},
+                                                        #ed_simple_type{
+                                                            type =
+                                                                integer
+                                                        }}
+                                                ]
+                                        },
+                                        #ed_literal{value = error}
+                                    ]
+                            },
+                        value => #{a1 => hej}
+                    }
+            }
+        ]},
+        to_json_result_1(#{a1 => hej})
+    ),
+    ?assertEqual(
+        {error, [
+            #ed_error{
+                location = [],
+                type = no_match,
+                ctx =
+                    #{
+                        type =>
+                            #ed_union{
+                                types =
+                                    [
+                                        #ed_map{
+                                            fields =
+                                                [
+                                                    {map_field_type_assoc,
+                                                        #ed_simple_type{type = atom},
+                                                        #ed_simple_type{
+                                                            type =
+                                                                integer
+                                                        }}
+                                                ]
+                                        },
+                                        #ed_literal{value = error}
+                                    ]
+                            },
+                        value => pelle
+                    }
+            }
+        ]},
+        to_json_result_1(pelle)
+    ).
 
 map1_from_json_bad_test() ->
-    ?assertEqual({error,
-                  [#ed_error{location = [],
-                             type = no_match,
-                             ctx =
-                                 #{type =>
-                                       #ed_union{types =
-                                                     [#ed_map{fields =
-                                                                  [{map_field_type_assoc,
-                                                                    #ed_simple_type{type = atom},
-                                                                    #ed_simple_type{type =
-                                                                                        integer}}]},
-                                                      #ed_literal{value = error}]},
-                                   value => #{a1 => hej}}}]},
-                 from_json_result_1(#{a1 => hej})),
-    ?assertEqual({error,
-                  [#ed_error{location = [],
-                             type = no_match,
-                             ctx =
-                                 #{type =>
-                                       #ed_union{types =
-                                                     [#ed_map{fields =
-                                                                  [{map_field_type_assoc,
-                                                                    #ed_simple_type{type = atom},
-                                                                    #ed_simple_type{type =
-                                                                                        integer}}]},
-                                                      #ed_literal{value = error}]},
-                                   value => pelle}}]},
-                 from_json_result_1(pelle)).
+    ?assertEqual(
+        {error, [
+            #ed_error{
+                location = [],
+                type = no_match,
+                ctx =
+                    #{
+                        type =>
+                            #ed_union{
+                                types =
+                                    [
+                                        #ed_map{
+                                            fields =
+                                                [
+                                                    {map_field_type_assoc,
+                                                        #ed_simple_type{type = atom},
+                                                        #ed_simple_type{
+                                                            type =
+                                                                integer
+                                                        }}
+                                                ]
+                                        },
+                                        #ed_literal{value = error}
+                                    ]
+                            },
+                        value => #{a1 => hej}
+                    }
+            }
+        ]},
+        from_json_result_1(#{a1 => hej})
+    ),
+    ?assertEqual(
+        {error, [
+            #ed_error{
+                location = [],
+                type = no_match,
+                ctx =
+                    #{
+                        type =>
+                            #ed_union{
+                                types =
+                                    [
+                                        #ed_map{
+                                            fields =
+                                                [
+                                                    {map_field_type_assoc,
+                                                        #ed_simple_type{type = atom},
+                                                        #ed_simple_type{
+                                                            type =
+                                                                integer
+                                                        }}
+                                                ]
+                                        },
+                                        #ed_literal{value = error}
+                                    ]
+                            },
+                        value => pelle
+                    }
+            }
+        ]},
+        from_json_result_1(pelle)
+    ).
 
 -spec from_json_result_1(term()) -> map_result().
 from_json_result_1(Data) ->

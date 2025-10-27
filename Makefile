@@ -1,19 +1,18 @@
-.PHONY: all compile format test cover clean
+.PHONY: all compile format test cover clean doc
 
-all: compile format test cover
+all: compile format test cover doc
 
 compile:
 	rebar3 compile
 
 format:
-	rebar3 compile
-	rebar3 format
+	rebar3 fmt
+
+format_verify:
+	rebar3 fmt --check
 
 hank:
 	rebar3 hank
-
-format_verify:
-	rebar3 format --verify
 
 test:
 	@if command -v elixirc >/dev/null 2>&1; then \
@@ -30,7 +29,10 @@ proper:
 cover:
 	rebar3 cover
 
-build-test: compile xref type_check test hank format_verify cover
+check_app_calls:
+	rebar3 check_app_calls
+
+build-test: compile xref type_check test hank check_app_calls format_verify cover
 
 clean:
 	rebar3 clean
@@ -46,3 +48,6 @@ type_check:
 	else \
 		exit 0; \
 	fi
+
+doc:
+	rebar3 ex_doc

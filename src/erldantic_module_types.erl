@@ -35,14 +35,16 @@ clear(Module) ->
 %% INTERNAL
 
 -spec pers_type(Module :: module()) ->
-                   {module_version(), erldantic:type_info()} | undefined.
+    {module_version(), erldantic:type_info()} | undefined.
 pers_type(Module) ->
     persistent_term:get({?MODULE, pers_types, Module}, undefined).
 
--spec pers_types_set(Module :: module(),
-                     Vsn :: module_version(),
-                     TypeInfo :: erldantic:type_info()) ->
-                        ok.
+-spec pers_types_set(
+    Module :: module(),
+    Vsn :: module_version(),
+    TypeInfo :: erldantic:type_info()
+) ->
+    ok.
 pers_types_set(Module, Vsn, TypeInfo) ->
     persistent_term:put({?MODULE, pers_types, Module}, {Vsn, TypeInfo}).
 
@@ -50,7 +52,7 @@ ensure_module(Module) ->
     erlang:module_loaded(Module) orelse code:which(Module) =/= non_existing.
 
 -spec module_vsn(Module :: module()) ->
-                    {ok, Version :: module_version()} | {error, [erldantic:error()]}.
+    {ok, Version :: module_version()} | {error, [erldantic:error()]}.
 module_vsn(Module) ->
     case ensure_module(Module) of
         true ->

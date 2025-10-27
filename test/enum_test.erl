@@ -21,14 +21,26 @@ validate_non_atom_enum_test() ->
 
     % Test with invalid data
     {error, Errors} = to_json_non_atom_enum(InvalidData),
-    ?assertMatch([#ed_error{type = no_match,
-                            ctx =
-                                #{type :=
-                                      #ed_union{types =
-                                                    [#ed_literal{value = 1},
-                                                     #ed_literal{value = 3}]},
-                                  value := 2}}],
-                 Errors),
+    ?assertMatch(
+        [
+            #ed_error{
+                type = no_match,
+                ctx =
+                    #{
+                        type :=
+                            #ed_union{
+                                types =
+                                    [
+                                        #ed_literal{value = 1},
+                                        #ed_literal{value = 3}
+                                    ]
+                            },
+                        value := 2
+                    }
+            }
+        ],
+        Errors
+    ),
 
     % Test JSON conversion using from_json
     ValidJson1 = 1,
@@ -41,14 +53,26 @@ validate_non_atom_enum_test() ->
 
     % Test from_json with invalid data
     {error, FromErrors} = from_json_non_atom_enum(InvalidJson),
-    ?assertMatch([#ed_error{type = no_match,
-                            ctx =
-                                #{type :=
-                                      #ed_union{types =
-                                                    [#ed_literal{value = 1},
-                                                     #ed_literal{value = 3}]},
-                                  value := 2}}],
-                 FromErrors).
+    ?assertMatch(
+        [
+            #ed_error{
+                type = no_match,
+                ctx =
+                    #{
+                        type :=
+                            #ed_union{
+                                types =
+                                    [
+                                        #ed_literal{value = 1},
+                                        #ed_literal{value = 3}
+                                    ]
+                            },
+                        value := 2
+                    }
+            }
+        ],
+        FromErrors
+    ).
 
 %% Test function to validate role type
 validate_role_test() ->
@@ -65,15 +89,27 @@ validate_role_test() ->
 
     % Test with invalid data
     {error, Errors} = to_json_role(InvalidData),
-    ?assertMatch([#ed_error{type = no_match,
-                            ctx =
-                                #{type :=
-                                      #ed_union{types =
-                                                    [#ed_literal{value = admin},
-                                                     #ed_literal{value = user},
-                                                     #ed_literal{value = guest}]},
-                                  value := moderator}}],
-                 Errors),
+    ?assertMatch(
+        [
+            #ed_error{
+                type = no_match,
+                ctx =
+                    #{
+                        type :=
+                            #ed_union{
+                                types =
+                                    [
+                                        #ed_literal{value = admin},
+                                        #ed_literal{value = user},
+                                        #ed_literal{value = guest}
+                                    ]
+                            },
+                        value := moderator
+                    }
+            }
+        ],
+        Errors
+    ),
 
     % Test JSON conversion using from_json
     ValidJson1 = <<"admin">>,
@@ -88,23 +124,35 @@ validate_role_test() ->
 
     % Test from_json with invalid data
     {error, FromErrors} = from_json_role(InvalidJson),
-    ?assertMatch([#ed_error{type = no_match,
-                            ctx =
-                                #{type :=
-                                      #ed_union{types =
-                                                    [#ed_literal{value = admin},
-                                                     #ed_literal{value = user},
-                                                     #ed_literal{value = guest}]},
-                                  value := <<"moderator">>}}],
-                 FromErrors).
+    ?assertMatch(
+        [
+            #ed_error{
+                type = no_match,
+                ctx =
+                    #{
+                        type :=
+                            #ed_union{
+                                types =
+                                    [
+                                        #ed_literal{value = admin},
+                                        #ed_literal{value = user},
+                                        #ed_literal{value = guest}
+                                    ]
+                            },
+                        value := <<"moderator">>
+                    }
+            }
+        ],
+        FromErrors
+    ).
 
 -spec to_json_non_atom_enum(non_atom_enum()) ->
-                               {ok, json:encode_value()} | {error, [erldantic:error()]}.
+    {ok, json:encode_value()} | {error, [erldantic:error()]}.
 to_json_non_atom_enum(Data) ->
     erldantic_json:to_json(?MODULE, {type, non_atom_enum, 0}, Data).
 
 -spec from_json_non_atom_enum(json:encode_value()) ->
-                                 {ok, non_atom_enum()} | {error, [erldantic:error()]}.
+    {ok, non_atom_enum()} | {error, [erldantic:error()]}.
 from_json_non_atom_enum(Json) ->
     erldantic_json:from_json(?MODULE, {type, non_atom_enum, 0}, Json).
 

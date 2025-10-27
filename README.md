@@ -12,7 +12,7 @@ Add erldantic to your rebar.config dependencies:
 ]}.
 ```
 
-## Type-safe data serialization / deserialization
+## Data (de)serialization
 
 Erldantic provides type-safe data serialization and deserialization for Erlang records and all Erlang types that can be converted to that type. Currently the focus is on JSON.
 
@@ -147,7 +147,7 @@ Where:
 
 And the rest of the arguments are the same as for the data serialization API.
 
-## OpenAPI Specification Generation
+## OpenAPI Spec
 
 Erldantic can generate complete [OpenAPI 3.0](https://spec.openapis.org/oas/v3.0.0) specifications for your REST APIs. This provides interactive documentation, client generation, and API testing tools.
 
@@ -226,6 +226,11 @@ For example, `integer() | undefined` will become `undefined` in records and maps
 ### `term()` | `any()`
 
 When using types with `term`, `erldantic_json` will not reject any data, which means it can return data that `json.erl` cannot convert to JSON.
+
+
+### Char
+
+Char is currently handled as integer, which is probably not what you want. Try to not use the char type for now. This is documented in `test/char_test.erl`.
 
 ### Unsupported Types
 

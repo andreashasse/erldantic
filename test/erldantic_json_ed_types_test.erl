@@ -49,8 +49,10 @@ ed_types_to_json_test() ->
     %% Test map types
     {ok, MapType} = erldantic_type_info:get_type(TypeInfo, my_map, 0),
     MapData = #{name => "John", age => 30},
-    ?assertEqual({ok, #{name => <<"John">>, age => 30}},
-                 erldantic_json:to_json(TypeInfo, MapType, MapData)).
+    ?assertEqual(
+        {ok, #{name => <<"John">>, age => 30}},
+        erldantic_json:to_json(TypeInfo, MapType, MapData)
+    ).
 
 %% Test using ed_types directly with erldantic_json:from_json/3
 ed_types_from_json_test() ->
@@ -78,8 +80,10 @@ ed_types_from_json_test() ->
     %% Test map types
     {ok, MapType} = erldantic_type_info:get_type(TypeInfo, my_map, 0),
     JsonData = #{<<"name">> => <<"John">>, <<"age">> => 30},
-    ?assertEqual({ok, #{name => "John", age => 30}},
-                 erldantic_json:from_json(TypeInfo, MapType, JsonData)).
+    ?assertEqual(
+        {ok, #{name => "John", age => 30}},
+        erldantic_json:from_json(TypeInfo, MapType, JsonData)
+    ).
 
 %% Test using ed_rec directly with erldantic_json functions
 ed_record_types_test() ->
@@ -88,21 +92,28 @@ ed_record_types_test() ->
     %% Test record serialization using ed_rec
     {ok, UserRecord} = erldantic_type_info:get_record(TypeInfo, user),
     UserData =
-        #user{id = 1,
-              name = "Alice",
-              email = "alice@example.com"},
+        #user{
+            id = 1,
+            name = "Alice",
+            email = "alice@example.com"
+        },
 
-    ?assertEqual({ok,
-                  #{id => 1,
-                    name => <<"Alice">>,
-                    email => <<"alice@example.com">>}},
-                 erldantic_json:to_json(TypeInfo, UserRecord, UserData)),
+    ?assertEqual(
+        {ok, #{
+            id => 1,
+            name => <<"Alice">>,
+            email => <<"alice@example.com">>
+        }},
+        erldantic_json:to_json(TypeInfo, UserRecord, UserData)
+    ),
 
     %% Test record deserialization using ed_rec
     JsonData =
-        #{<<"id">> => 1,
-          <<"name">> => <<"Alice">>,
-          <<"email">> => <<"alice@example.com">>},
+        #{
+            <<"id">> => 1,
+            <<"name">> => <<"Alice">>,
+            <<"email">> => <<"alice@example.com">>
+        },
     ?assertEqual({ok, UserData}, erldantic_json:from_json(TypeInfo, UserRecord, JsonData)).
 
 %% Test literal ed_types (extracted from types)
@@ -112,8 +123,10 @@ literal_ed_types_test() ->
     %% Test literal atom
     {ok, AtomLiteralType} = erldantic_type_info:get_type(TypeInfo, my_literal_atom, 0),
     ?assertEqual({ok, hello}, erldantic_json:to_json(TypeInfo, AtomLiteralType, hello)),
-    ?assertEqual({ok, hello},
-                 erldantic_json:from_json(TypeInfo, AtomLiteralType, <<"hello">>)),
+    ?assertEqual(
+        {ok, hello},
+        erldantic_json:from_json(TypeInfo, AtomLiteralType, <<"hello">>)
+    ),
 
     %% Test literal integer
     {ok, IntLiteralType} = erldantic_type_info:get_type(TypeInfo, my_literal_integer, 0),
@@ -139,10 +152,14 @@ nonempty_list_ed_types_test() ->
 
     %% Test nonempty list
     {ok, NonEmptyListType} = erldantic_type_info:get_type(TypeInfo, my_nonempty_list, 0),
-    ?assertEqual({ok, [1, 2, 3]},
-                 erldantic_json:to_json(TypeInfo, NonEmptyListType, [1, 2, 3])),
-    ?assertEqual({ok, [1, 2, 3]},
-                 erldantic_json:from_json(TypeInfo, NonEmptyListType, [1, 2, 3])),
+    ?assertEqual(
+        {ok, [1, 2, 3]},
+        erldantic_json:to_json(TypeInfo, NonEmptyListType, [1, 2, 3])
+    ),
+    ?assertEqual(
+        {ok, [1, 2, 3]},
+        erldantic_json:from_json(TypeInfo, NonEmptyListType, [1, 2, 3])
+    ),
 
     %% Test empty list should fail
     ?assertMatch({error, _}, erldantic_json:to_json(TypeInfo, NonEmptyListType, [])),

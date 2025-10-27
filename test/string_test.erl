@@ -9,9 +9,15 @@
 string_test() ->
     %% not printable string
     %% FIXME: match more specific
-    ?assertMatch({error, _},
-                 erldantic_json:to_json(?MODULE, {type, my_string, 0}, [1655379, 100, 210, 81])),
-    ?assertMatch({error, _},
-                 erldantic_json:from_json(?MODULE,
-                                          my_string,
-                                          <<240, 144, 128, 128, 100, 195, 146, 81>>)).
+    ?assertMatch(
+        {error, _},
+        erldantic_json:to_json(?MODULE, {type, my_string, 0}, [1655379, 100, 210, 81])
+    ),
+    ?assertMatch(
+        {error, _},
+        erldantic_json:from_json(
+            ?MODULE,
+            my_string,
+            <<240, 144, 128, 128, 100, 195, 146, 81>>
+        )
+    ).
