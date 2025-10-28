@@ -2,8 +2,8 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--include("../include/erldantic.hrl").
--include("../include/erldantic_internal.hrl").
+-include("../include/spectra.hrl").
+-include("../include/spectra_internal.hrl").
 
 -type number_data() :: #{name := string(), value := number()}.
 
@@ -24,11 +24,11 @@ validate_number_test() ->
     {error, Errors} = to_json(InvalidData),
     ?assertMatch(
         [
-            #ed_error{
+            #sp_error{
                 type = type_mismatch,
                 ctx =
                     #{
-                        type := #ed_simple_type{type = number},
+                        type := #sp_simple_type{type = number},
                         value := "not a number"
                     }
             }
@@ -51,11 +51,11 @@ validate_number_test() ->
     {error, FromErrors} = from_json(InvalidJson),
     ?assertMatch(
         [
-            #ed_error{
+            #sp_error{
                 type = type_mismatch,
                 ctx =
                     #{
-                        type := #ed_simple_type{type = number},
+                        type := #sp_simple_type{type = number},
                         value := <<"not a number">>
                     }
             }
@@ -63,11 +63,11 @@ validate_number_test() ->
         FromErrors
     ).
 
--spec to_json(number_data()) -> {ok, json:encode_value()} | {error, [erldantic:error()]}.
+-spec to_json(number_data()) -> {ok, json:encode_value()} | {error, [spectra:error()]}.
 to_json(Data) ->
-    erldantic_json:to_json(?MODULE, {type, number_data, 0}, Data).
+    spectra_json:to_json(?MODULE, {type, number_data, 0}, Data).
 
 -spec from_json(json:encode_value()) ->
-    {ok, number_data()} | {error, [erldantic:error()]}.
+    {ok, number_data()} | {error, [spectra:error()]}.
 from_json(Json) ->
-    erldantic_json:from_json(?MODULE, {type, number_data, 0}, Json).
+    spectra_json:from_json(?MODULE, {type, number_data, 0}, Json).

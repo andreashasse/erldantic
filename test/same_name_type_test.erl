@@ -2,25 +2,25 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--include("../include/erldantic.hrl").
--include("../include/erldantic_internal.hrl").
+-include("../include/spectra.hrl").
+-include("../include/spectra_internal.hrl").
 
 -type result() :: result(integer()).
 -type result(ResultType) :: #{result => ResultType, errors => [atom()]}.
 
 type_in_form_test() ->
-    TypeInfo = erldantic_abstract_code:types_in_module(?MODULE),
-    {ok, ResultType} = erldantic_type_info:get_type(TypeInfo, result, 1),
+    TypeInfo = spectra_abstract_code:types_in_module(?MODULE),
+    {ok, ResultType} = spectra_type_info:get_type(TypeInfo, result, 1),
     ?assertEqual(
-        #ed_type_with_variables{
+        #sp_type_with_variables{
             type =
-                #ed_map{
+                #sp_map{
                     fields =
                         [
-                            {map_field_assoc, result, #ed_var{name = 'ResultType'}},
-                            {map_field_assoc, errors, #ed_list{
+                            {map_field_assoc, result, #sp_var{name = 'ResultType'}},
+                            {map_field_assoc, errors, #sp_list{
                                 type =
-                                    #ed_simple_type{
+                                    #sp_simple_type{
                                         type =
                                             atom
                                     }
@@ -39,10 +39,10 @@ result_0_to_json_test() ->
     ),
     ?assertEqual(
         {error, [
-            #ed_error{
+            #sp_error{
                 location = [result],
                 type = type_mismatch,
-                ctx = #{type => #ed_simple_type{type = integer}, value => pelle}
+                ctx = #{type => #sp_simple_type{type = integer}, value => pelle}
             }
         ]},
         to_json_result_0(#{result => pelle, errors => []})
@@ -55,11 +55,11 @@ result_0_from_json_test() ->
     ),
     ?assertEqual(
         {error, [
-            #ed_error{
+            #sp_error{
                 location = [result],
                 type = type_mismatch,
                 ctx =
-                    #{type => #ed_simple_type{type = integer}, value => <<"hej">>}
+                    #{type => #sp_simple_type{type = integer}, value => <<"hej">>}
             }
         ]},
         from_json_result_0(#{<<"result">> => <<"hej">>, <<"errors">> => []})
@@ -67,8 +67,8 @@ result_0_from_json_test() ->
 
 -spec from_json_result_0(term()) -> result().
 from_json_result_0(Data) ->
-    erldantic_json:from_json(?MODULE, {type, result, 0}, Data).
+    spectra_json:from_json(?MODULE, {type, result, 0}, Data).
 
 -spec to_json_result_0(result()) -> json:encode_value().
 to_json_result_0(Data) ->
-    erldantic_json:to_json(?MODULE, {type, result, 0}, Data).
+    spectra_json:to_json(?MODULE, {type, result, 0}, Data).

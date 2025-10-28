@@ -2,8 +2,8 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--include("../include/erldantic.hrl").
--include("../include/erldantic_internal.hrl").
+-include("../include/spectra.hrl").
+-include("../include/spectra_internal.hrl").
 
 -type map_result() :: result(#{atom() => integer()}).
 %-type map_result_2() :: result(#{atom() => integer()}, atom()).
@@ -12,33 +12,33 @@
 %-type result(OkType, ErrorType) :: OkType | ErrorType.
 
 type_in_form_test() ->
-    TypeInfo = erldantic_abstract_code:types_in_module(?MODULE),
-    {ok, MapResultType} = erldantic_type_info:get_type(TypeInfo, map_result, 0),
+    TypeInfo = spectra_abstract_code:types_in_module(?MODULE),
+    {ok, MapResultType} = spectra_type_info:get_type(TypeInfo, map_result, 0),
     ?assertEqual(
-        #ed_user_type_ref{
+        #sp_user_type_ref{
             type_name = result,
             variables =
                 [
-                    #ed_map{
+                    #sp_map{
                         fields =
                             [
-                                {map_field_type_assoc, #ed_simple_type{type = atom},
-                                    #ed_simple_type{type = integer}}
+                                {map_field_type_assoc, #sp_simple_type{type = atom},
+                                    #sp_simple_type{type = integer}}
                             ]
                     }
                 ]
         },
         MapResultType
     ),
-    {ok, ResultType} = erldantic_type_info:get_type(TypeInfo, result, 1),
+    {ok, ResultType} = spectra_type_info:get_type(TypeInfo, result, 1),
     ?assertEqual(
-        #ed_type_with_variables{
+        #sp_type_with_variables{
             type =
-                #ed_union{
+                #sp_union{
                     types =
                         [
-                            #ed_var{name = 'OkType'},
-                            #ed_literal{value = error}
+                            #sp_var{name = 'OkType'},
+                            #sp_literal{value = error}
                         ]
                 },
             vars = ['OkType']
@@ -57,27 +57,27 @@ map1_from_json_test() ->
 map1_to_json_bad_test() ->
     ?assertEqual(
         {error, [
-            #ed_error{
+            #sp_error{
                 location = [],
                 type = no_match,
                 ctx =
                     #{
                         type =>
-                            #ed_union{
+                            #sp_union{
                                 types =
                                     [
-                                        #ed_map{
+                                        #sp_map{
                                             fields =
                                                 [
                                                     {map_field_type_assoc,
-                                                        #ed_simple_type{type = atom},
-                                                        #ed_simple_type{
+                                                        #sp_simple_type{type = atom},
+                                                        #sp_simple_type{
                                                             type =
                                                                 integer
                                                         }}
                                                 ]
                                         },
-                                        #ed_literal{value = error}
+                                        #sp_literal{value = error}
                                     ]
                             },
                         value => #{a1 => hej}
@@ -88,27 +88,27 @@ map1_to_json_bad_test() ->
     ),
     ?assertEqual(
         {error, [
-            #ed_error{
+            #sp_error{
                 location = [],
                 type = no_match,
                 ctx =
                     #{
                         type =>
-                            #ed_union{
+                            #sp_union{
                                 types =
                                     [
-                                        #ed_map{
+                                        #sp_map{
                                             fields =
                                                 [
                                                     {map_field_type_assoc,
-                                                        #ed_simple_type{type = atom},
-                                                        #ed_simple_type{
+                                                        #sp_simple_type{type = atom},
+                                                        #sp_simple_type{
                                                             type =
                                                                 integer
                                                         }}
                                                 ]
                                         },
-                                        #ed_literal{value = error}
+                                        #sp_literal{value = error}
                                     ]
                             },
                         value => pelle
@@ -121,27 +121,27 @@ map1_to_json_bad_test() ->
 map1_from_json_bad_test() ->
     ?assertEqual(
         {error, [
-            #ed_error{
+            #sp_error{
                 location = [],
                 type = no_match,
                 ctx =
                     #{
                         type =>
-                            #ed_union{
+                            #sp_union{
                                 types =
                                     [
-                                        #ed_map{
+                                        #sp_map{
                                             fields =
                                                 [
                                                     {map_field_type_assoc,
-                                                        #ed_simple_type{type = atom},
-                                                        #ed_simple_type{
+                                                        #sp_simple_type{type = atom},
+                                                        #sp_simple_type{
                                                             type =
                                                                 integer
                                                         }}
                                                 ]
                                         },
-                                        #ed_literal{value = error}
+                                        #sp_literal{value = error}
                                     ]
                             },
                         value => #{a1 => hej}
@@ -152,27 +152,27 @@ map1_from_json_bad_test() ->
     ),
     ?assertEqual(
         {error, [
-            #ed_error{
+            #sp_error{
                 location = [],
                 type = no_match,
                 ctx =
                     #{
                         type =>
-                            #ed_union{
+                            #sp_union{
                                 types =
                                     [
-                                        #ed_map{
+                                        #sp_map{
                                             fields =
                                                 [
                                                     {map_field_type_assoc,
-                                                        #ed_simple_type{type = atom},
-                                                        #ed_simple_type{
+                                                        #sp_simple_type{type = atom},
+                                                        #sp_simple_type{
                                                             type =
                                                                 integer
                                                         }}
                                                 ]
                                         },
-                                        #ed_literal{value = error}
+                                        #sp_literal{value = error}
                                     ]
                             },
                         value => pelle
@@ -184,8 +184,8 @@ map1_from_json_bad_test() ->
 
 -spec from_json_result_1(term()) -> map_result().
 from_json_result_1(Data) ->
-    erldantic_json:from_json(?MODULE, {type, map_result, 0}, Data).
+    spectra_json:from_json(?MODULE, {type, map_result, 0}, Data).
 
 -spec to_json_result_1(map_result()) -> json:encode_value().
 to_json_result_1(Data) ->
-    erldantic_json:to_json(?MODULE, {type, map_result, 0}, Data).
+    spectra_json:to_json(?MODULE, {type, map_result, 0}, Data).

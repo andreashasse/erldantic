@@ -2,7 +2,7 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--include("../include/erldantic.hrl").
+-include("../include/spectra.hrl").
 
 -record(address, {street :: string(), city :: string() | undefined}).
 
@@ -34,7 +34,7 @@ validate_weird_union_test() ->
 
     % Test with invalid data
     {error, Errors} = to_json_weird_union(InvalidData),
-    ?assertMatch([#ed_error{type = no_match}], Errors),
+    ?assertMatch([#sp_error{type = no_match}], Errors),
 
     % Test JSON conversion using from_json
     ValidRecordJson = #{<<"street">> => <<"Main St">>, <<"city">> => <<"New York">>},
@@ -66,14 +66,14 @@ validate_weird_union_test() ->
 
     % Test from_json with invalid data
     {error, FromErrors} = from_json_weird_union(InvalidJson),
-    ?assertMatch([#ed_error{type = no_match}], FromErrors).
+    ?assertMatch([#sp_error{type = no_match}], FromErrors).
 
 -spec to_json_weird_union(weird_union()) ->
-    {ok, json:encode_value()} | {error, [erldantic:error()]}.
+    {ok, json:encode_value()} | {error, [spectra:error()]}.
 to_json_weird_union(Data) ->
-    erldantic_json:to_json(?MODULE, {type, weird_union, 0}, Data).
+    spectra_json:to_json(?MODULE, {type, weird_union, 0}, Data).
 
 -spec from_json_weird_union(json:encode_value()) ->
-    {ok, weird_union()} | {error, [erldantic:error()]}.
+    {ok, weird_union()} | {error, [spectra:error()]}.
 from_json_weird_union(Json) ->
-    erldantic_json:from_json(?MODULE, {type, weird_union, 0}, Json).
+    spectra_json:from_json(?MODULE, {type, weird_union, 0}, Json).

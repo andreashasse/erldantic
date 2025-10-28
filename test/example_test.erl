@@ -2,7 +2,7 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--include("../include/erldantic.hrl").
+-include("../include/spectra.hrl").
 
 -ifdef(OTP_RELEASE).
 
@@ -56,17 +56,17 @@ bad_source_json_test() ->
             "             \"verified\":{\"source\":\"a_bad_source\"},\n"
             "             \"sms_capable\":true}]"
         >>,
-    ?assertMatch({error, [#ed_error{}]}, json_to_contacts(BadSourceJson)).
+    ?assertMatch({error, [#sp_error{}]}, json_to_contacts(BadSourceJson)).
 
--spec json_to_contacts(binary()) -> {ok, contacts()} | {error, [erldantic:error()]}.
+-spec json_to_contacts(binary()) -> {ok, contacts()} | {error, [spectra:error()]}.
 json_to_contacts(Json) ->
     Decoded = json:decode(Json),
-    erldantic_json:from_json(?MODULE, {type, contacts, 0}, Decoded).
+    spectra_json:from_json(?MODULE, {type, contacts, 0}, Decoded).
 
--spec contacts_to_json(contacts()) -> binary() | {error, [erldantic:error()]}.
+-spec contacts_to_json(contacts()) -> binary() | {error, [spectra:error()]}.
 contacts_to_json(Contacts) ->
     maybe
-        {ok, Encodeable} ?= erldantic_json:to_json(?MODULE, {type, contacts, 0}, Contacts),
+        {ok, Encodeable} ?= spectra_json:to_json(?MODULE, {type, contacts, 0}, Contacts),
         iolist_to_binary(json:encode(Encodeable))
     end.
 

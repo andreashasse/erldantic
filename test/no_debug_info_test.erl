@@ -33,5 +33,5 @@ cleanup({ModuleName, SourceFile}) ->
 test_module_without_debug_info(ModuleName) ->
     ?_assertError(
         {module_not_compiled_with_debug_info, ModuleName, _},
-        erldantic_abstract_code:types_in_module(ModuleName)
+        spectra_abstract_code:types_in_module(ModuleName)
     ).

@@ -2,8 +2,8 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--include("../include/erldantic.hrl").
--include("../include/erldantic_internal.hrl").
+-include("../include/spectra.hrl").
+-include("../include/spectra_internal.hrl").
 
 -record(person, {name :: string(), age :: integer()}).
 -record(address, {street :: string(), city :: string()}).
@@ -14,45 +14,45 @@
 -type person_t() :: #person{}.
 
 type_in_form_test() ->
-    TypeInfo = erldantic_abstract_code:types_in_module(?MODULE),
+    TypeInfo = spectra_abstract_code:types_in_module(?MODULE),
 
-    {ok, PersonAliasType} = erldantic_type_info:get_type(TypeInfo, person_alias, 0),
+    {ok, PersonAliasType} = spectra_type_info:get_type(TypeInfo, person_alias, 0),
     ?assertMatch(
-        #ed_rec_ref{
+        #sp_rec_ref{
             record_name = person,
             field_types =
                 [
-                    {name, #ed_simple_type{type = string}},
-                    {age, #ed_simple_type{type = integer}}
+                    {name, #sp_simple_type{type = string}},
+                    {age, #sp_simple_type{type = integer}}
                 ]
         },
         PersonAliasType
     ),
 
-    {ok, AddressAliasType} = erldantic_type_info:get_type(TypeInfo, address_alias, 0),
+    {ok, AddressAliasType} = spectra_type_info:get_type(TypeInfo, address_alias, 0),
     ?assertMatch(
-        #ed_rec_ref{
+        #sp_rec_ref{
             record_name = address,
             field_types =
                 [
-                    {street, #ed_simple_type{type = string}},
-                    {city, #ed_simple_type{type = string}}
+                    {street, #sp_simple_type{type = string}},
+                    {city, #sp_simple_type{type = string}}
                 ]
         },
         AddressAliasType
     ),
 
-    {ok, PersonNewAgeType} = erldantic_type_info:get_type(TypeInfo, person_new_age, 0),
+    {ok, PersonNewAgeType} = spectra_type_info:get_type(TypeInfo, person_new_age, 0),
     ?assertMatch(
-        #ed_rec_ref{
+        #sp_rec_ref{
             record_name = person,
-            field_types = [{age, #ed_simple_type{type = non_neg_integer}}]
+            field_types = [{age, #sp_simple_type{type = non_neg_integer}}]
         },
         PersonNewAgeType
     ),
 
-    {ok, PersonTType} = erldantic_type_info:get_type(TypeInfo, person_t, 0),
-    ?assertMatch(#ed_rec_ref{record_name = person, field_types = []}, PersonTType).
+    {ok, PersonTType} = spectra_type_info:get_type(TypeInfo, person_t, 0),
+    ?assertMatch(#sp_rec_ref{record_name = person, field_types = []}, PersonTType).
 
 to_json_person_record_test() ->
     Person = #person{name = "John", age = 30},
@@ -60,7 +60,7 @@ to_json_person_record_test() ->
 
 to_json_person_record_bad_test() ->
     NotPersonArity = {person, "John"},
-    ?assertMatch({error, [#ed_error{type = type_mismatch}]}, to_json_person(NotPersonArity)).
+    ?assertMatch({error, [#sp_error{type = type_mismatch}]}, to_json_person(NotPersonArity)).
 
 from_json_person_record_test() ->
     Person = #{<<"name">> => <<"John">>, <<"age">> => 30},
@@ -74,12 +74,12 @@ to_json_person_alias_bad_test() ->
     Person = #person{name = "John", age = "not_an_integer"},
     ?assertEqual(
         {error, [
-            #ed_error{
+            #sp_error{
                 location = [age],
                 type = type_mismatch,
                 ctx =
                     #{
-                        type => #ed_simple_type{type = integer},
+                        type => #sp_simple_type{type = integer},
                         value => "not_an_integer"
                     }
             }
@@ -95,11 +95,11 @@ to_json_person_new_age_bad_test() ->
     Person = #person{name = "John", age = -1},
     ?assertEqual(
         {error, [
-            #ed_error{
+            #sp_error{
                 location = [age],
                 type = type_mismatch,
                 ctx =
-                    #{type => #ed_simple_type{type = non_neg_integer}, value => -1}
+                    #{type => #sp_simple_type{type = non_neg_integer}, value => -1}
             }
         ]},
         to_json_person_new_age(Person)
@@ -117,12 +117,12 @@ from_json_person_alias_bad_test() ->
     Json = #{<<"name">> => <<"John">>, <<"age">> => <<"not_an_integer">>},
     ?assertEqual(
         {error, [
-            #ed_error{
+            #sp_error{
                 location = [age],
                 type = type_mismatch,
                 ctx =
                     #{
-                        type => #ed_simple_type{type = integer},
+                        type => #sp_simple_type{type = integer},
                         value => <<"not_an_integer">>
                     }
             }
@@ -138,11 +138,11 @@ from_json_person_new_age_bad_test() ->
     Json = #{<<"name">> => <<"John">>, <<"age">> => -1},
     ?assertEqual(
         {error, [
-            #ed_error{
+            #sp_error{
                 location = [age],
                 type = type_mismatch,
                 ctx =
-                    #{type => #ed_simple_type{type = non_neg_integer}, value => -1}
+                    #{type => #sp_simple_type{type = non_neg_integer}, value => -1}
             }
         ]},
         from_json_person_new_age(Json)
@@ -156,12 +156,12 @@ from_json_person_t_bad_test() ->
     Json = #{<<"name">> => <<"John">>, <<"age">> => <<"not_an_integer">>},
     ?assertEqual(
         {error, [
-            #ed_error{
+            #sp_error{
                 location = [age],
                 type = type_mismatch,
                 ctx =
                     #{
-                        type => #ed_simple_type{type = integer},
+                        type => #sp_simple_type{type = integer},
                         value => <<"not_an_integer">>
                     }
             }
@@ -184,49 +184,49 @@ from_json_address_alias_test() ->
     ).
 
 -spec to_json_person_new_age(person_new_age()) ->
-    {ok, json:encode_value()} | {error, [erldantic:error()]}.
+    {ok, json:encode_value()} | {error, [spectra:error()]}.
 to_json_person_new_age(Data) ->
-    erldantic_json:to_json(?MODULE, {type, person_new_age, 0}, Data).
+    spectra_json:to_json(?MODULE, {type, person_new_age, 0}, Data).
 
 -spec to_json_person_t(person_t()) ->
-    {ok, json:encode_value()} | {error, [erldantic:error()]}.
+    {ok, json:encode_value()} | {error, [spectra:error()]}.
 to_json_person_t(Data) ->
-    erldantic_json:to_json(?MODULE, {type, person_t, 0}, Data).
+    spectra_json:to_json(?MODULE, {type, person_t, 0}, Data).
 
 -spec to_json_person(#person{}) ->
-    {ok, json:encode_value()} | {error, [erldantic:error()]}.
+    {ok, json:encode_value()} | {error, [spectra:error()]}.
 to_json_person(Person) ->
-    erldantic_json:to_json(?MODULE, {record, person}, Person).
+    spectra_json:to_json(?MODULE, {record, person}, Person).
 
 -spec from_json_person(json:decode_value()) ->
-    {ok, #person{}} | {error, [erldantic:error()]}.
+    {ok, #person{}} | {error, [spectra:error()]}.
 from_json_person(Person) ->
-    erldantic_json:from_json(?MODULE, {record, person}, Person).
+    spectra_json:from_json(?MODULE, {record, person}, Person).
 
--spec to_json_person_alias(term()) -> {ok, person_alias()} | {error, [erldantic:error()]}.
+-spec to_json_person_alias(term()) -> {ok, person_alias()} | {error, [spectra:error()]}.
 to_json_person_alias(Data) ->
-    erldantic_json:to_json(?MODULE, {type, person_alias, 0}, Data).
+    spectra_json:to_json(?MODULE, {type, person_alias, 0}, Data).
 
 -spec from_json_person_new_age(term()) ->
-    {ok, person_new_age()} | {error, [erldantic:error()]}.
+    {ok, person_new_age()} | {error, [spectra:error()]}.
 from_json_person_new_age(Data) ->
-    erldantic_json:from_json(?MODULE, {type, person_new_age, 0}, Data).
+    spectra_json:from_json(?MODULE, {type, person_new_age, 0}, Data).
 
--spec from_json_person_t(term()) -> {ok, person_t()} | {error, [erldantic:error()]}.
+-spec from_json_person_t(term()) -> {ok, person_t()} | {error, [spectra:error()]}.
 from_json_person_t(Data) ->
-    erldantic_json:from_json(?MODULE, {type, person_t, 0}, Data).
+    spectra_json:from_json(?MODULE, {type, person_t, 0}, Data).
 
 -spec from_json_person_alias(term()) ->
-    {ok, person_alias()} | {error, [erldantic:error()]}.
+    {ok, person_alias()} | {error, [spectra:error()]}.
 from_json_person_alias(Data) ->
-    erldantic_json:from_json(?MODULE, {type, person_alias, 0}, Data).
+    spectra_json:from_json(?MODULE, {type, person_alias, 0}, Data).
 
 -spec to_json_address_alias(term()) ->
-    {ok, address_alias()} | {error, [erldantic:error()]}.
+    {ok, address_alias()} | {error, [spectra:error()]}.
 to_json_address_alias(Data) ->
-    erldantic_json:to_json(?MODULE, {type, address_alias, 0}, Data).
+    spectra_json:to_json(?MODULE, {type, address_alias, 0}, Data).
 
 -spec from_json_address_alias(term()) ->
-    {ok, address_alias()} | {error, [erldantic:error()]}.
+    {ok, address_alias()} | {error, [spectra:error()]}.
 from_json_address_alias(Data) ->
-    erldantic_json:from_json(?MODULE, {type, address_alias, 0}, Data).
+    spectra_json:from_json(?MODULE, {type, address_alias, 0}, Data).

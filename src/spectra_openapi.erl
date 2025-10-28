@@ -1,4 +1,4 @@
--module(erldantic_openapi).
+-module(spectra_openapi).
 
 -export([
     endpoint/2,
@@ -12,19 +12,19 @@
 ]).
 
 -ignore_xref([
-    {erldantic_openapi, endpoint, 2},
-    {erldantic_openapi, with_request_body, 3},
-    {erldantic_openapi, with_request_body, 4},
-    {erldantic_openapi, with_parameter, 3},
-    {erldantic_openapi, endpoints_to_openapi, 2},
-    {erldantic_openapi, response, 2},
-    {erldantic_openapi, response_with_body, 3},
-    {erldantic_openapi, response_with_body, 4},
-    {erldantic_openapi, response_with_header, 4},
-    {erldantic_openapi, add_response, 2}
+    {spectra_openapi, endpoint, 2},
+    {spectra_openapi, with_request_body, 3},
+    {spectra_openapi, with_request_body, 4},
+    {spectra_openapi, with_parameter, 3},
+    {spectra_openapi, endpoints_to_openapi, 2},
+    {spectra_openapi, response, 2},
+    {spectra_openapi, response_with_body, 3},
+    {spectra_openapi, response_with_body, 4},
+    {spectra_openapi, response_with_header, 4},
+    {spectra_openapi, add_response, 2}
 ]).
 
--include("../include/erldantic.hrl").
+-include("../include/spectra.hrl").
 
 -compile(nowarn_unused_type).
 
@@ -36,7 +36,7 @@
 -type openapi_schema() :: json:encode_value() | #{'$ref' := binary()}.
 -type request_body_spec() ::
     #{
-        schema := erldantic:ed_type_or_ref(),
+        schema := spectra:sp_type_or_ref(),
         module := module(),
         content_type => binary()
     }.
@@ -44,19 +44,19 @@
     #{
         description => binary(),
         required => boolean(),
-        schema := erldantic:ed_type_or_ref()
+        schema := spectra:sp_type_or_ref()
     }.
 -type response_header_spec() ::
     #{
         description => binary(),
         required => boolean(),
-        schema := erldantic:ed_type_or_ref(),
+        schema := spectra:sp_type_or_ref(),
         module := module()
     }.
 -type response_spec() ::
     #{
         description := binary(),
-        schema => erldantic:ed_type_or_ref(),
+        schema => spectra:sp_type_or_ref(),
         module => module(),
         status_code => http_status_code(),
         content_type => binary(),
@@ -67,7 +67,7 @@
         name := binary(),
         in := parameter_location(),
         required := boolean(),
-        schema := erldantic:ed_type_or_ref(),
+        schema := spectra:sp_type_or_ref(),
         module := module()
     }.
 -type openapi_metadata() :: #{title := binary(), version := binary()}.
@@ -149,10 +149,10 @@ before being added to an endpoint using add_response/2.
 
 ### Example
 ```erlang
-Response = erldantic_openapi:response(200, <<"Success">>),
-Response2 = erldantic_openapi:response_with_body(Response, Module, Schema),
-Response3 = erldantic_openapi:response_with_header(Response2, <<"X-Rate-Limit">>, Module, HeaderSpec),
-Endpoint = erldantic_openapi:add_response(Endpoint1, Response3).
+Response = spectra_openapi:response(200, <<"Success">>),
+Response2 = spectra_openapi:response_with_body(Response, Module, Schema),
+Response3 = spectra_openapi:response_with_header(Response2, <<"X-Rate-Limit">>, Module, HeaderSpec),
+Endpoint = spectra_openapi:add_response(Endpoint1, Response3).
 ```
 
 ### Returns
@@ -181,10 +181,10 @@ response/2, response_with_body/3-4, and response_with_header/4.
 
 ### Example
 ```erlang
-Response = erldantic_openapi:response(200, <<"Success">>),
-Response2 = erldantic_openapi:response_with_body(Response, Module, Schema),
-Response3 = erldantic_openapi:response_with_header(Response2, <<"X-Rate-Limit">>, Module, HeaderSpec),
-Endpoint = erldantic_openapi:add_response(Endpoint1, Response3).
+Response = spectra_openapi:response(200, <<"Success">>),
+Response2 = spectra_openapi:response_with_body(Response, Module, Schema),
+Response3 = spectra_openapi:response_with_header(Response2, <<"X-Rate-Limit">>, Module, HeaderSpec),
+Endpoint = spectra_openapi:add_response(Endpoint1, Response3).
 ```
 
 ### Returns
@@ -219,14 +219,14 @@ Updated response builder with body schema added
         #{
             "Module" => "Module containing the type definition",
             "Response" => "Response builder created with response/2",
-            "Schema" => "Schema reference or direct type (erldantic:ed_type_or_ref())"
+            "Schema" => "Schema reference or direct type (spectra:sp_type_or_ref())"
         }
 }.
 
 -spec response_with_body(
     Response :: response_spec(),
     Module :: module(),
-    Schema :: erldantic:ed_type_or_ref()
+    Schema :: spectra:sp_type_or_ref()
 ) ->
     response_spec().
 response_with_body(Response, Module, Schema) when
@@ -250,14 +250,14 @@ Updated response builder with body schema and content type added
                 "Content type for the response body (e.g., \"application/json\", \"application/xml\")",
             "Module" => "Module containing the type definition",
             "Response" => "Response builder created with response/2",
-            "Schema" => "Schema reference or direct type (erldantic:ed_type_or_ref())"
+            "Schema" => "Schema reference or direct type (spectra:sp_type_or_ref())"
         }
 }.
 
 -spec response_with_body(
     Response :: response_spec(),
     Module :: module(),
-    Schema :: erldantic:ed_type_or_ref(),
+    Schema :: spectra:sp_type_or_ref(),
     ContentType :: binary()
 ) ->
     response_spec().
@@ -320,14 +320,14 @@ Updated endpoint map with request body set
         #{
             "Endpoint" => "Endpoint map to add the request body to",
             "Module" => "Module containing the type definition",
-            "Schema" => "Schema reference or direct type (erldantic:ed_type_or_ref())"
+            "Schema" => "Schema reference or direct type (spectra:sp_type_or_ref())"
         }
 }.
 
 -spec with_request_body(
     Endpoint :: endpoint_spec(),
     Module :: module(),
-    Schema :: erldantic:ed_type_or_ref()
+    Schema :: spectra:sp_type_or_ref()
 ) ->
     endpoint_spec().
 with_request_body(Endpoint, Module, Schema) when
@@ -351,14 +351,14 @@ Updated endpoint map with request body set
                 "Content type for the request body (e.g., \"application/json\", \"application/xml\")",
             "Endpoint" => "Endpoint map to add the request body to",
             "Module" => "Module containing the type definition",
-            "Schema" => "Schema reference or direct type (erldantic:ed_type_or_ref())"
+            "Schema" => "Schema reference or direct type (spectra:sp_type_or_ref())"
         }
 }.
 
 -spec with_request_body(
     Endpoint :: endpoint_spec(),
     Module :: module(),
-    Schema :: erldantic:ed_type_or_ref(),
+    Schema :: spectra:sp_type_or_ref(),
     ContentType :: binary()
 ) ->
     endpoint_spec().
@@ -385,7 +385,7 @@ The parameter spec should be a map with these keys:
 - name: Parameter name (binary)
 - in: Parameter location (path | query | header | cookie)
 - required: Whether the parameter is required (boolean)
-- schema: Schema reference or direct type (erldantic:ed_type_or_ref())
+- schema: Schema reference or direct type (spectra:sp_type_or_ref())
 
 ### Returns
 Updated endpoint map with the new parameter added
@@ -437,7 +437,7 @@ with paths, operations, and component schemas.
     MetaData :: openapi_metadata(),
     Endpoints :: [endpoint_spec()]
 ) ->
-    {ok, json:encode_value()} | {error, [erldantic:error()]}.
+    {ok, json:encode_value()} | {error, [spectra:error()]}.
 endpoints_to_openapi(MetaData, Endpoints) when is_list(Endpoints) ->
     PathGroups = group_endpoints_by_path(Endpoints),
     Paths =
@@ -464,7 +464,7 @@ endpoints_to_openapi(MetaData, Endpoints) when is_list(Endpoints) ->
                     paths => Paths,
                     components => ComponentsResult
                 },
-            erldantic_json:to_json(?MODULE, {type, openapi_spec, 0}, OpenAPISpec);
+            spectra_json:to_json(?MODULE, {type, openapi_spec, 0}, OpenAPISpec);
         {error, _} = Err ->
             Err
     end.
@@ -554,7 +554,7 @@ generate_response(#{description := Description} = ResponseSpec) when
                 %% Schema without module should not happen, but handle defensively
                 #{description => Description};
             {Schema, Module} ->
-                ModuleTypeInfo = erldantic_abstract_code:types_in_module(Module),
+                ModuleTypeInfo = spectra_abstract_code:types_in_module(Module),
                 SchemaContent =
                     case Schema of
                         {type, Name, Arity} ->
@@ -565,7 +565,7 @@ generate_response(#{description := Description} = ResponseSpec) when
                             #{'$ref' => <<"#/components/schemas/", SchemaName/binary>>};
                         DirectType ->
                             {ok, InlineSchema} =
-                                erldantic_json_schema:to_schema(ModuleTypeInfo, DirectType),
+                                spectra_json_schema:to_schema(ModuleTypeInfo, DirectType),
                             InlineSchema
                     end,
                 ContentType = maps:get(content_type, ResponseSpec, ?DEFAULT_CONTENT_TYPE),
@@ -590,8 +590,8 @@ generate_response(#{description := Description} = ResponseSpec) when
 
 -spec generate_response_header(response_header_spec()) -> openapi_header().
 generate_response_header(#{schema := Schema, module := Module} = HeaderSpec) ->
-    ModuleTypeInfo = erldantic_abstract_code:types_in_module(Module),
-    {ok, InlineSchema} = erldantic_json_schema:to_schema(ModuleTypeInfo, Schema),
+    ModuleTypeInfo = spectra_abstract_code:types_in_module(Module),
+    {ok, InlineSchema} = spectra_json_schema:to_schema(ModuleTypeInfo, Schema),
 
     BaseHeader = #{schema => InlineSchema},
 
@@ -614,7 +614,7 @@ generate_response_header(#{schema := Schema, module := Module} = HeaderSpec) ->
 
 -spec generate_request_body(request_body_spec()) -> openapi_request_body().
 generate_request_body(#{schema := Schema, module := Module} = RequestBodySpec) ->
-    ModuleTypeInfo = erldantic_abstract_code:types_in_module(Module),
+    ModuleTypeInfo = spectra_abstract_code:types_in_module(Module),
     SchemaContent =
         case Schema of
             {type, Name, Arity} ->
@@ -624,7 +624,7 @@ generate_request_body(#{schema := Schema, module := Module} = RequestBodySpec) -
                 SchemaName = type_ref_to_component_name({record, Name}),
                 #{'$ref' => <<"#/components/schemas/", SchemaName/binary>>};
             DirectType ->
-                {ok, InlineSchema} = erldantic_json_schema:to_schema(ModuleTypeInfo, DirectType),
+                {ok, InlineSchema} = spectra_json_schema:to_schema(ModuleTypeInfo, DirectType),
                 InlineSchema
         end,
 
@@ -643,10 +643,10 @@ generate_parameter(
 ) when
     is_binary(Name)
 ->
-    ModuleTypeInfo = erldantic_abstract_code:types_in_module(Module),
+    ModuleTypeInfo = spectra_abstract_code:types_in_module(Module),
     Required = maps:get(required, ParameterSpec, false),
 
-    {ok, InlineSchema} = erldantic_json_schema:to_schema(ModuleTypeInfo, Schema),
+    {ok, InlineSchema} = spectra_json_schema:to_schema(ModuleTypeInfo, Schema),
 
     #{
         name => Name,
@@ -655,7 +655,7 @@ generate_parameter(
         schema => InlineSchema
     }.
 
--spec collect_schema_refs([endpoint_spec()]) -> [{module(), erldantic:ed_type_or_ref()}].
+-spec collect_schema_refs([endpoint_spec()]) -> [{module(), spectra:sp_type_or_ref()}].
 collect_schema_refs(Endpoints) ->
     lists:foldl(
         fun(Endpoint, Acc) ->
@@ -667,7 +667,7 @@ collect_schema_refs(Endpoints) ->
     ).
 
 -spec collect_endpoint_schema_refs(endpoint_spec()) ->
-    [{module(), erldantic:ed_type_or_ref()}].
+    [{module(), spectra:sp_type_or_ref()}].
 collect_endpoint_schema_refs(
     #{responses := Responses, parameters := Parameters} =
         Endpoint
@@ -678,7 +678,7 @@ collect_endpoint_schema_refs(
             undefined ->
                 [];
             #{schema := Schema, module := Module} ->
-                case erldantic_type:is_type_reference(Schema) of
+                case spectra_type:is_type_reference(Schema) of
                     true ->
                         [{Module, Schema}];
                     false ->
@@ -690,7 +690,7 @@ collect_endpoint_schema_refs(
     ResponseRefs ++ RequestBodyRefs ++ ParameterRefs.
 
 -spec collect_response_refs(#{http_status_code() => response_spec()}) ->
-    [{module(), erldantic:ed_type_or_ref()}].
+    [{module(), spectra:sp_type_or_ref()}].
 collect_response_refs(Responses) ->
     maps:fold(
         fun(_StatusCode, ResponseSpec, Acc) ->
@@ -707,7 +707,7 @@ collect_response_refs(Responses) ->
                     %% Schema without module should not happen
                     Acc;
                 {Schema, Module} ->
-                    case erldantic_type:is_type_reference(Schema) of
+                    case spectra_type:is_type_reference(Schema) of
                         true ->
                             [{Module, Schema} | Acc];
                         false ->
@@ -720,11 +720,11 @@ collect_response_refs(Responses) ->
     ).
 
 -spec collect_parameter_refs([parameter_spec()]) ->
-    [{module(), erldantic:ed_type_or_ref()}].
+    [{module(), spectra:sp_type_or_ref()}].
 collect_parameter_refs(Parameters) ->
     lists:filtermap(
         fun(#{schema := Schema, module := Module}) ->
-            case erldantic_type:is_type_reference(Schema) of
+            case spectra_type:is_type_reference(Schema) of
                 true ->
                     {true, {Module, Schema}};
                 false ->
@@ -734,16 +734,16 @@ collect_parameter_refs(Parameters) ->
         Parameters
     ).
 
--spec generate_components([{module(), erldantic:ed_type_or_ref()}]) ->
+-spec generate_components([{module(), spectra:sp_type_or_ref()}]) ->
     {ok, #{schemas => #{binary() => openapi_schema()}}}
-    | {error, [erldantic:error()]}.
+    | {error, [spectra:error()]}.
 generate_components(SchemaRefs) ->
     case
-        erldantic_util:fold_until_error(
+        spectra_util:fold_until_error(
             fun({Module, TypeRef}, Acc) ->
                 case
-                    erldantic_json_schema:to_schema(
-                        erldantic_abstract_code:types_in_module(Module),
+                    spectra_json_schema:to_schema(
+                        spectra_abstract_code:types_in_module(Module),
                         TypeRef
                     )
                 of
@@ -772,7 +772,7 @@ generate_components(SchemaRefs) ->
             Error
     end.
 
--spec type_ref_to_component_name(erldantic:ed_type_reference()) -> binary().
+-spec type_ref_to_component_name(spectra:sp_type_reference()) -> binary().
 type_ref_to_component_name({type, TypeName, Arity}) ->
     TypeStr = atom_to_list(TypeName),
     Words = string:split(TypeStr, "_", all),

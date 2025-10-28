@@ -1,6 +1,6 @@
 defmodule TestUserStruct do
   @moduledoc """
-  Test Elixir struct for erldantic struct handling.
+  Test Elixir struct for spectra struct handling.
   """
 
   defstruct [:name, :age, :email]

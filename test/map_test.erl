@@ -2,8 +2,8 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--include("../include/erldantic.hrl").
--include("../include/erldantic_internal.hrl").
+-include("../include/spectra.hrl").
+-include("../include/spectra_internal.hrl").
 
 -type atom_map() :: #{a1 := integer(), atom() => atom()}.
 -type atom_map2() :: #{a1 => 1, atom() => atom()}.
@@ -24,16 +24,16 @@ map1_test() ->
 map1_bad_test() ->
     ?assertEqual(
         {error, [
-            #ed_error{
+            #sp_error{
                 location = [a1],
                 type = type_mismatch,
-                ctx = #{type => #ed_simple_type{type = integer}, value => hej}
+                ctx = #{type => #sp_simple_type{type = integer}, value => hej}
             }
         ]},
         to_json_atom_map(#{a1 => hej})
     ),
     ?assertMatch(
-        {error, [#ed_error{type = type_mismatch}]},
+        {error, [#sp_error{type = type_mismatch}]},
         to_json_atom_map(<<"not_a_map">>)
     ).
 
@@ -46,17 +46,17 @@ map2_test() ->
 map2_bad_test() ->
     ?assertEqual(
         {error, [
-            #ed_error{
+            #sp_error{
                 location = [a1],
                 type = type_mismatch,
-                ctx = #{type => #ed_literal{value = 1}, value => should_not_work}
+                ctx = #{type => #sp_literal{value = 1}, value => should_not_work}
             }
         ]},
         to_json_atom_map2(#{a1 => should_not_work, other => value2})
     ),
     ?assertMatch(
         {error, [
-            #ed_error{
+            #sp_error{
                 location = [a1],
                 type = type_mismatch,
                 ctx = #{value := "hej"}
@@ -70,7 +70,7 @@ map3_test() ->
 
 map3_bad_test() ->
     ?assertEqual(
-        {error, [#ed_error{location = [a1], type = missing_data}]},
+        {error, [#sp_error{location = [a1], type = missing_data}]},
         to_json_atom_map3(#{not_a1 => kalle})
     ).
 
@@ -83,10 +83,10 @@ type_shaddow_literal_map_test() ->
 type_shaddow_literal_map_bad_test() ->
     ?assertEqual(
         {error, [
-            #ed_error{
+            #sp_error{
                 location = [a1],
                 type = type_mismatch,
-                ctx = #{type => #ed_simple_type{type = atom}, value => 1}
+                ctx = #{type => #sp_simple_type{type = atom}, value => 1}
             }
         ]},
         to_json_type_shaddow_literal_map(#{a1 => 1, some_atom => some_value})
@@ -103,23 +103,23 @@ mandatory_type_map_test() ->
 mandatory_type_map_bad_test() ->
     ?assertEqual(
         {error, [
-            #ed_error{
+            #sp_error{
                 location = [a1],
                 type = type_mismatch,
-                ctx = #{type => #ed_simple_type{type = atom}, value => 1}
+                ctx = #{type => #sp_simple_type{type = atom}, value => 1}
             }
         ]},
         to_json_mandatory_type_map(#{a1 => 1})
     ),
     ?assertEqual(
         {error, [
-            #ed_error{
+            #sp_error{
                 location = [],
                 type = not_matched_fields,
                 ctx =
                     #{
                         type =>
-                            {map_field_type_exact, #ed_simple_type{type = atom}, #ed_simple_type{
+                            {map_field_type_exact, #sp_simple_type{type = atom}, #sp_simple_type{
                                 type = atom
                             }}
                     }
@@ -134,12 +134,12 @@ from_json_map1_test() ->
 from_json_map1_bad_test() ->
     ?assertEqual(
         {error, [
-            #ed_error{
+            #sp_error{
                 location = [a1],
                 type = type_mismatch,
                 ctx =
                     #{
-                        type => #ed_simple_type{type = integer},
+                        type => #sp_simple_type{type = integer},
                         value => <<"not_an_integer">>
                     }
             }
@@ -147,7 +147,7 @@ from_json_map1_bad_test() ->
         from_json_atom_map(#{<<"a1">> => <<"not_an_integer">>})
     ),
     ?assertMatch(
-        {error, [#ed_error{type = type_mismatch}]},
+        {error, [#sp_error{type = type_mismatch}]},
         from_json_atom_map(<<"not_a_map">>)
     ).
 
@@ -160,10 +160,10 @@ from_json_map2_test() ->
 from_json_map2_bad_test() ->
     ?assertEqual(
         {error, [
-            #ed_error{
+            #sp_error{
                 location = [a1],
                 type = type_mismatch,
-                ctx = #{type => #ed_literal{value = 1}, value => 2}
+                ctx = #{type => #sp_literal{value = 1}, value => 2}
             }
         ]},
         from_json_atom_map2(#{<<"a1">> => 2, <<"other">> => <<"value2">>})
@@ -174,7 +174,7 @@ from_json_map3_test() ->
 
 from_json_map3_bad_test() ->
     ?assertEqual(
-        {error, [#ed_error{location = [a1], type = missing_data}]},
+        {error, [#sp_error{location = [a1], type = missing_data}]},
         from_json_atom_map3(#{<<"not_a1">> => <<"kalle">>})
     ).
 
@@ -190,10 +190,10 @@ from_json_type_shaddow_literal_map_test() ->
 from_json_type_shaddow_literal_map_bad_test() ->
     ?assertEqual(
         {error, [
-            #ed_error{
+            #sp_error{
                 location = [],
                 type = type_mismatch,
-                ctx = #{type => #ed_simple_type{type = map}, value => not_a_map}
+                ctx = #{type => #sp_simple_type{type = map}, value => not_a_map}
             }
         ]},
         from_json_type_shaddow_literal_map(not_a_map)
@@ -216,10 +216,10 @@ from_json_mandatory_type_map_test() ->
 from_json_mandatory_type_map_bad_test() ->
     ?assertEqual(
         {error, [
-            #ed_error{
+            #sp_error{
                 location = [],
                 type = type_mismatch,
-                ctx = #{type => #ed_simple_type{type = map}, value => []}
+                ctx = #{type => #sp_simple_type{type = map}, value => []}
             }
         ]},
         from_json_mandatory_type_map([])
@@ -238,20 +238,20 @@ empty_map_test() ->
 empty_map_bad_test() ->
     ?assertEqual(
         {error, [
-            #ed_error{
+            #sp_error{
                 location = [],
                 type = type_mismatch,
-                ctx = #{type => #ed_simple_type{type = map}, value => not_a_map}
+                ctx = #{type => #sp_simple_type{type = map}, value => not_a_map}
             }
         ]},
         to_json_empty_map(not_a_map)
     ),
     ?assertEqual(
         {error, [
-            #ed_error{
+            #sp_error{
                 location = [],
                 type = type_mismatch,
-                ctx = #{type => #ed_simple_type{type = map}, value => []}
+                ctx = #{type => #sp_simple_type{type = map}, value => []}
             }
         ]},
         to_json_empty_map([])
@@ -276,20 +276,20 @@ from_json_empty_map_test() ->
 from_json_empty_map_bad_test() ->
     ?assertEqual(
         {error, [
-            #ed_error{
+            #sp_error{
                 location = [],
                 type = type_mismatch,
-                ctx = #{type => #ed_simple_type{type = map}, value => not_a_map}
+                ctx = #{type => #sp_simple_type{type = map}, value => not_a_map}
             }
         ]},
         from_json_empty_map(not_a_map)
     ),
     ?assertEqual(
         {error, [
-            #ed_error{
+            #sp_error{
                 location = [],
                 type = type_mismatch,
-                ctx = #{type => #ed_simple_type{type = map}, value => []}
+                ctx = #{type => #sp_simple_type{type = map}, value => []}
             }
         ]},
         from_json_empty_map([])
@@ -358,7 +358,7 @@ map_in_map_value_test() ->
 map_in_map_value_bad_test() ->
     ?assertEqual(
         {error, [
-            #ed_error{
+            #sp_error{
                 location = [hej],
                 type = not_matched_fields,
                 ctx = #{key => <<"key1">>, value => <<"not_integer">>}
@@ -367,7 +367,7 @@ map_in_map_value_bad_test() ->
         to_json_map_in_map_value(#{hej => #{<<"key1">> => <<"not_integer">>}})
     ),
     ?assertMatch(
-        {error, [#ed_error{type = type_mismatch}]},
+        {error, [#sp_error{type = type_mismatch}]},
         to_json_map_in_map_value(not_a_map)
     ).
 
@@ -380,10 +380,10 @@ map_in_map_key_test() ->
 map_in_map_key_bad_test() ->
     ?assertEqual(
         {error, [
-            #ed_error{
+            #sp_error{
                 location = [],
                 type = type_mismatch,
-                ctx = #{type => #ed_simple_type{type = map}, value => not_a_map}
+                ctx = #{type => #sp_simple_type{type = map}, value => not_a_map}
             }
         ]},
         to_json_map_in_map_key(not_a_map)
@@ -401,12 +401,12 @@ from_json_map_in_map_value_test() ->
 from_json_map_in_map_value_bad_test() ->
     ?assertEqual(
         {error, [
-            #ed_error{
+            #sp_error{
                 location = [hej, <<"key1">>],
                 type = type_mismatch,
                 ctx =
                     #{
-                        type => #ed_simple_type{type = integer},
+                        type => #sp_simple_type{type = integer},
                         value => <<"not_integer">>
                     }
             }
@@ -414,14 +414,14 @@ from_json_map_in_map_value_bad_test() ->
         from_json_map_in_map_value(#{<<"hej">> => #{<<"key1">> => <<"not_integer">>}})
     ),
     ?assertMatch(
-        {error, [#ed_error{type = type_mismatch}]},
+        {error, [#sp_error{type = type_mismatch}]},
         from_json_map_in_map_value(not_a_map)
     ).
 
 from_json_map_in_map_key_test() ->
     ?assertMatch(
         {error, [
-            #ed_error{
+            #sp_error{
                 type = not_matched_fields,
                 ctx = #{value := <<"value">>, key := <<"key">>}
             }
@@ -430,115 +430,115 @@ from_json_map_in_map_key_test() ->
     ).
 
 -spec to_json_mandatory_type_map(term()) ->
-    {ok, mandatory_type_map()} | {error, [erldantic:error()]}.
+    {ok, mandatory_type_map()} | {error, [spectra:error()]}.
 to_json_mandatory_type_map(Data) ->
-    erldantic_json:to_json(?MODULE, {type, mandatory_type_map, 0}, Data).
+    spectra_json:to_json(?MODULE, {type, mandatory_type_map, 0}, Data).
 
--spec to_json_atom_map(term()) -> {ok, atom_map()} | {error, [erldantic:error()]}.
+-spec to_json_atom_map(term()) -> {ok, atom_map()} | {error, [spectra:error()]}.
 to_json_atom_map(Data) ->
-    erldantic_json:to_json(?MODULE, {type, atom_map, 0}, Data).
+    spectra_json:to_json(?MODULE, {type, atom_map, 0}, Data).
 
--spec to_json_atom_map2(term()) -> {ok, atom_map2()} | {error, [erldantic:error()]}.
+-spec to_json_atom_map2(term()) -> {ok, atom_map2()} | {error, [spectra:error()]}.
 to_json_atom_map2(Data) ->
-    erldantic_json:to_json(?MODULE, {type, atom_map2, 0}, Data).
+    spectra_json:to_json(?MODULE, {type, atom_map2, 0}, Data).
 
--spec to_json_atom_map3(term()) -> {ok, atom_map3()} | {error, [erldantic:error()]}.
+-spec to_json_atom_map3(term()) -> {ok, atom_map3()} | {error, [spectra:error()]}.
 to_json_atom_map3(Data) ->
-    erldantic_json:to_json(?MODULE, {type, atom_map3, 0}, Data).
+    spectra_json:to_json(?MODULE, {type, atom_map3, 0}, Data).
 
 -spec to_json_type_shaddow_literal_map(term()) ->
     {ok, type_shaddow_literal_map()}
-    | {error, [erldantic:error()]}.
+    | {error, [spectra:error()]}.
 to_json_type_shaddow_literal_map(Data) ->
-    erldantic_json:to_json(?MODULE, {type, type_shaddow_literal_map, 0}, Data).
+    spectra_json:to_json(?MODULE, {type, type_shaddow_literal_map, 0}, Data).
 
--spec from_json_atom_map(term()) -> {ok, atom_map()} | {error, [erldantic:error()]}.
+-spec from_json_atom_map(term()) -> {ok, atom_map()} | {error, [spectra:error()]}.
 from_json_atom_map(Data) ->
-    erldantic_json:from_json(?MODULE, {type, atom_map, 0}, Data).
+    spectra_json:from_json(?MODULE, {type, atom_map, 0}, Data).
 
--spec from_json_atom_map2(term()) -> {ok, atom_map2()} | {error, [erldantic:error()]}.
+-spec from_json_atom_map2(term()) -> {ok, atom_map2()} | {error, [spectra:error()]}.
 from_json_atom_map2(Data) ->
-    erldantic_json:from_json(?MODULE, {type, atom_map2, 0}, Data).
+    spectra_json:from_json(?MODULE, {type, atom_map2, 0}, Data).
 
--spec from_json_atom_map3(term()) -> {ok, atom_map3()} | {error, [erldantic:error()]}.
+-spec from_json_atom_map3(term()) -> {ok, atom_map3()} | {error, [spectra:error()]}.
 from_json_atom_map3(Data) ->
-    erldantic_json:from_json(?MODULE, {type, atom_map3, 0}, Data).
+    spectra_json:from_json(?MODULE, {type, atom_map3, 0}, Data).
 
 -spec from_json_type_shaddow_literal_map(term()) ->
     {ok, type_shaddow_literal_map()}
-    | {error, [erldantic:error()]}.
+    | {error, [spectra:error()]}.
 from_json_type_shaddow_literal_map(Data) ->
-    erldantic_json:from_json(?MODULE, {type, type_shaddow_literal_map, 0}, Data).
+    spectra_json:from_json(?MODULE, {type, type_shaddow_literal_map, 0}, Data).
 
 -spec from_json_mandatory_type_map(term()) ->
-    {ok, mandatory_type_map()} | {error, [erldantic:error()]}.
+    {ok, mandatory_type_map()} | {error, [spectra:error()]}.
 from_json_mandatory_type_map(Data) ->
-    erldantic_json:from_json(?MODULE, {type, mandatory_type_map, 0}, Data).
+    spectra_json:from_json(?MODULE, {type, mandatory_type_map, 0}, Data).
 
--spec to_json_empty_map(term()) -> {ok, empty_map()} | {error, [erldantic:error()]}.
+-spec to_json_empty_map(term()) -> {ok, empty_map()} | {error, [spectra:error()]}.
 to_json_empty_map(Data) ->
-    erldantic_json:to_json(?MODULE, {type, empty_map, 0}, Data).
+    spectra_json:to_json(?MODULE, {type, empty_map, 0}, Data).
 
--spec from_json_empty_map(term()) -> {ok, empty_map()} | {error, [erldantic:error()]}.
+-spec from_json_empty_map(term()) -> {ok, empty_map()} | {error, [spectra:error()]}.
 from_json_empty_map(Data) ->
-    erldantic_json:from_json(?MODULE, {type, empty_map, 0}, Data).
+    spectra_json:from_json(?MODULE, {type, empty_map, 0}, Data).
 
 -spec to_json_map_with_tuple_value(term()) ->
-    {ok, map_with_tuple_value()} | {error, [erldantic:error()]}.
+    {ok, map_with_tuple_value()} | {error, [spectra:error()]}.
 to_json_map_with_tuple_value(Data) ->
-    erldantic_json:to_json(?MODULE, {type, map_with_tuple_value, 0}, Data).
+    spectra_json:to_json(?MODULE, {type, map_with_tuple_value, 0}, Data).
 
 -spec from_json_map_with_tuple_value(term()) ->
-    {ok, map_with_tuple_value()} | {error, [erldantic:error()]}.
+    {ok, map_with_tuple_value()} | {error, [spectra:error()]}.
 from_json_map_with_tuple_value(Data) ->
-    erldantic_json:from_json(?MODULE, {type, map_with_tuple_value, 0}, Data).
+    spectra_json:from_json(?MODULE, {type, map_with_tuple_value, 0}, Data).
 
 -spec to_json_map_with_tuple_key(term()) ->
-    {ok, map_with_tuple_key()} | {error, [erldantic:error()]}.
+    {ok, map_with_tuple_key()} | {error, [spectra:error()]}.
 to_json_map_with_tuple_key(Data) ->
-    erldantic_json:to_json(?MODULE, {type, map_with_tuple_key, 0}, Data).
+    spectra_json:to_json(?MODULE, {type, map_with_tuple_key, 0}, Data).
 
 -spec from_json_map_with_tuple_key(term()) ->
-    {ok, map_with_tuple_key()} | {error, [erldantic:error()]}.
+    {ok, map_with_tuple_key()} | {error, [spectra:error()]}.
 from_json_map_with_tuple_key(Data) ->
-    erldantic_json:from_json(?MODULE, {type, map_with_tuple_key, 0}, Data).
+    spectra_json:from_json(?MODULE, {type, map_with_tuple_key, 0}, Data).
 
 -spec to_json_map_with_fun_value(term()) ->
-    {ok, map_with_fun_value()} | {error, [erldantic:error()]}.
+    {ok, map_with_fun_value()} | {error, [spectra:error()]}.
 to_json_map_with_fun_value(Data) ->
-    erldantic_json:to_json(?MODULE, {type, map_with_fun_value, 0}, Data).
+    spectra_json:to_json(?MODULE, {type, map_with_fun_value, 0}, Data).
 
 -spec from_json_map_with_fun_value(term()) ->
-    {ok, map_with_fun_value()} | {error, [erldantic:error()]}.
+    {ok, map_with_fun_value()} | {error, [spectra:error()]}.
 from_json_map_with_fun_value(Data) ->
-    erldantic_json:from_json(?MODULE, {type, map_with_fun_value, 0}, Data).
+    spectra_json:from_json(?MODULE, {type, map_with_fun_value, 0}, Data).
 
 -spec to_json_map_with_fun_key(term()) ->
-    {ok, map_with_fun_key()} | {error, [erldantic:error()]}.
+    {ok, map_with_fun_key()} | {error, [spectra:error()]}.
 to_json_map_with_fun_key(Data) ->
-    erldantic_json:to_json(?MODULE, {type, map_with_fun_key, 0}, Data).
+    spectra_json:to_json(?MODULE, {type, map_with_fun_key, 0}, Data).
 
 -spec from_json_map_with_fun_key(term()) ->
-    {ok, map_with_fun_key()} | {error, [erldantic:error()]}.
+    {ok, map_with_fun_key()} | {error, [spectra:error()]}.
 from_json_map_with_fun_key(Data) ->
-    erldantic_json:from_json(?MODULE, {type, map_with_fun_key, 0}, Data).
+    spectra_json:from_json(?MODULE, {type, map_with_fun_key, 0}, Data).
 
 -spec to_json_map_in_map_value(term()) ->
-    {ok, map_in_map_value()} | {error, [erldantic:error()]}.
+    {ok, map_in_map_value()} | {error, [spectra:error()]}.
 to_json_map_in_map_value(Data) ->
-    erldantic_json:to_json(?MODULE, {type, map_in_map_value, 0}, Data).
+    spectra_json:to_json(?MODULE, {type, map_in_map_value, 0}, Data).
 
 -spec from_json_map_in_map_value(term()) ->
-    {ok, map_in_map_value()} | {error, [erldantic:error()]}.
+    {ok, map_in_map_value()} | {error, [spectra:error()]}.
 from_json_map_in_map_value(Data) ->
-    erldantic_json:from_json(?MODULE, {type, map_in_map_value, 0}, Data).
+    spectra_json:from_json(?MODULE, {type, map_in_map_value, 0}, Data).
 
 -spec to_json_map_in_map_key(term()) ->
-    {ok, map_in_map_key()} | {error, [erldantic:error()]}.
+    {ok, map_in_map_key()} | {error, [spectra:error()]}.
 to_json_map_in_map_key(Data) ->
-    erldantic_json:to_json(?MODULE, {type, map_in_map_key, 0}, Data).
+    spectra_json:to_json(?MODULE, {type, map_in_map_key, 0}, Data).
 
 -spec from_json_map_in_map_key(term()) ->
-    {ok, map_in_map_key()} | {error, [erldantic:error()]}.
+    {ok, map_in_map_key()} | {error, [spectra:error()]}.
 from_json_map_in_map_key(Data) ->
-    erldantic_json:from_json(?MODULE, {type, map_in_map_key, 0}, Data).
+    spectra_json:from_json(?MODULE, {type, map_in_map_key, 0}, Data).

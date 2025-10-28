@@ -2,8 +2,8 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--include("../include/erldantic.hrl").
--include("../include/erldantic_internal.hrl").
+-include("../include/spectra.hrl").
+-include("../include/spectra_internal.hrl").
 
 -type one() :: 1.
 -type courses() :: one() | 2 | 5.
@@ -16,9 +16,9 @@
     }.
 
 bor_t_abstract_code_test() ->
-    TypeInfo = erldantic_abstract_code:types_in_module(?MODULE),
-    {ok, BorTType} = erldantic_type_info:get_type(TypeInfo, bor_t, 0),
-    ?assertEqual(#ed_literal{value = 2 bor 5}, BorTType).
+    TypeInfo = spectra_abstract_code:types_in_module(?MODULE),
+    {ok, BorTType} = spectra_type_info:get_type(TypeInfo, bor_t, 0),
+    ?assertEqual(#sp_literal{value = 2 bor 5}, BorTType).
 
 bor_t_to_json_test() ->
     ValidBor = 2 bor 5,
@@ -31,9 +31,9 @@ bor_t_to_json_test() ->
     {error, Errors} = to_json_bor_t(InvalidBor),
     ?assertMatch(
         [
-            #ed_error{
+            #sp_error{
                 type = type_mismatch,
-                ctx = #{type := #ed_literal{value = 7}, value := 6}
+                ctx = #{type := #sp_literal{value = 7}, value := 6}
             }
         ],
         Errors
@@ -50,9 +50,9 @@ bor_t_from_json_test() ->
     {error, Errors} = from_json_bor_t(InvalidBorJson),
     ?assertMatch(
         [
-            #ed_error{
+            #sp_error{
                 type = type_mismatch,
-                ctx = #{type := #ed_literal{value = 7}, value := 6}
+                ctx = #{type := #sp_literal{value = 7}, value := 6}
             }
         ],
         Errors
@@ -92,9 +92,9 @@ validate_integer_literal_test() ->
     {error, OneErrors} = to_json_one(InvalidOneData),
     ?assertMatch(
         [
-            #ed_error{
+            #sp_error{
                 type = type_mismatch,
-                ctx = #{type := #ed_literal{value = 1}, value := 2}
+                ctx = #{type := #sp_literal{value = 1}, value := 2}
             }
         ],
         OneErrors
@@ -107,20 +107,20 @@ validate_integer_literal_test() ->
     {error, CoursesErrors} = to_json_courses(InvalidCourses),
     ?assertMatch(
         [
-            #ed_error{
+            #sp_error{
                 type = no_match,
                 ctx =
                     #{
                         type :=
-                            #ed_union{
+                            #sp_union{
                                 types =
                                     [
-                                        #ed_user_type_ref{
+                                        #sp_user_type_ref{
                                             type_name = one,
                                             variables = []
                                         },
-                                        #ed_literal{value = 2},
-                                        #ed_literal{value = 5}
+                                        #sp_literal{value = 2},
+                                        #sp_literal{value = 5}
                                     ]
                             },
                         value := 3
@@ -144,13 +144,13 @@ validate_integer_literal_test() ->
     {error, LivesErrors} = to_json_game(InvalidLivesGame),
     ?assertMatch(
         [
-            #ed_error{
+            #sp_error{
                 location = [lives],
                 type = type_mismatch,
                 ctx =
                     #{
                         type :=
-                            #ed_range{
+                            #sp_range{
                                 type = integer,
                                 lower_bound = 1,
                                 upper_bound = 3
@@ -166,21 +166,21 @@ validate_integer_literal_test() ->
     {error, LevelErrors} = to_json_game(InvalidLevelGame),
     ?assertMatch(
         [
-            #ed_error{
+            #sp_error{
                 location = [level],
                 type = no_match,
                 ctx =
                     #{
                         type :=
-                            #ed_union{
+                            #sp_union{
                                 types =
                                     [
-                                        #ed_user_type_ref{
+                                        #sp_user_type_ref{
                                             type_name = one,
                                             variables = []
                                         },
-                                        #ed_literal{value = 2},
-                                        #ed_literal{value = 5}
+                                        #sp_literal{value = 2},
+                                        #sp_literal{value = 5}
                                     ]
                             },
                         value := 4
@@ -214,9 +214,9 @@ validate_integer_literal_test() ->
     {error, OneFromErrors} = from_json_one(InvalidOneJson),
     ?assertMatch(
         [
-            #ed_error{
+            #sp_error{
                 type = type_mismatch,
-                ctx = #{type := #ed_literal{value = 1}, value := 2}
+                ctx = #{type := #sp_literal{value = 1}, value := 2}
             }
         ],
         OneFromErrors
@@ -231,9 +231,9 @@ validate_integer_literal_test() ->
     {error, CoursesFromErrors} = from_json_courses(InvalidCoursesJson),
     ?assertMatch(
         [
-            #ed_error{
+            #sp_error{
                 type = no_match,
-                ctx = #{type := #ed_union{types = [_, _, _]}, value := 3}
+                ctx = #{type := #sp_union{types = [_, _, _]}, value := 3}
             }
         ],
         CoursesFromErrors
@@ -254,48 +254,48 @@ validate_integer_literal_test() ->
     {error, GameFromErrors} = from_json_game(InvalidGameJson),
     ?assertMatch(
         [
-            #ed_error{
+            #sp_error{
                 location = [level],
                 type = no_match,
-                ctx = #{type := #ed_union{types = [_, _, _]}, value := 6}
+                ctx = #{type := #sp_union{types = [_, _, _]}, value := 6}
             }
         ],
         GameFromErrors
     ).
 
--spec to_json_one(one()) -> {ok, json:encode_value()} | {error, [erldantic:error()]}.
+-spec to_json_one(one()) -> {ok, json:encode_value()} | {error, [spectra:error()]}.
 to_json_one(Data) ->
-    erldantic_json:to_json(?MODULE, {type, one, 0}, Data).
+    spectra_json:to_json(?MODULE, {type, one, 0}, Data).
 
 -spec to_json_courses(courses()) ->
-    {ok, json:encode_value()} | {error, [erldantic:error()]}.
+    {ok, json:encode_value()} | {error, [spectra:error()]}.
 to_json_courses(Data) ->
-    erldantic_json:to_json(?MODULE, {type, courses, 0}, Data).
+    spectra_json:to_json(?MODULE, {type, courses, 0}, Data).
 
 -spec to_json_game(game_state()) ->
-    {ok, json:encode_value()} | {error, [erldantic:error()]}.
+    {ok, json:encode_value()} | {error, [spectra:error()]}.
 to_json_game(Data) ->
-    erldantic_json:to_json(?MODULE, {type, game_state, 0}, Data).
+    spectra_json:to_json(?MODULE, {type, game_state, 0}, Data).
 
--spec to_json_bor_t(bor_t()) -> {ok, json:encode_value()} | {error, [erldantic:error()]}.
+-spec to_json_bor_t(bor_t()) -> {ok, json:encode_value()} | {error, [spectra:error()]}.
 to_json_bor_t(Data) ->
-    erldantic_json:to_json(?MODULE, {type, bor_t, 0}, Data).
+    spectra_json:to_json(?MODULE, {type, bor_t, 0}, Data).
 
 -spec from_json_bor_t(json:encode_value()) ->
-    {ok, bor_t()} | {error, [erldantic:error()]}.
+    {ok, bor_t()} | {error, [spectra:error()]}.
 from_json_bor_t(Json) ->
-    erldantic_json:from_json(?MODULE, {type, bor_t, 0}, Json).
+    spectra_json:from_json(?MODULE, {type, bor_t, 0}, Json).
 
--spec from_json_one(json:encode_value()) -> {ok, one()} | {error, [erldantic:error()]}.
+-spec from_json_one(json:encode_value()) -> {ok, one()} | {error, [spectra:error()]}.
 from_json_one(Json) ->
-    erldantic_json:from_json(?MODULE, {type, one, 0}, Json).
+    spectra_json:from_json(?MODULE, {type, one, 0}, Json).
 
 -spec from_json_courses(json:encode_value()) ->
-    {ok, courses()} | {error, [erldantic:error()]}.
+    {ok, courses()} | {error, [spectra:error()]}.
 from_json_courses(Json) ->
-    erldantic_json:from_json(?MODULE, {type, courses, 0}, Json).
+    spectra_json:from_json(?MODULE, {type, courses, 0}, Json).
 
 -spec from_json_game(json:encode_value()) ->
-    {ok, game_state()} | {error, [erldantic:error()]}.
+    {ok, game_state()} | {error, [spectra:error()]}.
 from_json_game(Json) ->
-    erldantic_json:from_json(?MODULE, {type, game_state, 0}, Json).
+    spectra_json:from_json(?MODULE, {type, game_state, 0}, Json).
