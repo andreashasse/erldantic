@@ -65,8 +65,7 @@ user_with_account_invalid_remote_test() ->
             account => #{id => 123, balance => "invalid"},
             active => true
         },
-    Result = to_json_user_with_account(InvalidData),
-    ?assertMatch({error, [_ | _]}, Result).
+    ?assertMatch({error, [_ | _]}, to_json_user_with_account(InvalidData)).
 
 user_with_account_from_json_test() ->
     ValidJson =
@@ -92,9 +91,7 @@ organization_valid_test() ->
             results => #result{value = "success", errors = []},
             metadata => #result{value = 42, errors = []}
         },
-    Result = to_json_organization(ValidData),
-    ?assertMatch({ok, _}, Result),
-    {ok, JsonData} = Result,
+    {ok, JsonData} = to_json_organization(ValidData),
     ?assertEqual(
         [#{id => <<"user1">>, balance => 100}, #{id => <<"user2">>, balance => 200}],
         maps:get(users, JsonData)
@@ -106,8 +103,7 @@ organization_required_only_test() ->
             users => [#{id => "user1", balance => 100}],
             results => #result{value = "success", errors = []}
         },
-    Result = to_json_organization(ValidData),
-    ?assertMatch({ok, _}, Result).
+    ?assertMatch({ok, _}, to_json_organization(ValidData)).
 
 organization_invalid_users_test() ->
     InvalidData =
@@ -116,8 +112,7 @@ organization_invalid_users_test() ->
             users => [#{id => 123, balance => "invalid"}],
             results => #result{value = "success", errors = []}
         },
-    Result = to_json_organization(InvalidData),
-    ?assertMatch({error, [_ | _]}, Result).
+    ?assertMatch({error, [_ | _]}, to_json_organization(InvalidData)).
 
 organization_invalid_remote_type_test() ->
     InvalidData =
@@ -125,8 +120,7 @@ organization_invalid_remote_type_test() ->
             users => [#{id => "user1", balance => 123}],
             results => #result{value = 1, errors = []}
         },
-    Result = to_json_organization(InvalidData),
-    ?assertMatch({error, [_ | _]}, Result).
+    ?assertMatch({error, [_ | _]}, to_json_organization(InvalidData)).
 
 organization_from_json_test() ->
     ValidJson =
@@ -157,13 +151,11 @@ complex_data_valid_test() ->
                     #{id => "sec2", account => #{id => "acc2", balance => 750}}
                 ]
         },
-    Result = to_json_complex_data(ValidData),
-    ?assertMatch({ok, _}, Result).
+    ?assertMatch({ok, _}, to_json_complex_data(ValidData)).
 
 complex_data_minimal_test() ->
     ValidData = #{primary => #{account => #{id => "primary", balance => 1000}}},
-    Result = to_json_complex_data(ValidData),
-    ?assertMatch({ok, _}, Result).
+    ?assertMatch({ok, _}, to_json_complex_data(ValidData)).
 
 complex_data_invalid_nested_test() ->
     InvalidData =
@@ -175,8 +167,7 @@ complex_data_invalid_nested_test() ->
                     result => #result{value = <<"binary_data">>, errors = []}
                 }
         },
-    Result = to_json_complex_data(InvalidData),
-    ?assertMatch({error, [_ | _]}, Result).
+    ?assertMatch({error, [_ | _]}, to_json_complex_data(InvalidData)).
 
 complex_data_from_json_test() ->
     ValidJson =
@@ -197,8 +188,7 @@ mixed_requirements_all_fields_test() ->
             required_list => [#{id => "list1", balance => 100}, #{id => "list2", balance => 200}],
             optional_map => #{account => #{id => "opt1", balance => 300}}
         },
-    Result = to_json_mixed_requirements(ValidData),
-    ?assertMatch({ok, _}, Result).
+    ?assertMatch({ok, _}, to_json_mixed_requirements(ValidData)).
 
 mixed_requirements_required_only_test() ->
     ValidData =
@@ -206,8 +196,7 @@ mixed_requirements_required_only_test() ->
             required_account => #{id => "req1", balance => 1000},
             required_list => [#{id => "list1", balance => 100}]
         },
-    Result = to_json_mixed_requirements(ValidData),
-    ?assertMatch({ok, _}, Result).
+    ?assertMatch({ok, _}, to_json_mixed_requirements(ValidData)).
 
 mixed_requirements_missing_required_test() ->
     InvalidData =
@@ -216,8 +205,7 @@ mixed_requirements_missing_required_test() ->
             required_list => [#{id => "list1", balance => 100}]
         },
     % Missing required_account
-    Result = to_json_mixed_requirements(InvalidData),
-    ?assertMatch({error, [_ | _]}, Result).
+    ?assertMatch({error, [_ | _]}, to_json_mixed_requirements(InvalidData)).
 
 mixed_requirements_from_json_test() ->
     ValidJson =
