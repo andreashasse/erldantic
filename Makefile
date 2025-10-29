@@ -54,3 +54,7 @@ type_check:
 
 doc:
 	rebar3 ex_doc
+
+hex:
+	rebar3 hex build
+	rebar3 hex publish
