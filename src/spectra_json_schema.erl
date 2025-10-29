@@ -245,26 +245,15 @@ type_replace_vars(TypeInfo, #sp_type_with_variables{type = Type}, NamedTypes) ->
                     )
             };
         #sp_rec_ref{record_name = RecordName, field_types = RefFieldTypes} ->
-            case TypeInfo of
-                #{{record, RecordName} := #sp_rec{fields = Fields} = Rec} ->
-                    NewRec = Rec#sp_rec{fields = record_replace_vars(Fields, RefFieldTypes)},
-                    type_replace_vars(TypeInfo, NewRec, NamedTypes);
-                #{} ->
-                    erlang:error({missing_type, {record, RecordName}})
-            end;
+            {ok, #sp_rec{fields = Fields} = Rec} =
+                spectra_type_info:get_record(TypeInfo, RecordName),
+            NewRec = Rec#sp_rec{fields = record_replace_vars(Fields, RefFieldTypes)},
+            type_replace_vars(TypeInfo, NewRec, NamedTypes);
         #sp_remote_type{mfargs = {Module, TypeName, Args}} ->
-            case spectra_module_types:get(Module) of
-                {ok, TypeInfo} ->
-                    TypeArity = length(Args),
-                    case TypeInfo of
-                        #{{type, TypeName, TypeArity} := Type} ->
-                            type_replace_vars(TypeInfo, Type, NamedTypes);
-                        #{} ->
-                            erlang:error({missing_type, TypeName})
-                    end;
-                {error, _} = Err ->
-                    erlang:error(Err)
-            end;
+            TypeInfo = spectra_module_types:get(Module),
+            TypeArity = length(Args),
+            {ok, Type} = spectra_type_info:get_type(TypeInfo, TypeName, TypeArity),
+            type_replace_vars(TypeInfo, Type, NamedTypes);
         #sp_list{type = ListType} ->
             #sp_list{type = type_replace_vars(TypeInfo, ListType, NamedTypes)}
     end;
