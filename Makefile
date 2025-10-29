@@ -32,13 +32,16 @@ cover:
 check_app_calls:
 	rebar3 check_app_calls
 
-build-test: compile xref type_check test hank check_app_calls format_verify cover
+build-test: compile xref type_check test dialyzer hank check_app_calls format_verify cover
 
 clean:
 	rebar3 clean
 
 xref:
 	rebar3 xref
+
+dialyzer:
+	rebar3 dialyzer
 
 type_check:
 	@output=$$(elp eqwalize-all); \

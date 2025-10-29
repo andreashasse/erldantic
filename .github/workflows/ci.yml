@@ -63,6 +63,9 @@ jobs:
       - name: Check format
         run: make format_verify
 
+      - name: Dialyzer
+        run: make dialyzer
+
       - name: Run Hank
         run: make hank
 
