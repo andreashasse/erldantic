@@ -453,12 +453,8 @@ type_replace_vars(TypeInfo, #sp_type_with_variables{type = Type}, NamedTypes) ->
         #sp_remote_type{mfargs = {Module, TypeName, Args}} ->
             TypeInfo = spectra_module_types:get(Module),
             TypeArity = length(Args),
-            case spectra_type_info:get_type(TypeInfo, TypeName, TypeArity) of
-                {ok, Type} ->
-                    type_replace_vars(TypeInfo, Type, NamedTypes);
-                error ->
-                    erlang:error({missing_type, TypeName})
-            end
+            {ok, Type} = spectra_type_info:get_type(TypeInfo, TypeName, TypeArity),
+            type_replace_vars(TypeInfo, Type, NamedTypes)
     end;
 type_replace_vars(_TypeInfo, Type, _NamedTypes) ->
     Type.

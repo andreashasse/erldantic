@@ -272,15 +272,16 @@ error_handling_test() ->
     Endpoint1 = spectra_openapi:endpoint(get, <<"/users">>),
     Endpoint = spectra_openapi:add_response(Endpoint1, ResponseWithBody),
 
-    Result =
+    ?assertError(
+        _,
         spectra_openapi:endpoints_to_openapi(
             #{
                 title => <<"API Documentation">>,
                 version => <<"1.0.0">>
             },
             [Endpoint]
-        ),
-    ?assertMatch({error, _}, Result).
+        )
+    ).
 
 %% Test with direct sp_type() values (inline schemas)
 endpoint_with_direct_types_test() ->
