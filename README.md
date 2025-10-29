@@ -8,7 +8,7 @@ Add spectra to your rebar.config dependencies:
 
 ```erlang
 {deps, [
-    {spectra, ".*", {git, "https://github.com/andreashasse/spectra.git", {branch, "main"}}}
+    {spectra, "~> 0.1.1"}
 ]}.
 ```
 
