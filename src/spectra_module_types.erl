@@ -16,9 +16,9 @@ get(Module) ->
         true ->
             {ok, Vsn} = module_vsn(Module),
             case pers_type(Module) of
-                {Vsn, TypeInfo} when is_map(TypeInfo) ->
+                {Vsn, TypeInfo} ->
                     TypeInfo;
-                _ ->
+                undefined ->
                     TypeInfo = spectra_abstract_code:types_in_module(Module),
                     pers_types_set(Module, Vsn, TypeInfo),
                     TypeInfo

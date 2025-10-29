@@ -1,10 +1,10 @@
 {application, spectra, [
-    {description, "An OTP library"},
-    {vsn, "0.1.0"},
+    {description, "Type safe data (de) serialization."},
+    {vsn, "0.1.2"},
     {registered, []},
     {applications, [kernel, stdlib]},
     {env, [{check_unicode, false}, {use_module_types_cache, false}]},
     {modules, []},
     {licenses, ["Apache-2.0"]},
-    {links, []}
+    {links, [{"GitHub", "https://github.com/andreashasse/spectra"}]}
 ]}.

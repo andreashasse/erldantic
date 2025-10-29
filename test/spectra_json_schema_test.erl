@@ -3,6 +3,7 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -include("../include/spectra.hrl").
+-include_lib("stdlib/include/assert.hrl").
 
 -compile(nowarn_unused_type).
 
@@ -278,12 +279,5 @@ record_with_optional_fields_test() ->
 
 %% Test error handling
 error_handling_test() ->
-    %% Non-existent type
-    {error, [Error1]} =
-        spectra_json_schema:to_schema(?MODULE, {type, non_existent_type, 0}),
-    ?assertEqual(no_match, Error1#sp_error.type),
-
-    %% Non-existent record
-    {error, [Error2]} =
-        spectra_json_schema:to_schema(?MODULE, {record, non_existent_record}),
-    ?assertEqual(no_match, Error2#sp_error.type).
+    ?assertError(_, spectra_json_schema:to_schema(?MODULE, {type, non_existent_type, 0})),
+    ?assertError(_, spectra_json_schema:to_schema(?MODULE, {record, non_existent_record})).

@@ -17,14 +17,8 @@ can_be_undefined(TypeInfo, Type) ->
             true;
         #sp_user_type_ref{type_name = TypeName, variables = TypeArgs} ->
             TypeArity = length(TypeArgs),
-            case spectra_type_info:get_type(TypeInfo, TypeName, TypeArity) of
-                {ok, Type2} ->
-                    %% infinite recursion?
-                    can_be_undefined(TypeInfo, Type2);
-                error ->
-                    %% error?
-                    false
-            end;
+            {ok, RefType} = spectra_type_info:get_type(TypeInfo, TypeName, TypeArity),
+            can_be_undefined(TypeInfo, RefType);
         _ ->
             false
     end.

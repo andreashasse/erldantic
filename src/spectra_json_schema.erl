@@ -16,19 +16,9 @@ to_schema(Module, Type) when is_atom(Module) ->
     to_schema(TypeInfo, Type);
 %% Type references
 to_schema(TypeInfo, {type, TypeName, TypeArity}) when is_atom(TypeName) ->
-    case spectra_type_info:get_type(TypeInfo, TypeName, TypeArity) of
-        {ok, Type} ->
-            TypeWithoutVars = apply_args(TypeInfo, Type, []),
-            do_to_schema(TypeInfo, TypeWithoutVars);
-        error ->
-            {error, [
-                #sp_error{
-                    type = no_match,
-                    location = [TypeName],
-                    ctx = #{type => TypeName, arity => TypeArity}
-                }
-            ]}
-    end;
+    {ok, Type} = spectra_type_info:get_type(TypeInfo, TypeName, TypeArity),
+    TypeWithoutVars = apply_args(TypeInfo, Type, []),
+    do_to_schema(TypeInfo, TypeWithoutVars);
 to_schema(TypeInfo, Type) ->
     do_to_schema(TypeInfo, Type).
 
@@ -147,18 +137,8 @@ do_to_schema(TypeInfo, #sp_rec_ref{record_name = RecordName}) ->
 %% User type references
 do_to_schema(TypeInfo, #sp_user_type_ref{type_name = TypeName, variables = TypeArgs}) ->
     TypeArity = length(TypeArgs),
-    case spectra_type_info:get_type(TypeInfo, TypeName, TypeArity) of
-        error ->
-            {error, [
-                #sp_error{
-                    type = no_match,
-                    location = [TypeName],
-                    ctx = #{type => TypeName, arity => TypeArity}
-                }
-            ]};
-        {ok, Type} ->
-            do_to_schema(TypeInfo, Type)
-    end;
+    {ok, Type} = spectra_type_info:get_type(TypeInfo, TypeName, TypeArity),
+    do_to_schema(TypeInfo, Type);
 %% Remote types
 do_to_schema(_TypeInfo, #sp_remote_type{mfargs = {Module, TypeName, Args}}) ->
     TypeInfo = spectra_module_types:get(Module),
@@ -245,26 +225,15 @@ type_replace_vars(TypeInfo, #sp_type_with_variables{type = Type}, NamedTypes) ->
                     )
             };
         #sp_rec_ref{record_name = RecordName, field_types = RefFieldTypes} ->
-            case TypeInfo of
-                #{{record, RecordName} := #sp_rec{fields = Fields} = Rec} ->
-                    NewRec = Rec#sp_rec{fields = record_replace_vars(Fields, RefFieldTypes)},
-                    type_replace_vars(TypeInfo, NewRec, NamedTypes);
-                #{} ->
-                    erlang:error({missing_type, {record, RecordName}})
-            end;
+            {ok, #sp_rec{fields = Fields} = Rec} =
+                spectra_type_info:get_record(TypeInfo, RecordName),
+            NewRec = Rec#sp_rec{fields = record_replace_vars(Fields, RefFieldTypes)},
+            type_replace_vars(TypeInfo, NewRec, NamedTypes);
         #sp_remote_type{mfargs = {Module, TypeName, Args}} ->
-            case spectra_module_types:get(Module) of
-                {ok, TypeInfo} ->
-                    TypeArity = length(Args),
-                    case TypeInfo of
-                        #{{type, TypeName, TypeArity} := Type} ->
-                            type_replace_vars(TypeInfo, Type, NamedTypes);
-                        #{} ->
-                            erlang:error({missing_type, TypeName})
-                    end;
-                {error, _} = Err ->
-                    erlang:error(Err)
-            end;
+            TypeInfo = spectra_module_types:get(Module),
+            TypeArity = length(Args),
+            {ok, Type} = spectra_type_info:get_type(TypeInfo, TypeName, TypeArity),
+            type_replace_vars(TypeInfo, Type, NamedTypes);
         #sp_list{type = ListType} ->
             #sp_list{type = type_replace_vars(TypeInfo, ListType, NamedTypes)}
     end;
@@ -373,18 +342,8 @@ process_map_fields(
 -spec record_to_schema_internal(spectra:type_info(), atom() | #sp_rec{}) ->
     {ok, map()} | {error, [spectra:error()]}.
 record_to_schema_internal(TypeInfo, RecordName) when is_atom(RecordName) ->
-    case spectra_type_info:get_record(TypeInfo, RecordName) of
-        {ok, RecordInfo} ->
-            record_to_schema_internal(TypeInfo, RecordInfo);
-        error ->
-            {error, [
-                #sp_error{
-                    type = no_match,
-                    location = [RecordName],
-                    ctx = #{type => RecordName}
-                }
-            ]}
-    end;
+    {ok, RecordInfo} = spectra_type_info:get_record(TypeInfo, RecordName),
+    record_to_schema_internal(TypeInfo, RecordInfo);
 record_to_schema_internal(TypeInfo, #sp_rec{fields = Fields}) ->
     case process_record_fields(TypeInfo, Fields, #{}, []) of
         {ok, Properties, Required} ->
