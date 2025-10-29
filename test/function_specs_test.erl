@@ -2,8 +2,8 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--include("../include/erldantic.hrl").
--include("../include/erldantic_internal.hrl").
+-include("../include/spectra.hrl").
+-include("../include/spectra_internal.hrl").
 
 -compile(nowarn_unused_type).
 -compile(nowarn_unused_function).
@@ -119,70 +119,70 @@ external_type_func(_) ->
     ok.
 
 function_spec_extraction_test() ->
-    TypeInfo = erldantic_abstract_code:types_in_module(?MODULE),
+    TypeInfo = spectra_abstract_code:types_in_module(?MODULE),
 
     %% Test my_function/2 spec extraction
-    {ok, [MyFunctionSpec]} = erldantic_type_info:get_function(TypeInfo, my_function, 2),
+    {ok, [MyFunctionSpec]} = spectra_type_info:get_function(TypeInfo, my_function, 2),
     ?assertMatch(
-        #ed_function_spec{
+        #sp_function_spec{
             args =
                 [
-                    #ed_simple_type{type = integer},
-                    #ed_simple_type{type = string}
+                    #sp_simple_type{type = integer},
+                    #sp_simple_type{type = string}
                 ],
-            return = #ed_simple_type{type = boolean}
+            return = #sp_simple_type{type = boolean}
         },
         MyFunctionSpec
     ),
 
     %% Test simple_func/1 spec extraction
-    {ok, [SimpleFuncSpec]} = erldantic_type_info:get_function(TypeInfo, simple_func, 1),
+    {ok, [SimpleFuncSpec]} = spectra_type_info:get_function(TypeInfo, simple_func, 1),
     ?assertMatch(
-        #ed_function_spec{
-            args = [#ed_simple_type{type = atom}],
-            return = #ed_simple_type{type = term}
+        #sp_function_spec{
+            args = [#sp_simple_type{type = atom}],
+            return = #sp_simple_type{type = term}
         },
         SimpleFuncSpec
     ),
 
     %% Test no_arg_func/0 spec extraction
-    {ok, [NoArgFuncSpec]} = erldantic_type_info:get_function(TypeInfo, no_arg_func, 0),
+    {ok, [NoArgFuncSpec]} = spectra_type_info:get_function(TypeInfo, no_arg_func, 0),
     ?assertMatch(
-        #ed_function_spec{args = [], return = #ed_simple_type{type = integer}},
+        #sp_function_spec{args = [], return = #sp_simple_type{type = integer}},
         NoArgFuncSpec
     ),
 
     %% Test complex_func/2 spec extraction - more complex types
-    {ok, [ComplexFuncSpec]} = erldantic_type_info:get_function(TypeInfo, complex_func, 2),
+    {ok, [ComplexFuncSpec]} = spectra_type_info:get_function(TypeInfo, complex_func, 2),
     ?assertMatch(
-        #ed_function_spec{
+        #sp_function_spec{
             args =
                 [
-                    #ed_list{type = #ed_simple_type{type = integer}},
-                    #ed_map{
+                    #sp_list{type = #sp_simple_type{type = integer}},
+                    #sp_map{
                         fields =
                             [
-                                {map_field_type_assoc, #ed_simple_type{type = atom},
-                                    #ed_simple_type{type = binary}}
+                                {map_field_type_assoc, #sp_simple_type{type = atom},
+                                    #sp_simple_type{type = binary}}
                             ]
                     }
                 ],
             return =
-                #ed_union{
+                #sp_union{
                     types =
                         [
-                            #ed_tuple{
+                            #sp_tuple{
                                 fields =
                                     [
-                                        #ed_literal{value = ok},
-                                        #ed_simple_type{type = pid}
+                                        #sp_literal{value = ok},
+                                        #sp_simple_type{type = pid}
                                     ]
                             },
-                            #ed_tuple{
+                            #sp_tuple{
                                 fields =
                                     [
-                                        #ed_literal{value = error},
-                                        #ed_simple_type{
+                                        #sp_literal{value = error},
+                                        #sp_simple_type{
                                             type =
                                                 atom
                                         }
@@ -195,44 +195,44 @@ function_spec_extraction_test() ->
     ).
 
 user_defined_types_test() ->
-    TypeInfo = erldantic_abstract_code:types_in_module(?MODULE),
+    TypeInfo = spectra_abstract_code:types_in_module(?MODULE),
 
     %% Test function with user-defined record argument
-    {ok, [ProcessUserSpec]} = erldantic_type_info:get_function(TypeInfo, process_user, 1),
+    {ok, [ProcessUserSpec]} = spectra_type_info:get_function(TypeInfo, process_user, 1),
     ?assertMatch(
-        #ed_function_spec{
-            args = [#ed_rec_ref{record_name = user}],
-            return = #ed_user_type_ref{type_name = my_custom_type}
+        #sp_function_spec{
+            args = [#sp_rec_ref{record_name = user}],
+            return = #sp_user_type_ref{type_name = my_custom_type}
         },
         ProcessUserSpec
     ),
 
     %% Test function returning user-defined record
-    {ok, [CreateUserSpec]} = erldantic_type_info:get_function(TypeInfo, create_user, 2),
+    {ok, [CreateUserSpec]} = spectra_type_info:get_function(TypeInfo, create_user, 2),
     ?assertMatch(
-        #ed_function_spec{
+        #sp_function_spec{
             args =
                 [
-                    #ed_user_type_ref{type_name = my_id},
-                    #ed_simple_type{type = string}
+                    #sp_user_type_ref{type_name = my_id},
+                    #sp_simple_type{type = string}
                 ],
-            return = #ed_rec_ref{record_name = user}
+            return = #sp_rec_ref{record_name = user}
         },
         CreateUserSpec
     ),
 
     %% Test function with record argument and tuple return
     {ok, [HandleResponseSpec]} =
-        erldantic_type_info:get_function(TypeInfo, handle_response, 1),
+        spectra_type_info:get_function(TypeInfo, handle_response, 1),
     ?assertMatch(
-        #ed_function_spec{
-            args = [#ed_rec_ref{record_name = response}],
+        #sp_function_spec{
+            args = [#sp_rec_ref{record_name = response}],
             return =
-                #ed_tuple{
+                #sp_tuple{
                     fields =
                         [
-                            #ed_simple_type{type = integer},
-                            #ed_simple_type{type = term}
+                            #sp_simple_type{type = integer},
+                            #sp_simple_type{type = term}
                         ]
                 }
         },
@@ -240,74 +240,74 @@ user_defined_types_test() ->
     ),
 
     %% Test function using remote types
-    {ok, [GetKeysSpec]} = erldantic_type_info:get_function(TypeInfo, get_keys, 1),
+    {ok, [GetKeysSpec]} = spectra_type_info:get_function(TypeInfo, get_keys, 1),
     ?assertMatch(
-        #ed_function_spec{
+        #sp_function_spec{
             args =
                 [
-                    #ed_map{
+                    #sp_map{
                         fields =
                             [
-                                {map_field_type_assoc, #ed_simple_type{type = term},
-                                    #ed_simple_type{type = term}}
+                                {map_field_type_assoc, #sp_simple_type{type = term},
+                                    #sp_simple_type{type = term}}
                             ]
                     }
                 ],
             return =
-                #ed_list{type = #ed_remote_type{mfargs = {maps, key, []}}}
+                #sp_list{type = #sp_remote_type{mfargs = {maps, key, []}}}
         },
         GetKeysSpec
     ),
 
     %% Test function with remote type argument
     {ok, [FormatDatetimeSpec]} =
-        erldantic_type_info:get_function(TypeInfo, format_datetime, 1),
+        spectra_type_info:get_function(TypeInfo, format_datetime, 1),
     ?assertMatch(
-        #ed_function_spec{
+        #sp_function_spec{
             args =
-                [#ed_remote_type{mfargs = {calendar, datetime, []}}],
-            return = #ed_simple_type{type = string}
+                [#sp_remote_type{mfargs = {calendar, datetime, []}}],
+            return = #sp_simple_type{type = string}
         },
         FormatDatetimeSpec
     ).
 
 parametrized_types_test() ->
-    TypeInfo = erldantic_abstract_code:types_in_module(?MODULE),
+    TypeInfo = spectra_abstract_code:types_in_module(?MODULE),
 
     %% Test function using parametrized user-defined types
-    {ok, [ProcessListSpec]} = erldantic_type_info:get_function(TypeInfo, process_list, 1),
+    {ok, [ProcessListSpec]} = spectra_type_info:get_function(TypeInfo, process_list, 1),
     ?assertMatch(
-        #ed_function_spec{
+        #sp_function_spec{
             args =
                 [
-                    #ed_user_type_ref{
+                    #sp_user_type_ref{
                         type_name = my_list,
                         variables =
-                            [#ed_simple_type{type = integer}]
+                            [#sp_simple_type{type = integer}]
                     }
                 ],
             return =
-                #ed_user_type_ref{
+                #sp_user_type_ref{
                     type_name = my_list,
                     variables =
-                        [#ed_simple_type{type = binary}]
+                        [#sp_simple_type{type = binary}]
                 }
         },
         ProcessListSpec
     ),
 
     %% Test function with type variables in spec
-    {ok, [MakePairSpec]} = erldantic_type_info:get_function(TypeInfo, make_pair, 2),
+    {ok, [MakePairSpec]} = spectra_type_info:get_function(TypeInfo, make_pair, 2),
     ?assertMatch(
-        #ed_function_spec{
-            args = [#ed_var{name = 'A'}, #ed_var{name = 'B'}],
+        #sp_function_spec{
+            args = [#sp_var{name = 'A'}, #sp_var{name = 'B'}],
             return =
-                #ed_user_type_ref{
+                #sp_user_type_ref{
                     type_name = my_pair,
                     variables =
                         [
-                            #ed_var{name = 'A'},
-                            #ed_var{name = 'B'}
+                            #sp_var{name = 'A'},
+                            #sp_var{name = 'B'}
                         ]
                 }
         },
@@ -315,35 +315,35 @@ parametrized_types_test() ->
     ),
 
     %% Test function with complex type variables and functions
-    {ok, [TransformPairSpec]} = erldantic_type_info:get_function(TypeInfo, transform_pair, 3),
+    {ok, [TransformPairSpec]} = spectra_type_info:get_function(TypeInfo, transform_pair, 3),
     ?assertMatch(
-        #ed_function_spec{
+        #sp_function_spec{
             args =
                 [
-                    #ed_user_type_ref{
+                    #sp_user_type_ref{
                         type_name = my_pair,
                         variables =
                             [
-                                #ed_var{name = 'A'},
-                                #ed_var{name = 'B'}
+                                #sp_var{name = 'A'},
+                                #sp_var{name = 'B'}
                             ]
                     },
-                    #ed_function{
-                        args = [#ed_var{name = 'A'}],
-                        return = #ed_var{name = 'C'}
+                    #sp_function{
+                        args = [#sp_var{name = 'A'}],
+                        return = #sp_var{name = 'C'}
                     },
-                    #ed_function{
-                        args = [#ed_var{name = 'B'}],
-                        return = #ed_var{name = 'D'}
+                    #sp_function{
+                        args = [#sp_var{name = 'B'}],
+                        return = #sp_var{name = 'D'}
                     }
                 ],
             return =
-                #ed_user_type_ref{
+                #sp_user_type_ref{
                     type_name = my_pair,
                     variables =
                         [
-                            #ed_var{name = 'C'},
-                            #ed_var{name = 'D'}
+                            #sp_var{name = 'C'},
+                            #sp_var{name = 'D'}
                         ]
                 }
         },
@@ -351,41 +351,41 @@ parametrized_types_test() ->
     ).
 
 complex_types_test() ->
-    TypeInfo = erldantic_abstract_code:types_in_module(?MODULE),
+    TypeInfo = spectra_abstract_code:types_in_module(?MODULE),
 
     %% Test function with union of user-defined and built-in types
-    {ok, [ProcessIdSpec]} = erldantic_type_info:get_function(TypeInfo, process_id, 1),
+    {ok, [ProcessIdSpec]} = spectra_type_info:get_function(TypeInfo, process_id, 1),
     ?assertMatch(
-        #ed_function_spec{
+        #sp_function_spec{
             args =
                 [
-                    #ed_union{
+                    #sp_union{
                         types =
                             [
-                                #ed_user_type_ref{type_name = my_id},
-                                #ed_simple_type{type = binary}
+                                #sp_user_type_ref{type_name = my_id},
+                                #sp_simple_type{type = binary}
                             ]
                     }
                 ],
             return =
-                #ed_union{
+                #sp_union{
                     types =
                         [
-                            #ed_tuple{
+                            #sp_tuple{
                                 fields =
                                     [
-                                        #ed_literal{value = ok},
-                                        #ed_user_type_ref{
+                                        #sp_literal{value = ok},
+                                        #sp_user_type_ref{
                                             type_name =
                                                 my_id
                                         }
                                     ]
                             },
-                            #ed_tuple{
+                            #sp_tuple{
                                 fields =
                                     [
-                                        #ed_literal{value = error},
-                                        #ed_literal{
+                                        #sp_literal{value = error},
+                                        #sp_literal{
                                             value =
                                                 invalid_id
                                         }
@@ -399,79 +399,79 @@ complex_types_test() ->
 
     %% Test function with external module record type
     {ok, [ExternalTypeFuncSpec]} =
-        erldantic_type_info:get_function(TypeInfo, external_type_func, 1),
+        spectra_type_info:get_function(TypeInfo, external_type_func, 1),
     ?assertMatch(
-        #ed_function_spec{
+        #sp_function_spec{
             args =
-                [#ed_remote_type{mfargs = {external_type, some_record, []}}],
-            return = #ed_literal{value = ok}
+                [#sp_remote_type{mfargs = {external_type, some_record, []}}],
+            return = #sp_literal{value = ok}
         },
         ExternalTypeFuncSpec
     ).
 
 bounded_fun_spec_test() ->
-    TypeInfo = erldantic_abstract_code:types_in_module(?MODULE),
+    TypeInfo = spectra_abstract_code:types_in_module(?MODULE),
 
     %% Test bounded_fun spec with when constraints
-    {ok, [WithBoundFunSpec]} = erldantic_type_info:get_function(TypeInfo, with_bound_fun, 2),
+    {ok, [WithBoundFunSpec]} = spectra_type_info:get_function(TypeInfo, with_bound_fun, 2),
     ?assertMatch(
-        #ed_function_spec{
+        #sp_function_spec{
             args =
                 [
-                    #ed_simple_type{type = atom},
-                    #ed_list{type = #ed_simple_type{type = integer}}
+                    #sp_simple_type{type = atom},
+                    #sp_list{type = #sp_simple_type{type = integer}}
                 ],
-            return = #ed_simple_type{type = integer}
+            return = #sp_simple_type{type = integer}
         },
         WithBoundFunSpec
     ).
 
 multi_clause_spec_test() ->
-    TypeInfo = erldantic_abstract_code:types_in_module(?MODULE),
-    {ok, MultiClauseSpecs} = erldantic_type_info:get_function(TypeInfo, multi_clause_func, 2),
+    TypeInfo = spectra_abstract_code:types_in_module(?MODULE),
+    {ok, MultiClauseSpecs} = spectra_type_info:get_function(TypeInfo, multi_clause_func, 2),
     ?assertEqual(
         [
-            #ed_function_spec{
+            #sp_function_spec{
                 args =
                     [
-                        #ed_user_type_ref{type_name = my_id, variables = []},
-                        #ed_simple_type{type = string}
+                        #sp_user_type_ref{type_name = my_id, variables = []},
+                        #sp_simple_type{type = string}
                     ],
-                return = #ed_rec_ref{record_name = user, field_types = []}
+                return = #sp_rec_ref{record_name = user, field_types = []}
             },
-            #ed_function_spec{
+            #sp_function_spec{
                 args =
                     [
-                        #ed_simple_type{type = binary},
-                        #ed_simple_type{type = atom}
+                        #sp_simple_type{type = binary},
+                        #sp_simple_type{type = atom}
                     ],
-                return = #ed_simple_type{type = boolean}
+                return = #sp_simple_type{type = boolean}
             }
         ],
         MultiClauseSpecs
     ).
 
 mixed_bounded_fun_spec_test() ->
-    TypeInfo = erldantic_abstract_code:types_in_module(?MODULE),
-    {ok, MixedSpecs} = erldantic_type_info:get_function(TypeInfo, mixed_spec_func, 2),
+    TypeInfo = spectra_abstract_code:types_in_module(?MODULE),
+    {ok, MixedSpecs} = spectra_type_info:get_function(TypeInfo, mixed_spec_func, 2),
     ?assertEqual(2, length(MixedSpecs)),
     ?assertEqual(
         [
-            #ed_function_spec{
+            #sp_function_spec{
                 args =
                     [
-                        #ed_simple_type{type = atom},
-                        #ed_list{type = #ed_simple_type{type = term}}
+                        #sp_simple_type{type = atom},
+                        #sp_list{type = #sp_simple_type{type = term}}
                     ],
-                return = #ed_simple_type{type = integer}
+                return = #sp_simple_type{type = integer}
             },
-            #ed_function_spec{
+            #sp_function_spec{
                 args =
                     [
-                        #ed_simple_type{type = binary},
-                        #ed_simple_type{type = atom}
+                        #sp_simple_type{type = binary},
+                        #sp_simple_type{type = atom}
                     ],
-                return = #ed_simple_type{type = string}
+                return = #sp_simple_type{type = string}
             }
         ],
         MixedSpecs

@@ -10,7 +10,7 @@ prop_hej() ->
             TypeInfo = #{{type, TypeName} => Type},
             case from_json(TypeInfo, Type, JsonValue) of
                 {ok, Data} ->
-                    case erldantic_json:to_json(TypeInfo, Type, Data) of
+                    case spectra_json:to_json(TypeInfo, Type, Data) of
                         {ok, Value} ->
                             Json = iolist_to_binary(json:encode(Value)),
                             ?WHENFAIL(
@@ -35,7 +35,7 @@ prop_hej() ->
 
 from_json(TypeInfo, Type, JsonValue) ->
     try
-        erldantic_json:from_json(TypeInfo, Type, JsonValue)
+        spectra_json:from_json(TypeInfo, Type, JsonValue)
     catch
         error:{type_not_supported, _} ->
             {error, type_not_supported};
@@ -50,4 +50,4 @@ from_json(TypeInfo, Type, JsonValue) ->
     end.
 
 test_type() ->
-    {my_type, ed_type_generators:ed_type()}.
+    {my_type, sp_type_generators:sp_type()}.

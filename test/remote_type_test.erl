@@ -36,21 +36,21 @@ validate_missing_test() ->
     ?assertError({module_types_not_found, _, _}, from_json_missing(Json)).
 
 -spec to_json_remote(remote()) ->
-    {ok, json:encode_value()} | {error, [erldantic:error()]}.
+    {ok, json:encode_value()} | {error, [spectra:error()]}.
 to_json_remote(Data) ->
-    erldantic_json:to_json(?MODULE, {type, remote, 0}, Data).
+    spectra_json:to_json(?MODULE, {type, remote, 0}, Data).
 
 -spec from_json_remote(json:encode_value()) ->
-    {ok, remote()} | {error, [erldantic:error()]}.
+    {ok, remote()} | {error, [spectra:error()]}.
 from_json_remote(Json) ->
-    erldantic_json:from_json(?MODULE, {type, remote, 0}, Json).
+    spectra_json:from_json(?MODULE, {type, remote, 0}, Json).
 
 -spec to_json_missing(missing()) ->
-    {ok, json:encode_value()} | {error, [erldantic:error()]}.
+    {ok, json:encode_value()} | {error, [spectra:error()]}.
 to_json_missing(Data) ->
-    erldantic_json:to_json(?MODULE, {type, missing, 0}, Data).
+    spectra_json:to_json(?MODULE, {type, missing, 0}, Data).
 
 -spec from_json_missing(json:encode_value()) ->
-    {ok, missing()} | {error, [erldantic:error()]}.
+    {ok, missing()} | {error, [spectra:error()]}.
 from_json_missing(Json) ->
-    erldantic_json:from_json(?MODULE, {type, missing, 0}, Json).
+    spectra_json:from_json(?MODULE, {type, missing, 0}, Json).

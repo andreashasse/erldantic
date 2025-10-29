@@ -1,23 +1,23 @@
--module(erldantic_type).
+-module(spectra_type).
 
--include("../include/erldantic.hrl").
--include("../include/erldantic_internal.hrl").
+-include("../include/spectra.hrl").
+-include("../include/spectra_internal.hrl").
 
 -export([can_be_undefined/2, is_type_reference/1]).
 
--spec can_be_undefined(TypeInfo :: erldantic:type_info(), Type :: erldantic:ed_type()) ->
+-spec can_be_undefined(TypeInfo :: spectra:type_info(), Type :: spectra:sp_type()) ->
     boolean().
 can_be_undefined(TypeInfo, Type) ->
     case Type of
-        #ed_type_with_variables{type = Type2} ->
+        #sp_type_with_variables{type = Type2} ->
             can_be_undefined(TypeInfo, Type2);
-        #ed_union{types = Types} ->
+        #sp_union{types = Types} ->
             lists:any(fun(T) -> can_be_undefined(TypeInfo, T) end, Types);
-        #ed_literal{value = undefined} ->
+        #sp_literal{value = undefined} ->
             true;
-        #ed_user_type_ref{type_name = TypeName, variables = TypeArgs} ->
+        #sp_user_type_ref{type_name = TypeName, variables = TypeArgs} ->
             TypeArity = length(TypeArgs),
-            case erldantic_type_info:get_type(TypeInfo, TypeName, TypeArity) of
+            case spectra_type_info:get_type(TypeInfo, TypeName, TypeArity) of
                 {ok, Type2} ->
                     %% infinite recursion?
                     can_be_undefined(TypeInfo, Type2);
@@ -29,7 +29,7 @@ can_be_undefined(TypeInfo, Type) ->
             false
     end.
 
--spec is_type_reference(erldantic:ed_type_or_ref()) -> boolean().
+-spec is_type_reference(spectra:sp_type_or_ref()) -> boolean().
 is_type_reference({type, _, _}) ->
     true;
 is_type_reference({record, _}) ->

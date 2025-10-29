@@ -2,8 +2,8 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--include("../include/erldantic.hrl").
--include("../include/erldantic_internal.hrl").
+-include("../include/spectra.hrl").
+-include("../include/spectra_internal.hrl").
 
 -type accesses() :: [read | write].
 
@@ -26,16 +26,16 @@ validate_accesses_test() ->
     {error, Errors} = to_json_accesses(InvalidData),
     ?assertMatch(
         [
-            #ed_error{
+            #sp_error{
                 type = no_match,
                 ctx =
                     #{
                         type :=
-                            #ed_union{
+                            #sp_union{
                                 types =
                                     [
-                                        #ed_literal{value = read},
-                                        #ed_literal{value = write}
+                                        #sp_literal{value = read},
+                                        #sp_literal{value = write}
                                     ]
                             },
                         value := invalid
@@ -62,16 +62,16 @@ validate_accesses_test() ->
     {error, FromErrors} = from_json_accesses(InvalidJson),
     ?assertMatch(
         [
-            #ed_error{
+            #sp_error{
                 type = no_match,
                 ctx =
                     #{
                         type :=
-                            #ed_union{
+                            #sp_union{
                                 types =
                                     [
-                                        #ed_literal{value = read},
-                                        #ed_literal{value = write}
+                                        #sp_literal{value = read},
+                                        #sp_literal{value = write}
                                     ]
                             },
                         value := <<"invalid">>
@@ -82,11 +82,11 @@ validate_accesses_test() ->
     ).
 
 -spec to_json_accesses(accesses()) ->
-    {ok, json:encode_value()} | {error, [erldantic:error()]}.
+    {ok, json:encode_value()} | {error, [spectra:error()]}.
 to_json_accesses(Data) ->
-    erldantic_json:to_json(?MODULE, {type, accesses, 0}, Data).
+    spectra_json:to_json(?MODULE, {type, accesses, 0}, Data).
 
 -spec from_json_accesses(json:encode_value()) ->
-    {ok, accesses()} | {error, [erldantic:error()]}.
+    {ok, accesses()} | {error, [spectra:error()]}.
 from_json_accesses(Json) ->
-    erldantic_json:from_json(?MODULE, {type, accesses, 0}, Json).
+    spectra_json:from_json(?MODULE, {type, accesses, 0}, Json).

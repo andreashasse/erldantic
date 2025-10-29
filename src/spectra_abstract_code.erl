@@ -1,6 +1,6 @@
--module(erldantic_abstract_code).
+-module(spectra_abstract_code).
 
--include("../include/erldantic_internal.hrl").
+-include("../include/spectra_internal.hrl").
 
 -include_lib("kernel/include/eep48.hrl").
 
@@ -25,7 +25,7 @@
 %% Due to erl_parse:af_wild_attribute() I can't use some of the types.
 -type erl_parse__af_field_decl() :: term().
 
--spec types_in_module(atom()) -> erldantic:type_info().
+-spec types_in_module(atom()) -> spectra:type_info().
 types_in_module(Module) ->
     case code:which(Module) of
         cover_compiled ->
@@ -49,28 +49,28 @@ types_in_module_path(FilePath) ->
     end.
 
 build_type_info(NamedTypes) ->
-    lists:foldl(fun build_type_info_fold/2, erldantic_type_info:new(), NamedTypes).
+    lists:foldl(fun build_type_info_fold/2, spectra_type_info:new(), NamedTypes).
 
 build_type_info_fold({{type, Name, Arity}, Type}, TypeInfo) ->
-    erldantic_type_info:add_type(TypeInfo, Name, Arity, Type);
+    spectra_type_info:add_type(TypeInfo, Name, Arity, Type);
 build_type_info_fold({{record, Name}, Record}, TypeInfo) ->
-    erldantic_type_info:add_record(TypeInfo, Name, Record);
+    spectra_type_info:add_record(TypeInfo, Name, Record);
 build_type_info_fold({{function, Name, Arity}, FuncSpec}, TypeInfo) ->
-    erldantic_type_info:add_function(TypeInfo, Name, Arity, FuncSpec).
+    spectra_type_info:add_function(TypeInfo, Name, Arity, FuncSpec).
 
 -spec type_in_form(erl_parse:abstract_form() | erl_parse:form_info()) ->
     false | {true, type_form_result()}.
 -type type_form_result() ::
-    {{type, atom(), arity()}, erldantic:ed_type()}
-    | {{record, atom()}, erldantic:ed_type()}
-    | {{function, atom(), arity()}, [erldantic:ed_function_spec()]}.
+    {{type, atom(), arity()}, spectra:sp_type()}
+    | {{record, atom()}, spectra:sp_type()}
+    | {{function, atom(), arity()}, [spectra:sp_function_spec()]}.
 
 type_in_form({attribute, _, record, {RecordName, Fields}}) when
     is_list(Fields) andalso is_atom(RecordName)
 ->
     FieldInfos = lists:map(fun record_field_info/1, Fields),
     {true,
-        {{record, RecordName}, #ed_rec{
+        {{record, RecordName}, #sp_rec{
             name = RecordName,
             fields = FieldInfos,
             arity = length(FieldInfos) + 1
@@ -83,7 +83,7 @@ type_in_form({attribute, _, TypeOrOpaque, {TypeName, {_, _, record, Attrs}, [] =
     true = is_list(Attrs),
     {RecordName, FieldTypes} = record_field_types(Attrs),
     TypeArity = length(Args),
-    Record = #ed_rec_ref{record_name = RecordName, field_types = FieldTypes},
+    Record = #sp_rec_ref{record_name = RecordName, field_types = FieldTypes},
     {true, {{type, TypeName, TypeArity}, Record}};
 type_in_form({attribute, _, TypeOrOpaque, {TypeName, Type, Args}}) when
     is_atom(TypeName) andalso
@@ -98,7 +98,7 @@ type_in_form({attribute, _, TypeOrOpaque, {TypeName, Type, Args}}) when
             {true, {{type, TypeName, TypeArity}, FieldInfo}};
         _ ->
             {true,
-                {{type, TypeName, TypeArity}, #ed_type_with_variables{type = FieldInfo, vars = Vars}}}
+                {{type, TypeName, TypeArity}, #sp_type_with_variables{type = FieldInfo, vars = Vars}}}
     end;
 type_in_form({attribute, _, spec, {{FunctionName, Arity}, FunctionTypes}}) when
     is_atom(FunctionName) andalso is_integer(Arity) andalso is_list(FunctionTypes)
@@ -119,7 +119,7 @@ type_in_form({attribute, _, spec, {{FunctionName, Arity}, FunctionTypes}}) when
                                 Args
                             ),
                         [ReturnTypeProcessed] = field_info_to_type(ReturnType),
-                        #ed_function_spec{args = ArgTypes, return = ReturnTypeProcessed};
+                        #sp_function_spec{args = ArgTypes, return = ReturnTypeProcessed};
                     {type, _, bounded_fun, [
                         {type, _, 'fun', [{type, _, product, Args}, ReturnType]}, Constraints
                     ]} when
@@ -147,7 +147,7 @@ type_in_form({attribute, _, spec, {{FunctionName, Arity}, FunctionTypes}}) when
                                     ConstraintMap
                                 )
                             ),
-                        #ed_function_spec{args = ArgTypes, return = ReturnTypeProcessed}
+                        #sp_function_spec{args = ArgTypes, return = ReturnTypeProcessed}
                 end
             end,
             FunctionTypes
@@ -162,7 +162,7 @@ type_in_form({attribute, _, TypeOrOpaque, _} = T) when
 type_in_form(_) ->
     false.
 
--spec record_field_types(list()) -> {atom(), [{atom(), erldantic:ed_type()}]}.
+-spec record_field_types(list()) -> {atom(), [{atom(), spectra:sp_type()}]}.
 record_field_types(Attrs) ->
     [{atom, _, RecordName} | FieldInfo] = Attrs,
     true = is_atom(RecordName),
@@ -178,20 +178,20 @@ record_field_types(Attrs) ->
         ),
     {RecordName, FieldTypes}.
 
--spec field_info_to_type(term()) -> [erldantic:ed_type()].
+-spec field_info_to_type(term()) -> [spectra:sp_type()].
 field_info_to_type({ann_type, _, [{var, _, _VarName}, Type]}) ->
     field_info_to_type(Type);
 field_info_to_type({atom, _, Value}) when is_atom(Value) ->
-    [#ed_literal{value = Value}];
+    [#sp_literal{value = Value}];
 field_info_to_type({char, _, Value}) when is_integer(Value) ->
-    [#ed_literal{value = Value}];
+    [#sp_literal{value = Value}];
 field_info_to_type({integer, _, Value}) when is_integer(Value) ->
-    [#ed_literal{value = Value}];
+    [#sp_literal{value = Value}];
 field_info_to_type(Op) when element(1, Op) =:= op ->
     Value = integer_value(Op),
-    [#ed_literal{value = Value}];
+    [#sp_literal{value = Value}];
 field_info_to_type({var, _, VarName}) when is_atom(VarName) ->
-    [#ed_var{name = VarName}];
+    [#sp_var{name = VarName}];
 field_info_to_type({remote_type, _, [{atom, _, Module}, {atom, _, Type}, Args]}) when
     is_atom(Module) andalso is_atom(Type) andalso is_list(Args)
 ->
@@ -203,22 +203,22 @@ field_info_to_type({remote_type, _, [{atom, _, Module}, {atom, _, Type}, Args]})
             end,
             Args
         ),
-    [#ed_remote_type{mfargs = {Module, Type, MyArgs}}];
+    [#sp_remote_type{mfargs = {Module, Type, MyArgs}}];
 field_info_to_type({Type, _, map, any}) when
     Type =:= type orelse Type =:= opaque orelse Type =:= nominal
 ->
     MapFields =
-        [{map_field_type_assoc, #ed_simple_type{type = term}, #ed_simple_type{type = term}}],
-    [#ed_map{fields = MapFields, struct_name = undefined}];
+        [{map_field_type_assoc, #sp_simple_type{type = term}, #sp_simple_type{type = term}}],
+    [#sp_map{fields = MapFields, struct_name = undefined}];
 field_info_to_type({Type, _, tuple, any}) when
     Type =:= type orelse Type =:= opaque orelse Type =:= nominal
 ->
-    [#ed_tuple{fields = any}];
+    [#sp_tuple{fields = any}];
 field_info_to_type({user_type, _, Type, TypeAttrs}) when
     is_atom(Type) andalso is_list(TypeAttrs)
 ->
     TAttrs = lists:flatmap(fun field_info_to_type/1, TypeAttrs),
-    [#ed_user_type_ref{type_name = Type, variables = TAttrs}];
+    [#sp_user_type_ref{type_name = Type, variables = TAttrs}];
 field_info_to_type({TypeOrOpaque, _, Type, TypeAttrs}) when
     is_list(TypeAttrs) andalso
         (TypeOrOpaque =:= type orelse TypeOrOpaque =:= opaque orelse TypeOrOpaque =:= nominal)
@@ -226,33 +226,33 @@ field_info_to_type({TypeOrOpaque, _, Type, TypeAttrs}) when
     case Type of
         record ->
             {SubTypeRecordName, FieldTypes} = record_field_types(TypeAttrs),
-            [#ed_rec_ref{record_name = SubTypeRecordName, field_types = FieldTypes}];
+            [#sp_rec_ref{record_name = SubTypeRecordName, field_types = FieldTypes}];
         map ->
             MapFields = lists:flatmap(fun map_field_info/1, TypeAttrs),
             {StructName, NewMapFields} = extract_struct_name(MapFields),
-            [#ed_map{fields = NewMapFields, struct_name = StructName}];
+            [#sp_map{fields = NewMapFields, struct_name = StructName}];
         tuple ->
             TupleFields = lists:flatmap(fun field_info_to_type/1, TypeAttrs),
-            [#ed_tuple{fields = TupleFields}];
+            [#sp_tuple{fields = TupleFields}];
         union ->
             UnionFields = lists:flatmap(fun field_info_to_type/1, TypeAttrs),
-            [#ed_union{types = UnionFields}];
+            [#sp_union{types = UnionFields}];
         Fun when Fun =:= 'fun' orelse Fun =:= function ->
             case TypeAttrs of
                 [] ->
-                    [#ed_function{args = any, return = #ed_simple_type{type = term}}];
+                    [#sp_function{args = any, return = #sp_simple_type{type = term}}];
                 [{type, _, any}, ReturnType] ->
                     [AReturnType] = field_info_to_type(ReturnType),
-                    [#ed_function{args = any, return = AReturnType}];
+                    [#sp_function{args = any, return = AReturnType}];
                 [{type, _, product, FunArgTypes}, ReturnType] ->
                     true = is_list(FunArgTypes),
                     AFunArgTypes = lists:flatmap(fun field_info_to_type/1, FunArgTypes),
                     [AReturnType] = field_info_to_type(ReturnType),
-                    [#ed_function{args = AFunArgTypes, return = AReturnType}]
+                    [#sp_function{args = AFunArgTypes, return = AReturnType}]
             end;
         arity ->
             [
-                #ed_range{
+                #sp_range{
                     type = integer,
                     lower_bound = 0,
                     upper_bound = 255
@@ -260,7 +260,7 @@ field_info_to_type({TypeOrOpaque, _, Type, TypeAttrs}) when
             ];
         byte ->
             [
-                #ed_range{
+                #sp_range{
                     type = integer,
                     lower_bound = 0,
                     upper_bound = 255
@@ -268,7 +268,7 @@ field_info_to_type({TypeOrOpaque, _, Type, TypeAttrs}) when
             ];
         char ->
             [
-                #ed_range{
+                #sp_range{
                     type = integer,
                     lower_bound = 0,
                     upper_bound = 16#10ffff
@@ -276,12 +276,12 @@ field_info_to_type({TypeOrOpaque, _, Type, TypeAttrs}) when
             ];
         mfa ->
             [
-                #ed_tuple{
+                #sp_tuple{
                     fields =
                         [
-                            #ed_simple_type{type = atom},
-                            #ed_simple_type{type = atom},
-                            #ed_range{
+                            #sp_simple_type{type = atom},
+                            #sp_simple_type{type = atom},
+                            #sp_range{
                                 type = integer,
                                 lower_bound = 0,
                                 upper_bound = 255
@@ -290,37 +290,37 @@ field_info_to_type({TypeOrOpaque, _, Type, TypeAttrs}) when
                 }
             ];
         any ->
-            [#ed_simple_type{type = term}];
+            [#sp_simple_type{type = term}];
         timeout ->
             [
-                #ed_union{
+                #sp_union{
                     types =
                         [
-                            #ed_simple_type{type = non_neg_integer},
-                            #ed_literal{value = infinity}
+                            #sp_simple_type{type = non_neg_integer},
+                            #sp_literal{value = infinity}
                         ]
                 }
             ];
         pid ->
-            [#ed_simple_type{type = pid}];
+            [#sp_simple_type{type = pid}];
         iodata ->
-            [#ed_simple_type{type = iodata}];
+            [#sp_simple_type{type = iodata}];
         iolist ->
-            [#ed_simple_type{type = iolist}];
+            [#sp_simple_type{type = iolist}];
         port ->
-            [#ed_simple_type{type = port}];
+            [#sp_simple_type{type = port}];
         reference ->
-            [#ed_simple_type{type = reference}];
+            [#sp_simple_type{type = reference}];
         node ->
-            [#ed_simple_type{type = atom}];
+            [#sp_simple_type{type = atom}];
         identifier ->
             [
-                #ed_union{
+                #sp_union{
                     types =
                         [
-                            #ed_simple_type{type = pid},
-                            #ed_simple_type{type = port},
-                            #ed_simple_type{type = reference}
+                            #sp_simple_type{type = pid},
+                            #sp_simple_type{type = port},
+                            #sp_simple_type{type = reference}
                         ]
                 }
             ];
@@ -329,7 +329,7 @@ field_info_to_type({TypeOrOpaque, _, Type, TypeAttrs}) when
             Min = integer_value(MinValue),
             Max = integer_value(MaxValue),
             [
-                #ed_range{
+                #sp_range{
                     type = integer,
                     lower_bound = Min,
                     upper_bound = Max
@@ -338,50 +338,50 @@ field_info_to_type({TypeOrOpaque, _, Type, TypeAttrs}) when
         list ->
             case lists:flatmap(fun field_info_to_type/1, TypeAttrs) of
                 [ListType] ->
-                    [#ed_list{type = ListType}];
+                    [#sp_list{type = ListType}];
                 [] ->
-                    [#ed_list{type = #ed_simple_type{type = term}}]
+                    [#sp_list{type = #sp_simple_type{type = term}}]
             end;
         nonempty_list ->
             case lists:flatmap(fun field_info_to_type/1, TypeAttrs) of
                 [ListType] ->
-                    [#ed_nonempty_list{type = ListType}];
+                    [#sp_nonempty_list{type = ListType}];
                 [] ->
-                    [#ed_nonempty_list{type = #ed_simple_type{type = term}}]
+                    [#sp_nonempty_list{type = #sp_simple_type{type = term}}]
             end;
         maybe_improper_list ->
             case lists:flatmap(fun field_info_to_type/1, TypeAttrs) of
                 [Elements, Tail] ->
-                    [#ed_maybe_improper_list{elements = Elements, tail = Tail}];
+                    [#sp_maybe_improper_list{elements = Elements, tail = Tail}];
                 [] ->
                     [
-                        #ed_maybe_improper_list{
-                            elements = #ed_simple_type{type = term},
-                            tail = #ed_simple_type{type = term}
+                        #sp_maybe_improper_list{
+                            elements = #sp_simple_type{type = term},
+                            tail = #sp_simple_type{type = term}
                         }
                     ]
             end;
         nonempty_improper_list ->
             [Elements, Tail] = lists:flatmap(fun field_info_to_type/1, TypeAttrs),
-            [#ed_nonempty_improper_list{elements = Elements, tail = Tail}];
+            [#sp_nonempty_improper_list{elements = Elements, tail = Tail}];
         module ->
-            [#ed_simple_type{type = atom}];
+            [#sp_simple_type{type = atom}];
         PrimaryType when ?is_primary_type(PrimaryType) ->
-            [#ed_simple_type{type = PrimaryType}];
+            [#sp_simple_type{type = PrimaryType}];
         PartailRangeInteger when ?is_predefined_int_range(PartailRangeInteger) ->
-            [#ed_simple_type{type = PartailRangeInteger}];
+            [#sp_simple_type{type = PartailRangeInteger}];
         bitstring ->
-            [#ed_simple_type{type = bitstring}];
+            [#sp_simple_type{type = bitstring}];
         nonempty_bitstring ->
-            [#ed_simple_type{type = nonempty_bitstring}];
+            [#sp_simple_type{type = nonempty_bitstring}];
         dynamic ->
-            [#ed_simple_type{type = term}];
+            [#sp_simple_type{type = term}];
         nil ->
-            [#ed_literal{value = []}];
+            [#sp_literal{value = []}];
         none ->
-            [#ed_simple_type{type = none}];
+            [#sp_simple_type{type = none}];
         no_return ->
-            [#ed_simple_type{type = none}]
+            [#sp_simple_type{type = none}]
     end.
 
 integer_value({char, _, Value}) when is_integer(Value) ->
@@ -423,8 +423,8 @@ integer_value({op, _, Operator, Unary}) ->
 
 -spec map_field_info(term()) ->
     [
-        {map_field_assoc | map_field_exact, atom(), erldantic:ed_type()}
-        | {map_field_type_assoc | map_field_type_exact, erldantic:ed_type(), erldantic:ed_type()}
+        {map_field_assoc | map_field_exact, atom(), spectra:sp_type()}
+        | {map_field_type_assoc | map_field_type_exact, spectra:sp_type(), spectra:sp_type()}
     ].
 map_field_info({TypeOfType, _, Type, TypeAttrs}) ->
     case {TypeOfType, Type} of
@@ -452,14 +452,14 @@ map_field_info({TypeOfType, _, Type, TypeAttrs}) ->
             end
     end.
 
--spec record_field_info(erl_parse__af_field_decl()) -> {atom(), erldantic:ed_type()}.
+-spec record_field_info(erl_parse__af_field_decl()) -> {atom(), spectra:sp_type()}.
 record_field_info({record_field, _, {atom, _, FieldName}, _Type}) when
     is_atom(FieldName)
 ->
     %% FIXME: Handle default values in record fields. Also handle default values in typed_record_field?
-    {FieldName, #ed_simple_type{type = term}};
+    {FieldName, #sp_simple_type{type = term}};
 record_field_info({record_field, _, {atom, _, FieldName}}) when is_atom(FieldName) ->
-    {FieldName, #ed_simple_type{type = term}};
+    {FieldName, #sp_simple_type{type = term}};
 record_field_info({typed_record_field, {record_field, _, {atom, _, FieldName}}, Type}) when
     is_atom(FieldName)
 ->
@@ -492,8 +492,8 @@ bound_fun_substitute_vars(Term, _ConstraintMap) ->
     Term.
 
 %% Helper function to extract struct name from map fields for Elixir structs
--spec extract_struct_name([erldantic:map_field()]) ->
-    {undefined | atom(), [erldantic:map_field()]}.
+-spec extract_struct_name([spectra:map_field()]) ->
+    {undefined | atom(), [spectra:map_field()]}.
 extract_struct_name(MapFields) ->
     case
         lists:partition(
@@ -508,7 +508,7 @@ extract_struct_name(MapFields) ->
             MapFields
         )
     of
-        {[{_, '__struct__', #ed_literal{value = SName}}], OtherMapFields} when is_atom(SName) ->
+        {[{_, '__struct__', #sp_literal{value = SName}}], OtherMapFields} when is_atom(SName) ->
             {SName, OtherMapFields};
         {[], _} ->
             {undefined, MapFields}

@@ -1,22 +1,22 @@
--module(erldantic_json).
+-module(spectra_json).
 
 -export([to_json/3, from_json/3]).
 
 -ignore_xref([to_json/3, from_json/3]).
 
--include("../include/erldantic.hrl").
--include("../include/erldantic_internal.hrl").
+-include("../include/spectra.hrl").
+-include("../include/spectra_internal.hrl").
 
 %% API
 
 -spec to_json(
-    erldantic:type_info() | module(),
-    erldantic:ed_type_or_ref(),
+    spectra:type_info() | module(),
+    spectra:sp_type_or_ref(),
     Data :: dynamic()
 ) ->
-    {ok, json:encode_value()} | {error, [erldantic:error()]}.
+    {ok, json:encode_value()} | {error, [spectra:error()]}.
 to_json(Module, TypeRef, Data) when is_atom(Module) ->
-    TypeInfo = erldantic_module_types:get(Module),
+    TypeInfo = spectra_module_types:get(Module),
     to_json(TypeInfo, TypeRef, Data);
 to_json(TypeInfo, Type, Data) ->
     case do_to_json(TypeInfo, Type, Data) of
@@ -30,31 +30,31 @@ to_json(TypeInfo, Type, Data) ->
 
 %% INTERNAL
 -spec do_to_json(
-    TypeInfo :: erldantic:type_info(),
-    Type :: erldantic:ed_type_or_ref(),
+    TypeInfo :: spectra:type_info(),
+    Type :: spectra:sp_type_or_ref(),
     Data :: dynamic()
 ) ->
-    {ok, json:encode_value()} | {error, [erldantic:error()]} | skip.
+    {ok, json:encode_value()} | {error, [spectra:error()]} | skip.
 do_to_json(TypeInfo, {record, RecordName}, Record) when is_atom(RecordName) ->
     record_to_json(TypeInfo, RecordName, Record, []);
-do_to_json(TypeInfo, #ed_rec{} = RecordInfo, Record) when is_tuple(Record) ->
+do_to_json(TypeInfo, #sp_rec{} = RecordInfo, Record) when is_tuple(Record) ->
     record_to_json(TypeInfo, RecordInfo, Record, []);
 do_to_json(
     TypeInfo,
-    #ed_rec_ref{record_name = RecordName, field_types = TypeArgs},
+    #sp_rec_ref{record_name = RecordName, field_types = TypeArgs},
     Record
 ) when
     is_atom(RecordName)
 ->
     record_to_json(TypeInfo, RecordName, Record, TypeArgs);
-do_to_json(TypeInfo, #ed_user_type_ref{type_name = TypeName, variables = TypeArgs}, Data) when
+do_to_json(TypeInfo, #sp_user_type_ref{type_name = TypeName, variables = TypeArgs}, Data) when
     is_atom(TypeName)
 ->
     TypeArity = length(TypeArgs),
-    {ok, Type} = erldantic_type_info:get_type(TypeInfo, TypeName, TypeArity),
+    {ok, Type} = spectra_type_info:get_type(TypeInfo, TypeName, TypeArity),
     TypeWithoutVars = apply_args(TypeInfo, Type, TypeArgs),
     do_to_json(TypeInfo, TypeWithoutVars, Data);
-do_to_json(_TypeInfo, #ed_simple_type{type = NotSupported} = Type, _Data) when
+do_to_json(_TypeInfo, #sp_simple_type{type = NotSupported} = Type, _Data) when
     NotSupported =:= pid orelse
         NotSupported =:= port orelse
         NotSupported =:= reference orelse
@@ -63,11 +63,11 @@ do_to_json(_TypeInfo, #ed_simple_type{type = NotSupported} = Type, _Data) when
         NotSupported =:= none
 ->
     erlang:error({type_not_supported, Type});
-do_to_json(_TypeInfo, #ed_simple_type{} = Type, Value) ->
+do_to_json(_TypeInfo, #sp_simple_type{} = Type, Value) ->
     prim_type_to_json(Type, Value);
 do_to_json(
     _TypeInfo,
-    #ed_range{
+    #sp_range{
         type = integer,
         lower_bound = Min,
         upper_bound = Max
@@ -77,21 +77,21 @@ do_to_json(
     is_integer(Value) andalso Min =< Value, Value =< Max
 ->
     {ok, Value};
-do_to_json(_TypeInfo, #ed_literal{value = undefined}, undefined) ->
+do_to_json(_TypeInfo, #sp_literal{value = undefined}, undefined) ->
     skip;
-do_to_json(_TypeInfo, #ed_literal{value = Value}, Value) ->
+do_to_json(_TypeInfo, #sp_literal{value = Value}, Value) ->
     {ok, Value};
-do_to_json(TypeInfo, #ed_union{} = Type, Data) ->
+do_to_json(TypeInfo, #sp_union{} = Type, Data) ->
     union(fun do_to_json/3, TypeInfo, Type, Data);
-do_to_json(TypeInfo, #ed_nonempty_list{type = Type}, Data) ->
+do_to_json(TypeInfo, #sp_nonempty_list{type = Type}, Data) ->
     nonempty_list_to_json(TypeInfo, Type, Data);
-do_to_json(TypeInfo, #ed_list{type = Type}, Data) when is_list(Data) ->
+do_to_json(TypeInfo, #sp_list{type = Type}, Data) when is_list(Data) ->
     list_to_json(TypeInfo, Type, Data);
 do_to_json(TypeInfo, {type, TypeName, TypeArity}, Data) when is_atom(TypeName) ->
     %% FIXME: For simple types without arity, default to 0
-    {ok, Type} = erldantic_type_info:get_type(TypeInfo, TypeName, TypeArity),
+    {ok, Type} = spectra_type_info:get_type(TypeInfo, TypeName, TypeArity),
     do_to_json(TypeInfo, Type, Data);
-do_to_json(TypeInfo, #ed_map{struct_name = StructName} = Map, Data) ->
+do_to_json(TypeInfo, #sp_map{struct_name = StructName} = Map, Data) ->
     case StructName of
         undefined ->
             map_to_json(TypeInfo, Map, Data);
@@ -102,7 +102,7 @@ do_to_json(TypeInfo, #ed_map{struct_name = StructName} = Map, Data) ->
                     map_to_json(TypeInfo, Map, Data);
                 _ ->
                     {error, [
-                        #ed_error{
+                        #sp_error{
                             type = type_mismatch,
                             location = [],
                             ctx = #{expected_struct => StructName, value => Data}
@@ -110,33 +110,33 @@ do_to_json(TypeInfo, #ed_map{struct_name = StructName} = Map, Data) ->
                     ]}
             end
     end;
-do_to_json(_TypeInfo, #ed_remote_type{mfargs = {Module, TypeName, Args}}, Data) ->
-    TypeInfo = erldantic_module_types:get(Module),
+do_to_json(_TypeInfo, #sp_remote_type{mfargs = {Module, TypeName, Args}}, Data) ->
+    TypeInfo = spectra_module_types:get(Module),
     TypeArity = length(Args),
-    {ok, Type} = erldantic_type_info:get_type(TypeInfo, TypeName, TypeArity),
+    {ok, Type} = spectra_type_info:get_type(TypeInfo, TypeName, TypeArity),
     TypeWithoutVars = apply_args(TypeInfo, Type, Args),
     do_to_json(TypeInfo, TypeWithoutVars, Data);
-do_to_json(_TypeInfo, #ed_maybe_improper_list{} = Type, _Data) ->
+do_to_json(_TypeInfo, #sp_maybe_improper_list{} = Type, _Data) ->
     erlang:error({type_not_implemented, Type});
-do_to_json(_TypeInfo, #ed_nonempty_improper_list{} = Type, _Data) ->
+do_to_json(_TypeInfo, #sp_nonempty_improper_list{} = Type, _Data) ->
     erlang:error({type_not_implemented, Type});
 %% Not supported types
-do_to_json(_TypeInfo, #ed_tuple{} = Type, _Data) ->
+do_to_json(_TypeInfo, #sp_tuple{} = Type, _Data) ->
     erlang:error({type_not_supported, Type});
-do_to_json(_TypeInfo, #ed_function{} = Type, _Data) ->
+do_to_json(_TypeInfo, #sp_function{} = Type, _Data) ->
     erlang:error({type_not_supported, Type});
 do_to_json(_TypeInfo, Type, OtherValue) ->
     {error, [
-        #ed_error{
+        #sp_error{
             type = type_mismatch,
             location = [],
             ctx = #{type => Type, value => OtherValue}
         }
     ]}.
 
--spec prim_type_to_json(Type :: erldantic:ed_type(), Value :: term()) ->
-    {ok, json:encode_value()} | {error, [erldantic:error()]}.
-prim_type_to_json(#ed_simple_type{type = Type} = T, Value) ->
+-spec prim_type_to_json(Type :: spectra:sp_type(), Value :: term()) ->
+    {ok, json:encode_value()} | {error, [spectra:error()]}.
+prim_type_to_json(#sp_simple_type{type = Type} = T, Value) ->
     case check_type_to_json(Type, Value) of
         {true, NewValue} ->
             {ok, NewValue};
@@ -144,7 +144,7 @@ prim_type_to_json(#ed_simple_type{type = Type} = T, Value) ->
             {error, Reason};
         false ->
             {error, [
-                #ed_error{
+                #sp_error{
                     type = type_mismatch,
                     location = [],
                     ctx = #{type => T, value => Value}
@@ -156,7 +156,7 @@ nonempty_list_to_json(TypeInfo, Type, Data) when is_list(Data) andalso Data =/= 
     list_to_json(TypeInfo, Type, Data);
 nonempty_list_to_json(_TypeInfo, Type, Data) ->
     {error, [
-        #ed_error{
+        #sp_error{
             type = type_mismatch,
             location = [],
             ctx = #{type => {nonempty_list, Type}, value => Data}
@@ -164,13 +164,13 @@ nonempty_list_to_json(_TypeInfo, Type, Data) ->
     ]}.
 
 -spec list_to_json(
-    TypeInfo :: erldantic:type_info(),
-    Type :: erldantic:ed_type_or_ref(),
+    TypeInfo :: spectra:type_info(),
+    Type :: spectra:sp_type_or_ref(),
     Data :: [term()]
 ) ->
-    {ok, [json:encode_value()]} | {error, [erldantic:error()]}.
+    {ok, [json:encode_value()]} | {error, [spectra:error()]}.
 list_to_json(TypeInfo, Type, Data) when is_list(Data) ->
-    erldantic_util:map_until_error(
+    spectra_util:map_until_error(
         fun({Nr, Item}) ->
             case do_to_json(TypeInfo, Type, Item) of
                 {ok, Json} ->
@@ -189,7 +189,7 @@ list_to_json(TypeInfo, Type, Data) when is_list(Data) ->
         lists:enumerate(Data)
     ).
 
-map_to_json(TypeInfo, #ed_map{fields = Fields}, Data) when is_map(Data) ->
+map_to_json(TypeInfo, #sp_map{fields = Fields}, Data) when is_map(Data) ->
     %% Check if this is an Elixir struct and remove __struct__ field for JSON serialization
     DataWithoutStruct =
         case maps:take('__struct__', Data) of
@@ -206,10 +206,10 @@ map_to_json(TypeInfo, #ed_map{fields = Fields}, Data) when is_map(Data) ->
     end;
 map_to_json(_TypeInfo, _MapFieldTypes, Data) ->
     {error, [
-        #ed_error{
+        #sp_error{
             type = type_mismatch,
             location = [],
-            ctx = #{type => #ed_simple_type{type = map}, value => Data}
+            ctx = #{type => #sp_simple_type{type = map}, value => Data}
         }
     ]}.
 
@@ -248,7 +248,7 @@ map_fields_to_json(TypeInfo, MapFieldTypes, Data) ->
             case map_field_type(TypeInfo, KeyType, ValueType, DataAcc) of
                 {ok, {[], _}} ->
                     NoExactMatch =
-                        #ed_error{
+                        #sp_error{
                             type = not_matched_fields,
                             location = [],
                             ctx =
@@ -278,15 +278,15 @@ map_fields_to_json(TypeInfo, MapFieldTypes, Data) ->
                             {error, Errs2}
                     end;
                 error ->
-                    case erldantic_type:can_be_undefined(TypeInfo, FieldType) of
+                    case spectra_type:can_be_undefined(TypeInfo, FieldType) of
                         true ->
                             {ok, {FieldsAcc, DataAcc}};
                         false ->
-                            {error, [#ed_error{type = missing_data, location = [FieldName]}]}
+                            {error, [#sp_error{type = missing_data, location = [FieldName]}]}
                     end
             end
     end,
-    case erldantic_util:fold_until_error(Fun, {[], Data}, MapFieldTypes) of
+    case spectra_util:fold_until_error(Fun, {[], Data}, MapFieldTypes) of
         {ok, {MapFields, FinalData}} ->
             case maps:to_list(FinalData) of
                 [] ->
@@ -295,7 +295,7 @@ map_fields_to_json(TypeInfo, MapFieldTypes, Data) ->
                     {error,
                         lists:map(
                             fun({Key, Value}) ->
-                                #ed_error{
+                                #sp_error{
                                     type = not_matched_fields,
                                     location = [],
                                     ctx = #{key => Key, value => Value}
@@ -309,13 +309,13 @@ map_fields_to_json(TypeInfo, MapFieldTypes, Data) ->
     end.
 
 -spec map_field_type(
-    TypeInfo :: erldantic:type_info(),
-    KeyType :: erldantic:ed_type(),
-    ValueType :: erldantic:ed_type(),
+    TypeInfo :: spectra:type_info(),
+    KeyType :: spectra:sp_type(),
+    ValueType :: spectra:sp_type(),
     Data :: map()
 ) ->
     {ok, {[{json:encode_value(), json:encode_value()}], map()}}
-    | {error, [erldantic:error()]}.
+    | {error, [spectra:error()]}.
 map_field_type(TypeInfo, KeyType, ValueType, Data) ->
     Fun = fun({Key, Value}, {FieldsAcc, DataAcc}) ->
         case do_to_json(TypeInfo, KeyType, Key) of
@@ -333,21 +333,21 @@ map_field_type(TypeInfo, KeyType, ValueType, Data) ->
                 {ok, {FieldsAcc, DataAcc}}
         end
     end,
-    erldantic_util:fold_until_error(Fun, {[], Data}, maps:to_list(Data)).
+    spectra_util:fold_until_error(Fun, {[], Data}, maps:to_list(Data)).
 
 -spec record_to_json(
-    TypeInfo :: erldantic:type_info(),
-    RecordName :: atom() | #ed_rec{},
+    TypeInfo :: spectra:type_info(),
+    RecordName :: atom() | #sp_rec{},
     Record :: term(),
-    TypeArgs :: [{atom(), erldantic:ed_type()}]
+    TypeArgs :: [{atom(), spectra:sp_type()}]
 ) ->
-    {ok, #{atom() => json:encode_value()}} | {error, [erldantic:error()]}.
+    {ok, #{atom() => json:encode_value()}} | {error, [spectra:error()]}.
 record_to_json(TypeInfo, RecordName, Record, TypeArgs) when is_atom(RecordName) ->
-    {ok, RecordInfo} = erldantic_type_info:get_record(TypeInfo, RecordName),
+    {ok, RecordInfo} = spectra_type_info:get_record(TypeInfo, RecordName),
     record_to_json(TypeInfo, RecordInfo, Record, TypeArgs);
 record_to_json(
     TypeInfo,
-    #ed_rec{
+    #sp_rec{
         name = RecordName,
         fields = Fields,
         arity = Arity
@@ -365,7 +365,7 @@ record_to_json(
     do_record_to_json(TypeInfo, RecFieldTypesWithData);
 record_to_json(_TypeInfo, RecordName, Record, TypeArgs) ->
     {error, [
-        #ed_error{
+        #sp_error{
             type = type_mismatch,
             location = [],
             ctx =
@@ -387,10 +387,10 @@ record_replace_vars(RecordInfo, TypeArgs) ->
     ).
 
 -spec do_record_to_json(
-    erldantic:type_info(),
-    [{{atom(), erldantic:ed_type()}, term()}]
+    spectra:type_info(),
+    [{{atom(), spectra:sp_type()}, term()}]
 ) ->
-    {ok, #{atom() => json}} | {error, [erldantic:error()]}.
+    {ok, #{atom() => json}} | {error, [spectra:error()]}.
 do_record_to_json(TypeInfo, RecFieldTypesWithData) ->
     Fun = fun({{FieldName, FieldType}, RecordFieldData}, FieldsAcc) when is_atom(FieldName) ->
         case do_to_json(TypeInfo, FieldType, RecordFieldData) of
@@ -403,7 +403,7 @@ do_record_to_json(TypeInfo, RecFieldTypesWithData) ->
         end
     end,
 
-    case erldantic_util:fold_until_error(Fun, [], RecFieldTypesWithData) of
+    case spectra_util:fold_until_error(Fun, [], RecFieldTypesWithData) of
         {ok, Fields} ->
             {ok, maps:from_list(Fields)};
         {error, _} = Err ->
@@ -411,45 +411,45 @@ do_record_to_json(TypeInfo, RecFieldTypesWithData) ->
     end.
 
 err_append_location(Err, FieldName) ->
-    Err#ed_error{location = [FieldName | Err#ed_error.location]}.
+    Err#sp_error{location = [FieldName | Err#sp_error.location]}.
 
 -spec from_json(
-    TypeInfo :: erldantic:type_info() | module(),
-    Type :: erldantic:ed_type_or_ref(),
+    TypeInfo :: spectra:type_info() | module(),
+    Type :: spectra:sp_type_or_ref(),
     Json :: json:decode_value()
 ) ->
-    {ok, term()} | {error, [erldantic:error()]}.
+    {ok, term()} | {error, [spectra:error()]}.
 from_json(Module, Type, Json) when is_atom(Module) ->
-    TypeInfo = erldantic_module_types:get(Module),
+    TypeInfo = spectra_module_types:get(Module),
     do_from_json(TypeInfo, Type, Json);
 from_json(TypeInfo, Type, Json) ->
     do_from_json(TypeInfo, Type, Json).
 
 -spec do_from_json(
-    TypeInfo :: erldantic:type_info(),
-    Type :: erldantic:ed_type_or_ref(),
+    TypeInfo :: spectra:type_info(),
+    Type :: spectra:sp_type_or_ref(),
     Json :: json:decode_value()
 ) ->
-    {ok, term()} | {error, [erldantic:error()]}.
+    {ok, term()} | {error, [spectra:error()]}.
 do_from_json(TypeInfo, {record, RecordName}, Json) when is_atom(RecordName) ->
     record_from_json(TypeInfo, RecordName, Json, []);
-do_from_json(TypeInfo, #ed_rec{} = Rec, Json) ->
+do_from_json(TypeInfo, #sp_rec{} = Rec, Json) ->
     record_from_json(TypeInfo, Rec, Json, []);
-do_from_json(_TypeInfo, #ed_remote_type{mfargs = {Module, TypeName, Args}}, Data) ->
-    TypeInfo = erldantic_module_types:get(Module),
+do_from_json(_TypeInfo, #sp_remote_type{mfargs = {Module, TypeName, Args}}, Data) ->
+    TypeInfo = spectra_module_types:get(Module),
     TypeArity = length(Args),
-    {ok, Type} = erldantic_type_info:get_type(TypeInfo, TypeName, TypeArity),
+    {ok, Type} = spectra_type_info:get_type(TypeInfo, TypeName, TypeArity),
     TypeWithoutVars = apply_args(TypeInfo, Type, Args),
     do_from_json(TypeInfo, TypeWithoutVars, Data);
 do_from_json(
     TypeInfo,
-    #ed_rec_ref{record_name = RecordName, field_types = TypeArgs},
+    #sp_rec_ref{record_name = RecordName, field_types = TypeArgs},
     Json
 ) when
     is_atom(RecordName)
 ->
     record_from_json(TypeInfo, RecordName, Json, TypeArgs);
-do_from_json(TypeInfo, #ed_map{fields = Fields, struct_name = StructName}, Json) ->
+do_from_json(TypeInfo, #sp_map{fields = Fields, struct_name = StructName}, Json) ->
     case map_from_json(TypeInfo, Fields, Json) of
         {ok, MapResult} when StructName =/= undefined ->
             %% Add back the __struct__ field for Elixir structs
@@ -459,17 +459,17 @@ do_from_json(TypeInfo, #ed_map{fields = Fields, struct_name = StructName}, Json)
     end;
 do_from_json(
     TypeInfo,
-    #ed_user_type_ref{type_name = TypeName, variables = TypeArgs},
+    #sp_user_type_ref{type_name = TypeName, variables = TypeArgs},
     Json
 ) when
     is_atom(TypeName)
 ->
     type_from_json(TypeInfo, TypeName, length(TypeArgs), TypeArgs, Json);
-do_from_json(TypeInfo, #ed_nonempty_list{type = Type}, Data) ->
+do_from_json(TypeInfo, #sp_nonempty_list{type = Type}, Data) ->
     nonempty_list_from_json(TypeInfo, Type, Data);
-do_from_json(TypeInfo, #ed_list{type = Type}, Data) ->
+do_from_json(TypeInfo, #sp_list{type = Type}, Data) ->
     list_from_json(TypeInfo, Type, Data);
-do_from_json(_TypeInfo, #ed_simple_type{type = NotSupported} = T, _Value) when
+do_from_json(_TypeInfo, #sp_simple_type{type = NotSupported} = T, _Value) when
     NotSupported =:= pid orelse
         NotSupported =:= port orelse
         NotSupported =:= reference orelse
@@ -478,7 +478,7 @@ do_from_json(_TypeInfo, #ed_simple_type{type = NotSupported} = T, _Value) when
         NotSupported =:= none
 ->
     erlang:error({type_not_supported, T});
-do_from_json(_TypeInfo, #ed_simple_type{type = PrimaryType} = T, Json) ->
+do_from_json(_TypeInfo, #sp_simple_type{type = PrimaryType} = T, Json) ->
     case check_type_from_json(PrimaryType, Json) of
         {true, NewValue} ->
             {ok, NewValue};
@@ -486,22 +486,22 @@ do_from_json(_TypeInfo, #ed_simple_type{type = PrimaryType} = T, Json) ->
             {error, Reason};
         false ->
             {error, [
-                #ed_error{
+                #sp_error{
                     type = type_mismatch,
                     location = [],
                     ctx = #{type => T, value => Json}
                 }
             ]}
     end;
-do_from_json(_TypeInfo, #ed_literal{value = Literal}, Literal) ->
+do_from_json(_TypeInfo, #sp_literal{value = Literal}, Literal) ->
     {ok, Literal};
-do_from_json(_TypeInfo, #ed_literal{value = Literal} = Type, Value) ->
+do_from_json(_TypeInfo, #sp_literal{value = Literal} = Type, Value) ->
     case try_convert_to_literal(Literal, Value) of
         {ok, Literal} ->
             {ok, Literal};
         false ->
             {error, [
-                #ed_error{
+                #sp_error{
                     type = type_mismatch,
                     location = [],
                     ctx = #{type => Type, value => Value}
@@ -510,11 +510,11 @@ do_from_json(_TypeInfo, #ed_literal{value = Literal} = Type, Value) ->
     end;
 do_from_json(TypeInfo, {type, TypeName, TypeArity}, Json) when is_atom(TypeName) ->
     type_from_json(TypeInfo, TypeName, TypeArity, [], Json);
-do_from_json(TypeInfo, #ed_union{} = Type, Json) ->
+do_from_json(TypeInfo, #sp_union{} = Type, Json) ->
     union(fun do_from_json/3, TypeInfo, Type, Json);
 do_from_json(
     _TypeInfo,
-    #ed_range{
+    #sp_range{
         type = integer,
         lower_bound = Min,
         upper_bound = Max
@@ -526,7 +526,7 @@ do_from_json(
     {ok, Value};
 do_from_json(
     _TypeInfo,
-    #ed_range{
+    #sp_range{
         type = integer,
         lower_bound = _Min,
         upper_bound = _Max
@@ -537,23 +537,23 @@ do_from_json(
     is_integer(Value)
 ->
     {error, [
-        #ed_error{
+        #sp_error{
             type = type_mismatch,
             location = [],
             ctx = #{type => Range, value => Value}
         }
     ]};
-do_from_json(_TypeInfo, #ed_maybe_improper_list{} = Type, _Value) ->
+do_from_json(_TypeInfo, #sp_maybe_improper_list{} = Type, _Value) ->
     erlang:error({type_not_implemented, Type});
-do_from_json(_TypeInfo, #ed_nonempty_improper_list{} = Type, _Value) ->
+do_from_json(_TypeInfo, #sp_nonempty_improper_list{} = Type, _Value) ->
     erlang:error({type_not_implemented, Type});
-do_from_json(_TypeInfo, #ed_function{} = Type, _Value) ->
+do_from_json(_TypeInfo, #sp_function{} = Type, _Value) ->
     erlang:error({type_not_supported, Type});
-do_from_json(_TypeInfo, #ed_tuple{} = Type, _Value) ->
+do_from_json(_TypeInfo, #sp_tuple{} = Type, _Value) ->
     erlang:error({type_not_supported, Type});
 do_from_json(_TypeInfo, Type, Value) ->
     {error, [
-        #ed_error{
+        #sp_error{
             type = type_mismatch,
             location = [],
             ctx = #{type => Type, value => Value}
@@ -577,7 +577,7 @@ nonempty_list_from_json(TypeInfo, Type, Data) when is_list(Data) andalso Data =/
     list_from_json(TypeInfo, Type, Data);
 nonempty_list_from_json(_TypeInfo, Type, Data) ->
     {error, [
-        #ed_error{
+        #sp_error{
             type = type_mismatch,
             location = [],
             ctx = #{type => {nonempty_list, Type}, value => Data}
@@ -595,10 +595,10 @@ list_from_json(TypeInfo, Type, Data) when is_list(Data) ->
                 {error, Errs2}
         end
     end,
-    erldantic_util:map_until_error(Fun, lists:enumerate(Data));
+    spectra_util:map_until_error(Fun, lists:enumerate(Data));
 list_from_json(_TypeInfo, Type, Data) ->
     {error, [
-        #ed_error{
+        #sp_error{
             type = type_mismatch,
             location = [],
             ctx = #{type => {list, Type}, value => Data}
@@ -611,12 +611,12 @@ string_from_json(Type, Json) ->
             {true, StringValue};
         _Other ->
             {error, [
-                #ed_error{
+                #sp_error{
                     type = type_mismatch,
                     location = [],
                     ctx =
                         #{
-                            type => #ed_simple_type{type = Type},
+                            type => #sp_simple_type{type = Type},
                             value => Json,
                             comment => "unicode conversion failed"
                         }
@@ -652,12 +652,12 @@ check_type_to_json(nonempty_string, Json) when is_list(Json), Json =/= [] ->
     case unicode:characters_to_binary(Json) of
         {Err, _, _} when Err =:= error orelse Err =:= incomplete ->
             {error, [
-                #ed_error{
+                #sp_error{
                     type = type_mismatch,
                     location = [],
                     ctx =
                         #{
-                            type => #ed_simple_type{type = string},
+                            type => #sp_simple_type{type = string},
                             value => Json,
                             comment => "non printable"
                         }
@@ -670,12 +670,12 @@ check_type_to_json(string, Json) when is_list(Json) ->
     case unicode:characters_to_binary(Json) of
         {Err, _, _} when Err =:= error orelse Err =:= incomplete ->
             {error, [
-                #ed_error{
+                #sp_error{
                     type = type_mismatch,
                     location = [],
                     ctx =
                         #{
-                            type => #ed_simple_type{type = string},
+                            type => #sp_simple_type{type = string},
                             value => Json,
                             comment => "non printable"
                         }
@@ -712,11 +712,11 @@ check_type(term, Json) ->
 check_type(_Type, _Json) ->
     false.
 
-union(Fun, TypeInfo, #ed_union{types = Types} = T, Json) ->
+union(Fun, TypeInfo, #sp_union{types = Types} = T, Json) ->
     case do_first(Fun, TypeInfo, Types, Json) of
         {error, no_match} ->
             {error, [
-                #ed_error{
+                #sp_error{
                     type = no_match,
                     location = [],
                     ctx = #{type => T, value => Json}
@@ -739,15 +739,15 @@ do_first(Fun, TypeInfo, [Type | Rest], Json) ->
     end.
 
 -spec type_from_json(
-    TypeInfo :: erldantic:type_info(),
+    TypeInfo :: spectra:type_info(),
     TypeName :: atom(),
     TypeArity :: non_neg_integer(),
-    TypeArgs :: [erldantic:ed_type()],
+    TypeArgs :: [spectra:sp_type()],
     Json :: json:decode_value()
 ) ->
-    {ok, term()} | {error, [erldantic:error()]}.
+    {ok, term()} | {error, [spectra:error()]}.
 type_from_json(TypeInfo, TypeName, TypeArity, TypeArgs, Json) ->
-    {ok, Type} = erldantic_type_info:get_type(TypeInfo, TypeName, TypeArity),
+    {ok, Type} = spectra_type_info:get_type(TypeInfo, TypeName, TypeArity),
     TypeWithoutVars = apply_args(TypeInfo, Type, TypeArgs),
     do_from_json(TypeInfo, TypeWithoutVars, Json).
 
@@ -759,23 +759,23 @@ apply_args(TypeInfo, Type, TypeArgs) when is_list(TypeArgs) ->
         ),
     type_replace_vars(TypeInfo, Type, NamedTypes).
 
-arg_names(#ed_type_with_variables{vars = Args}) ->
+arg_names(#sp_type_with_variables{vars = Args}) ->
     Args;
 arg_names(_) ->
     [].
 
 -spec type_replace_vars(
-    TypeInfo :: erldantic:type_info(),
-    Type :: erldantic:ed_type(),
-    NamedTypes :: #{atom() => erldantic:ed_type()}
+    TypeInfo :: spectra:type_info(),
+    Type :: spectra:sp_type(),
+    NamedTypes :: #{atom() => spectra:sp_type()}
 ) ->
-    erldantic:ed_type().
-type_replace_vars(_TypeInfo, #ed_var{name = Name}, NamedTypes) ->
+    spectra:sp_type().
+type_replace_vars(_TypeInfo, #sp_var{name = Name}, NamedTypes) ->
     maps:get(Name, NamedTypes);
-type_replace_vars(TypeInfo, #ed_type_with_variables{type = Type}, NamedTypes) ->
+type_replace_vars(TypeInfo, #sp_type_with_variables{type = Type}, NamedTypes) ->
     case Type of
-        #ed_union{types = UnionTypes} ->
-            #ed_union{
+        #sp_union{types = UnionTypes} ->
+            #sp_union{
                 types =
                     lists:map(
                         fun(UnionType) ->
@@ -784,8 +784,8 @@ type_replace_vars(TypeInfo, #ed_type_with_variables{type = Type}, NamedTypes) ->
                         UnionTypes
                     )
             };
-        #ed_map{fields = Fields, struct_name = StructName} ->
-            #ed_map{
+        #sp_map{fields = Fields, struct_name = StructName} ->
+            #sp_map{
                 fields =
                     lists:map(
                         fun
@@ -810,19 +810,19 @@ type_replace_vars(TypeInfo, #ed_type_with_variables{type = Type}, NamedTypes) ->
                     ),
                 struct_name = StructName
             };
-        #ed_rec_ref{record_name = RecordName, field_types = RefFieldTypes} ->
-            case erldantic_type_info:get_record(TypeInfo, RecordName) of
-                {ok, #ed_rec{fields = Fields} = Rec} ->
-                    NewRec = Rec#ed_rec{fields = record_replace_vars(Fields, RefFieldTypes)},
+        #sp_rec_ref{record_name = RecordName, field_types = RefFieldTypes} ->
+            case spectra_type_info:get_record(TypeInfo, RecordName) of
+                {ok, #sp_rec{fields = Fields} = Rec} ->
+                    NewRec = Rec#sp_rec{fields = record_replace_vars(Fields, RefFieldTypes)},
                     type_replace_vars(TypeInfo, NewRec, NamedTypes);
                 error ->
                     erlang:error({missing_type, {record, RecordName}})
             end;
-        #ed_remote_type{mfargs = {Module, TypeName, Args}} ->
-            case erldantic_module_types:get(Module) of
+        #sp_remote_type{mfargs = {Module, TypeName, Args}} ->
+            case spectra_module_types:get(Module) of
                 {ok, TypeInfo} ->
                     TypeArity = length(Args),
-                    case erldantic_type_info:get_type(TypeInfo, TypeName, TypeArity) of
+                    case spectra_type_info:get_type(TypeInfo, TypeName, TypeArity) of
                         {ok, Type} ->
                             type_replace_vars(TypeInfo, Type, NamedTypes);
                         error ->
@@ -831,11 +831,11 @@ type_replace_vars(TypeInfo, #ed_type_with_variables{type = Type}, NamedTypes) ->
                 {error, _} = Err ->
                     erlang:error(Err)
             end;
-        #ed_list{type = ListType} ->
-            #ed_list{type = type_replace_vars(TypeInfo, ListType, NamedTypes)}
+        #sp_list{type = ListType} ->
+            #sp_list{type = type_replace_vars(TypeInfo, ListType, NamedTypes)}
     end;
-type_replace_vars(TypeInfo, #ed_rec{fields = Fields} = Rec, NamedTypes) ->
-    Rec#ed_rec{
+type_replace_vars(TypeInfo, #sp_rec{fields = Fields} = Rec, NamedTypes) ->
+    Rec#sp_rec{
         fields =
             lists:map(
                 fun({Name, NType}) ->
@@ -848,12 +848,12 @@ type_replace_vars(_TypeInfo, Type, _NamedTypes) ->
     Type.
 
 -spec map_from_json(
-    erldantic:type_info(),
-    [erldantic:map_field()],
+    spectra:type_info(),
+    [spectra:map_field()],
     json:decode_value()
 ) ->
     {ok, #{json:encode_value() => json:encode_value()}}
-    | {error, [erldantic:error()]}.
+    | {error, [spectra:error()]}.
 map_from_json(TypeInfo, MapFieldType, Json) when is_map(Json) ->
     Fun = fun
         ({map_field_assoc, FieldName, FieldType}, {FieldsAcc, JsonAcc}) ->
@@ -888,11 +888,11 @@ map_from_json(TypeInfo, MapFieldType, Json) when is_map(Json) ->
                             {error, Errs2}
                     end;
                 error ->
-                    case erldantic_type:can_be_undefined(TypeInfo, FieldType) of
+                    case spectra_type:can_be_undefined(TypeInfo, FieldType) of
                         true ->
                             {ok, {[{FieldName, undefined}] ++ FieldsAcc, JsonAcc}};
                         false ->
-                            {error, [#ed_error{type = missing_data, location = [FieldName]}]}
+                            {error, [#sp_error{type = missing_data, location = [FieldName]}]}
                     end
             end;
         ({map_field_type_assoc, KeyType, ValueType}, {FieldsAcc, JsonAcc}) ->
@@ -908,7 +908,7 @@ map_from_json(TypeInfo, MapFieldType, Json) when is_map(Json) ->
                     case NewFields of
                         [] ->
                             NoExactMatch =
-                                #ed_error{
+                                #sp_error{
                                     type = not_matched_fields,
                                     location = [],
                                     ctx =
@@ -926,7 +926,7 @@ map_from_json(TypeInfo, MapFieldType, Json) when is_map(Json) ->
             end
     end,
 
-    case erldantic_util:fold_until_error(Fun, {[], Json}, MapFieldType) of
+    case spectra_util:fold_until_error(Fun, {[], Json}, MapFieldType) of
         {ok, {Fields, NotMapped}} ->
             case maps:size(NotMapped) of
                 0 ->
@@ -935,7 +935,7 @@ map_from_json(TypeInfo, MapFieldType, Json) when is_map(Json) ->
                     {error,
                         lists:map(
                             fun({Key, Value}) ->
-                                #ed_error{
+                                #sp_error{
                                     type = not_matched_fields,
                                     location = [],
                                     ctx = #{key => Key, value => Value}
@@ -950,15 +950,15 @@ map_from_json(TypeInfo, MapFieldType, Json) when is_map(Json) ->
 map_from_json(_TypeInfo, _MapFieldType, Json) ->
     %% Return error when Json is not a map
     {error, [
-        #ed_error{
+        #sp_error{
             type = type_mismatch,
             location = [],
-            ctx = #{type => #ed_simple_type{type = map}, value => Json}
+            ctx = #{type => #sp_simple_type{type = map}, value => Json}
         }
     ]}.
 
 map_field_type_from_json(TypeInfo, KeyType, ValueType, Json) ->
-    erldantic_util:fold_until_error(
+    spectra_util:fold_until_error(
         fun({Key, Value}, {FieldsAcc, JsonAcc}) ->
             case do_from_json(TypeInfo, KeyType, Key) of
                 {ok, KeyJson} ->
@@ -987,21 +987,21 @@ map_field_type_from_json(TypeInfo, KeyType, ValueType, Json) ->
     ).
 
 -spec record_from_json(
-    TypeInfo :: erldantic:type_info(),
-    RecordName :: atom() | #ed_rec{},
+    TypeInfo :: spectra:type_info(),
+    RecordName :: atom() | #sp_rec{},
     Json :: json:decode_value(),
-    TypeArgs :: [erldantic:record_field()]
+    TypeArgs :: [spectra:record_field()]
 ) ->
     {ok, term()} | {error, list()}.
 record_from_json(TypeInfo, RecordName, Json, TypeArgs) when is_atom(RecordName) ->
-    {ok, Record} = erldantic_type_info:get_record(TypeInfo, RecordName),
+    {ok, Record} = spectra_type_info:get_record(TypeInfo, RecordName),
     record_from_json(TypeInfo, Record, Json, TypeArgs);
-record_from_json(TypeInfo, #ed_rec{name = RecordName} = ARec, Json, TypeArgs) ->
-    RecordInfo = record_replace_vars(ARec#ed_rec.fields, TypeArgs),
+record_from_json(TypeInfo, #sp_rec{name = RecordName} = ARec, Json, TypeArgs) ->
+    RecordInfo = record_replace_vars(ARec#sp_rec.fields, TypeArgs),
     do_record_from_json(TypeInfo, RecordName, RecordInfo, Json).
 
 -spec do_record_from_json(
-    TypeInfo :: erldantic:type_info(),
+    TypeInfo :: spectra:type_info(),
     RecordName :: atom(),
     RecordInfo :: list(),
     Json :: json:decode_value()
@@ -1023,15 +1023,15 @@ do_record_from_json(TypeInfo, RecordName, RecordInfo, Json) when is_map(Json) ->
                         {error, Errs2}
                 end;
             error ->
-                case erldantic_type:can_be_undefined(TypeInfo, FieldType) of
+                case spectra_type:can_be_undefined(TypeInfo, FieldType) of
                     true ->
                         {ok, undefined};
                     false ->
-                        {error, [#ed_error{type = missing_data, location = [FieldName]}]}
+                        {error, [#sp_error{type = missing_data, location = [FieldName]}]}
                 end
         end
     end,
-    case erldantic_util:map_until_error(Fun, RecordInfo) of
+    case spectra_util:map_until_error(Fun, RecordInfo) of
         {ok, Fields} ->
             {ok, list_to_tuple([RecordName | Fields])};
         {error, Errs} ->
@@ -1039,7 +1039,7 @@ do_record_from_json(TypeInfo, RecordName, RecordInfo, Json) when is_map(Json) ->
     end;
 do_record_from_json(_TypeInfo, RecordName, _RecordInfo, Json) ->
     {error, [
-        #ed_error{
+        #sp_error{
             type = type_mismatch,
             location = [],
             ctx = #{record_name => RecordName, record => Json}

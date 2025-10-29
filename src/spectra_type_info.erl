@@ -1,6 +1,6 @@
--module(erldantic_type_info).
+-module(spectra_type_info).
 
--include("../include/erldantic_internal.hrl").
+-include("../include/spectra_internal.hrl").
 
 -ignore_xref([get_function/3]).
 
@@ -19,28 +19,28 @@
 new() ->
     #type_info{}.
 
--spec add_type(type_info(), atom(), arity(), erldantic:ed_type()) -> type_info().
+-spec add_type(type_info(), atom(), arity(), spectra:sp_type()) -> type_info().
 add_type(#type_info{types = Types} = TypeInfo, Name, Arity, Type) ->
     TypeInfo#type_info{types = Types#{{Name, Arity} => Type}}.
 
--spec get_type(type_info(), atom(), arity()) -> {ok, erldantic:ed_type()} | error.
+-spec get_type(type_info(), atom(), arity()) -> {ok, spectra:sp_type()} | error.
 get_type(#type_info{types = Types}, Name, Arity) ->
     maps:find({Name, Arity}, Types).
 
--spec add_record(type_info(), atom(), #ed_rec{}) -> type_info().
+-spec add_record(type_info(), atom(), #sp_rec{}) -> type_info().
 add_record(#type_info{records = Records} = TypeInfo, Name, Record) ->
     TypeInfo#type_info{records = Records#{Name => Record}}.
 
--spec get_record(type_info(), atom()) -> {ok, #ed_rec{}} | error.
+-spec get_record(type_info(), atom()) -> {ok, #sp_rec{}} | error.
 get_record(#type_info{records = Records}, Name) ->
     maps:find(Name, Records).
 
--spec add_function(type_info(), atom(), arity(), [erldantic:ed_function_spec()]) ->
+-spec add_function(type_info(), atom(), arity(), [spectra:sp_function_spec()]) ->
     type_info().
 add_function(#type_info{functions = Functions} = TypeInfo, Name, Arity, FuncSpec) ->
     TypeInfo#type_info{functions = Functions#{{Name, Arity} => FuncSpec}}.
 
 -spec get_function(type_info(), atom(), arity()) ->
-    {ok, [erldantic:ed_function_spec()]} | error.
+    {ok, [spectra:sp_function_spec()]} | error.
 get_function(#type_info{functions = Functions}, Name, Arity) ->
     maps:find({Name, Arity}, Functions).
