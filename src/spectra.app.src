@@ -1,5 +1,5 @@
 {application, spectra, [
-    {description, "An OTP library"},
+    {description, "Type safe data (de) serialization."},
     {vsn, "0.1.1"},
     {registered, []},
     {applications, [kernel, stdlib]},
