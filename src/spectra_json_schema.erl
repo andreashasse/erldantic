@@ -206,20 +206,30 @@ type_replace_vars(TypeInfo, #sp_type_with_variables{type = Type}, NamedTypes) ->
                 fields =
                     lists:map(
                         fun
-                            ({map_field_assoc, FieldName, FieldType}) ->
-                                {map_field_assoc, FieldName,
-                                    type_replace_vars(TypeInfo, FieldType, NamedTypes)};
-                            ({map_field_exact, FieldName, FieldType}) ->
-                                {map_field_exact, FieldName,
-                                    type_replace_vars(TypeInfo, FieldType, NamedTypes)};
-                            ({map_field_type_assoc, KeyType, ValueType}) ->
-                                {map_field_type_assoc,
-                                    type_replace_vars(TypeInfo, KeyType, NamedTypes),
-                                    type_replace_vars(TypeInfo, ValueType, NamedTypes)};
-                            ({map_field_type_exact, KeyType, ValueType}) ->
-                                {map_field_type_exact,
-                                    type_replace_vars(TypeInfo, KeyType, NamedTypes),
-                                    type_replace_vars(TypeInfo, ValueType, NamedTypes)}
+                            (
+                                #literal_map_field{
+                                    kind = Kind,
+                                    name = FieldName,
+                                    binary_name = BinaryName,
+                                    val_type = FieldType
+                                }
+                            ) ->
+                                #literal_map_field{
+                                    kind = Kind,
+                                    name = FieldName,
+                                    binary_name = BinaryName,
+                                    val_type = type_replace_vars(TypeInfo, FieldType, NamedTypes)
+                                };
+                            (
+                                #typed_map_field{
+                                    kind = Kind, key_type = KeyType, val_type = ValueType
+                                }
+                            ) ->
+                                #typed_map_field{
+                                    kind = Kind,
+                                    key_type = type_replace_vars(TypeInfo, KeyType, NamedTypes),
+                                    val_type = type_replace_vars(TypeInfo, ValueType, NamedTypes)
+                                }
                         end,
                         Fields
                     )
@@ -293,7 +303,7 @@ process_map_fields(_TypeInfo, [], Properties, Required, HasAdditional) ->
     {ok, Properties, Required, HasAdditional};
 process_map_fields(
     TypeInfo,
-    [{map_field_assoc, FieldName, FieldType} | Rest],
+    [#literal_map_field{kind = assoc, name = FieldName, val_type = FieldType} | Rest],
     Properties,
     Required,
     HasAdditional
@@ -307,7 +317,7 @@ process_map_fields(
     end;
 process_map_fields(
     TypeInfo,
-    [{map_field_exact, FieldName, FieldType} | Rest],
+    [#literal_map_field{kind = exact, name = FieldName, val_type = FieldType} | Rest],
     Properties,
     Required,
     HasAdditional
@@ -322,7 +332,7 @@ process_map_fields(
     end;
 process_map_fields(
     _TypeInfo,
-    [{map_field_type_assoc, _KeyType, _ValueType} | Rest],
+    [#typed_map_field{kind = assoc_type} | Rest],
     Properties,
     Required,
     _HasAdditional
@@ -331,7 +341,7 @@ process_map_fields(
     process_map_fields(_TypeInfo, Rest, Properties, Required, true);
 process_map_fields(
     _TypeInfo,
-    [{map_field_type_exact, _KeyType, _ValueType} | Rest],
+    [#typed_map_field{kind = exact_type} | Rest],
     Properties,
     Required,
     _HasAdditional

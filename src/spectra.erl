@@ -31,9 +31,7 @@
     | #sp_maybe_improper_list{}
     | #sp_nonempty_improper_list{}
     | #sp_remote_type{}.
--type map_field() ::
-    {map_field_assoc | map_field_exact, Name :: atom(), sp_type()}
-    | {map_field_type_assoc | map_field_type_exact, sp_type(), sp_type()}.
+-type map_field() :: #literal_map_field{} | #typed_map_field{}.
 -type sp_type_reference() ::
     {type, Name :: atom(), Arity :: arity()} | {record, Name :: atom()}.
 -type error() :: #sp_error{}.

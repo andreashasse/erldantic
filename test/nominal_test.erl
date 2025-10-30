@@ -37,9 +37,24 @@ simple_test() ->
         #sp_map{
             fields =
                 [
-                    {map_field_exact, id, #sp_user_type_ref{type_name = user_id, variables = []}},
-                    {map_field_assoc, name, #sp_simple_type{type = binary}},
-                    {map_field_assoc, age, #sp_simple_type{type = pos_integer}}
+                    #literal_map_field{
+                        kind = exact,
+                        name = id,
+                        binary_name = <<"id">>,
+                        val_type = #sp_user_type_ref{type_name = user_id, variables = []}
+                    },
+                    #literal_map_field{
+                        kind = assoc,
+                        name = name,
+                        binary_name = <<"name">>,
+                        val_type = #sp_simple_type{type = binary}
+                    },
+                    #literal_map_field{
+                        kind = assoc,
+                        name = age,
+                        binary_name = <<"age">>,
+                        val_type = #sp_simple_type{type = pos_integer}
+                    }
                 ]
         },
         PersonType

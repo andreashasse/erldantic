@@ -46,6 +46,17 @@
 -record(sp_list, {type :: spectra:sp_type()}).
 -record(sp_nonempty_list, {type :: spectra:sp_type()}).
 -record(sp_function_spec, {args :: [spectra:sp_type()], return :: spectra:sp_type()}).
+-record(literal_map_field, {
+    kind :: assoc | exact,
+    name :: atom(),
+    binary_name :: binary(),
+    val_type :: spectra:sp_type()
+}).
+-record(typed_map_field, {
+    kind :: assoc_type | exact_type,
+    key_type :: spectra:sp_type(),
+    val_type :: spectra:sp_type()
+}).
 %% New structured type information
 -record(type_info, {
     types = #{} :: #{spectra_type_info:type_key() => spectra:sp_type()},

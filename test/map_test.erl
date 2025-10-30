@@ -119,9 +119,13 @@ mandatory_type_map_bad_test() ->
                 ctx =
                     #{
                         type =>
-                            {map_field_type_exact, #sp_simple_type{type = atom}, #sp_simple_type{
-                                type = atom
-                            }}
+                            #typed_map_field{
+                                kind = exact_type,
+                                key_type = #sp_simple_type{type = atom},
+                                val_type = #sp_simple_type{
+                                    type = atom
+                                }
+                            }
                     }
             }
         ]},
