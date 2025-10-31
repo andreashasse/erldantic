@@ -215,7 +215,10 @@ map_to_json(_TypeInfo, _MapFieldTypes, Data) ->
 
 map_fields_to_json(TypeInfo, MapFieldTypes, Data) ->
     Fun = fun
-        ({map_field_assoc, FieldName, FieldType}, {FieldsAcc, DataAcc}) ->
+        (
+            #literal_map_field{kind = assoc, name = FieldName, val_type = FieldType},
+            {FieldsAcc, DataAcc}
+        ) ->
             case maps:take(FieldName, DataAcc) of
                 {FieldData, NewDataAcc} ->
                     case do_to_json(TypeInfo, FieldType, FieldData) of
@@ -237,14 +240,20 @@ map_fields_to_json(TypeInfo, MapFieldTypes, Data) ->
                 error ->
                     {ok, {FieldsAcc, DataAcc}}
             end;
-        ({map_field_type_assoc, KeyType, ValueType}, {FieldsAcc, DataAcc}) ->
+        (
+            #typed_map_field{kind = assoc_type, key_type = KeyType, val_type = ValueType},
+            {FieldsAcc, DataAcc}
+        ) ->
             case map_field_type(TypeInfo, KeyType, ValueType, DataAcc) of
                 {ok, {NewFields, NewDataAcc}} ->
                     {ok, {NewFields ++ FieldsAcc, NewDataAcc}};
                 {error, _} = Err ->
                     Err
             end;
-        ({map_field_type_exact, KeyType, ValueType}, {FieldsAcc, DataAcc}) ->
+        (
+            #typed_map_field{kind = exact_type, key_type = KeyType, val_type = ValueType},
+            {FieldsAcc, DataAcc}
+        ) ->
             case map_field_type(TypeInfo, KeyType, ValueType, DataAcc) of
                 {ok, {[], _}} ->
                     NoExactMatch =
@@ -252,7 +261,11 @@ map_fields_to_json(TypeInfo, MapFieldTypes, Data) ->
                             type = not_matched_fields,
                             location = [],
                             ctx =
-                                #{type => {map_field_type_exact, KeyType, ValueType}}
+                                #{
+                                    type => #typed_map_field{
+                                        kind = exact_type, key_type = KeyType, val_type = ValueType
+                                    }
+                                }
                         },
                     {error, [NoExactMatch]};
                 {ok, {NewFields, NewDataAcc}} ->
@@ -260,7 +273,10 @@ map_fields_to_json(TypeInfo, MapFieldTypes, Data) ->
                 {error, _} = Err ->
                     Err
             end;
-        ({map_field_exact, FieldName, FieldType}, {FieldsAcc, DataAcc}) ->
+        (
+            #literal_map_field{kind = exact, name = FieldName, val_type = FieldType},
+            {FieldsAcc, DataAcc}
+        ) ->
             case maps:take(FieldName, DataAcc) of
                 {FieldData, NewDataAcc} ->
                     case do_to_json(TypeInfo, FieldType, FieldData) of
@@ -377,10 +393,22 @@ record_to_json(_TypeInfo, RecordName, Record, TypeArgs) ->
         }
     ]}.
 
+-spec record_replace_vars(
+    RecordInfo :: [#sp_rec_field{}],
+    TypeArgs :: [spectra:record_field_arg()]
+) -> [#sp_rec_field{}].
 record_replace_vars(RecordInfo, TypeArgs) ->
     lists:foldl(
-        fun({Field, Type}, Fields) ->
-            lists:keyreplace(Field, 1, Fields, {Field, Type})
+        fun({FieldName, Type}, Fields) ->
+            lists:map(
+                fun
+                    (#sp_rec_field{name = Name} = Field) when Name =:= FieldName ->
+                        Field#sp_rec_field{type = Type};
+                    (Field) ->
+                        Field
+                end,
+                Fields
+            )
         end,
         RecordInfo,
         TypeArgs
@@ -388,11 +416,11 @@ record_replace_vars(RecordInfo, TypeArgs) ->
 
 -spec do_record_to_json(
     spectra:type_info(),
-    [{{atom(), spectra:sp_type()}, term()}]
+    [{#sp_rec_field{}, Value :: term()}]
 ) ->
     {ok, #{atom() => json}} | {error, [spectra:error()]}.
 do_record_to_json(TypeInfo, RecFieldTypesWithData) ->
-    Fun = fun({{FieldName, FieldType}, RecordFieldData}, FieldsAcc) when is_atom(FieldName) ->
+    Fun = fun({#sp_rec_field{name = FieldName, type = FieldType}, RecordFieldData}, FieldsAcc) ->
         case do_to_json(TypeInfo, FieldType, RecordFieldData) of
             {ok, FieldJson} ->
                 {ok, [{FieldName, FieldJson}] ++ FieldsAcc};
@@ -784,31 +812,24 @@ type_replace_vars(TypeInfo, #sp_type_with_variables{type = Type}, NamedTypes) ->
                         UnionTypes
                     )
             };
-        #sp_map{fields = Fields, struct_name = StructName} ->
-            #sp_map{
+        #sp_map{fields = Fields} = Map ->
+            Map#sp_map{
                 fields =
                     lists:map(
                         fun
-                            ({map_field_assoc, FieldName, FieldType}) ->
-                                {map_field_assoc, FieldName,
-                                    type_replace_vars(TypeInfo, FieldType, NamedTypes)};
-                            ({map_field_exact, FieldName, FieldType}) ->
-                                {map_field_exact, FieldName,
-                                    type_replace_vars(TypeInfo, FieldType, NamedTypes)};
-                            ({map_field_type_assoc, KeyType, ValueType}) ->
+                            (#literal_map_field{val_type = FieldType} = Field) ->
+                                Field#literal_map_field{
+                                    val_type = type_replace_vars(TypeInfo, FieldType, NamedTypes)
+                                };
+                            (#typed_map_field{key_type = KeyType, val_type = ValueType} = Field) ->
                                 %% ADD TESTS
-                                {map_field_type_assoc,
-                                    type_replace_vars(TypeInfo, KeyType, NamedTypes),
-                                    type_replace_vars(TypeInfo, ValueType, NamedTypes)};
-                            ({map_field_type_exact, KeyType, ValueType}) ->
-                                %% ADD TESTS
-                                {map_field_type_exact,
-                                    type_replace_vars(TypeInfo, KeyType, NamedTypes),
-                                    type_replace_vars(TypeInfo, ValueType, NamedTypes)}
+                                Field#typed_map_field{
+                                    key_type = type_replace_vars(TypeInfo, KeyType, NamedTypes),
+                                    val_type = type_replace_vars(TypeInfo, ValueType, NamedTypes)
+                                }
                         end,
                         Fields
-                    ),
-                struct_name = StructName
+                    )
             };
         #sp_rec_ref{record_name = RecordName, field_types = RefFieldTypes} ->
             {ok, #sp_rec{fields = Fields} = Rec} = spectra_type_info:get_record(
@@ -828,8 +849,10 @@ type_replace_vars(TypeInfo, #sp_rec{fields = Fields} = Rec, NamedTypes) ->
     Rec#sp_rec{
         fields =
             lists:map(
-                fun({Name, NType}) ->
-                    {Name, type_replace_vars(TypeInfo, NType, NamedTypes)}
+                fun(#sp_rec_field{type = NType} = Field) ->
+                    Field#sp_rec_field{
+                        type = type_replace_vars(TypeInfo, NType, NamedTypes)
+                    }
                 end,
                 Fields
             )
@@ -846,8 +869,13 @@ type_replace_vars(_TypeInfo, Type, _NamedTypes) ->
     | {error, [spectra:error()]}.
 map_from_json(TypeInfo, MapFieldType, Json) when is_map(Json) ->
     Fun = fun
-        ({map_field_assoc, FieldName, FieldType}, {FieldsAcc, JsonAcc}) ->
-            case maps:take(atom_to_binary(FieldName), JsonAcc) of
+        (
+            #literal_map_field{
+                kind = assoc, name = FieldName, binary_name = BinaryName, val_type = FieldType
+            },
+            {FieldsAcc, JsonAcc}
+        ) ->
+            case maps:take(BinaryName, JsonAcc) of
                 {FieldData, NewJsonAcc} ->
                     case do_from_json(TypeInfo, FieldType, FieldData) of
                         {ok, FieldJson} ->
@@ -863,8 +891,13 @@ map_from_json(TypeInfo, MapFieldType, Json) when is_map(Json) ->
                 error ->
                     {ok, {FieldsAcc, JsonAcc}}
             end;
-        ({map_field_exact, FieldName, FieldType}, {FieldsAcc, JsonAcc}) ->
-            case maps:take(atom_to_binary(FieldName), JsonAcc) of
+        (
+            #literal_map_field{
+                kind = exact, name = FieldName, binary_name = BinaryName, val_type = FieldType
+            },
+            {FieldsAcc, JsonAcc}
+        ) ->
+            case maps:take(BinaryName, JsonAcc) of
                 {FieldData, NewJsonAcc} ->
                     case do_from_json(TypeInfo, FieldType, FieldData) of
                         {ok, FieldJson} ->
@@ -885,14 +918,20 @@ map_from_json(TypeInfo, MapFieldType, Json) when is_map(Json) ->
                             {error, [#sp_error{type = missing_data, location = [FieldName]}]}
                     end
             end;
-        ({map_field_type_assoc, KeyType, ValueType}, {FieldsAcc, JsonAcc}) ->
+        (
+            #typed_map_field{kind = assoc_type, key_type = KeyType, val_type = ValueType},
+            {FieldsAcc, JsonAcc}
+        ) ->
             case map_field_type_from_json(TypeInfo, KeyType, ValueType, JsonAcc) of
                 {ok, {NewFields, NewJsonAcc}} ->
                     {ok, {NewFields ++ FieldsAcc, NewJsonAcc}};
                 {error, Reason} ->
                     {error, Reason}
             end;
-        ({map_field_type_exact, KeyType, ValueType}, {FieldsAcc, JsonAcc}) ->
+        (
+            #typed_map_field{kind = exact_type, key_type = KeyType, val_type = ValueType},
+            {FieldsAcc, JsonAcc}
+        ) ->
             case map_field_type_from_json(TypeInfo, KeyType, ValueType, JsonAcc) of
                 {ok, {NewFields, NewJsonAcc}} ->
                     case NewFields of
@@ -904,7 +943,11 @@ map_from_json(TypeInfo, MapFieldType, Json) when is_map(Json) ->
                                     ctx =
                                         #{
                                             type =>
-                                                {map_field_type_exact, KeyType, ValueType}
+                                                #typed_map_field{
+                                                    kind = exact_type,
+                                                    key_type = KeyType,
+                                                    val_type = ValueType
+                                                }
                                         }
                                 },
                             {error, [NoExactMatch]};
@@ -980,7 +1023,7 @@ map_field_type_from_json(TypeInfo, KeyType, ValueType, Json) ->
     TypeInfo :: spectra:type_info(),
     RecordName :: atom() | #sp_rec{},
     Json :: json:decode_value(),
-    TypeArgs :: [spectra:record_field()]
+    TypeArgs :: [spectra:record_field_arg()]
 ) ->
     {ok, term()} | {error, list()}.
 record_from_json(TypeInfo, RecordName, Json, TypeArgs) when is_atom(RecordName) ->
@@ -993,13 +1036,13 @@ record_from_json(TypeInfo, #sp_rec{name = RecordName} = ARec, Json, TypeArgs) ->
 -spec do_record_from_json(
     TypeInfo :: spectra:type_info(),
     RecordName :: atom(),
-    RecordInfo :: list(),
+    RecordInfo :: [#sp_rec_field{}],
     Json :: json:decode_value()
 ) ->
     {ok, term()} | {error, list()}.
 do_record_from_json(TypeInfo, RecordName, RecordInfo, Json) when is_map(Json) ->
-    Fun = fun({FieldName, FieldType}) when is_atom(FieldName) ->
-        case maps:find(atom_to_binary(FieldName), Json) of
+    Fun = fun(#sp_rec_field{name = FieldName, binary_name = BinaryName, type = FieldType}) ->
+        case maps:find(BinaryName, Json) of
             {ok, RecordFieldData} ->
                 case do_from_json(TypeInfo, FieldType, RecordFieldData) of
                     {ok, FieldJson} ->

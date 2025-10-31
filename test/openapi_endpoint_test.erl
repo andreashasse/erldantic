@@ -332,8 +332,18 @@ endpoint_with_complex_direct_types_test() ->
         #sp_map{
             fields =
                 [
-                    {map_field_exact, name, #sp_simple_type{type = string}},
-                    {map_field_exact, age, #sp_simple_type{type = integer}}
+                    #literal_map_field{
+                        kind = exact,
+                        name = name,
+                        binary_name = <<"name">>,
+                        val_type = #sp_simple_type{type = string}
+                    },
+                    #literal_map_field{
+                        kind = exact,
+                        name = age,
+                        binary_name = <<"age">>,
+                        val_type = #sp_simple_type{type = integer}
+                    }
                 ]
         },
     UnionType =

@@ -76,17 +76,35 @@ map_field() ->
 
 map_field(Size) ->
     oneof([
-        ?LET({Name, Type}, {my_atom(), sp_type(Size)}, {map_field_assoc, Name, Type}),
-        ?LET({Name, Type}, {my_atom(), sp_type(Size)}, {map_field_exact, Name, Type}),
+        ?LET({Name, Type}, {my_atom(), sp_type(Size)}, #literal_map_field{
+            kind = assoc,
+            name = Name,
+            binary_name = atom_to_binary(Name),
+            val_type = Type
+        }),
+        ?LET({Name, Type}, {my_atom(), sp_type(Size)}, #literal_map_field{
+            kind = exact,
+            name = Name,
+            binary_name = atom_to_binary(Name),
+            val_type = Type
+        }),
         ?LET(
             {KeyType, ValueType},
             {sp_type(Size), sp_type(Size)},
-            {map_field_type_assoc, KeyType, ValueType}
+            #typed_map_field{
+                kind = assoc_type,
+                key_type = KeyType,
+                val_type = ValueType
+            }
         ),
         ?LET(
             {KeyType, ValueType},
             {sp_type(Size), sp_type(Size)},
-            {map_field_type_exact, KeyType, ValueType}
+            #typed_map_field{
+                kind = exact_type,
+                key_type = KeyType,
+                val_type = ValueType
+            }
         )
     ]).
 

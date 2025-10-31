@@ -20,8 +20,14 @@ missing_test() ->
             name = person,
             fields =
                 [
-                    {name, #sp_simple_type{type = string}},
-                    {age, #sp_simple_type{type = pos_integer}}
+                    #sp_rec_field{
+                        name = name, binary_name = <<"name">>, type = #sp_simple_type{type = string}
+                    },
+                    #sp_rec_field{
+                        name = age,
+                        binary_name = <<"age">>,
+                        type = #sp_simple_type{type = pos_integer}
+                    }
                 ],
             arity = 3
         },

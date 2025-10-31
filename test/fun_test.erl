@@ -65,8 +65,14 @@ erl_abstract_code_parses_fun_types_test() ->
             name = with_fun,
             fields =
                 [
-                    {id, #sp_simple_type{type = integer}},
-                    {handler, #sp_function{args = any, return = #sp_simple_type{type = term}}}
+                    #sp_rec_field{
+                        name = id, binary_name = <<"id">>, type = #sp_simple_type{type = integer}
+                    },
+                    #sp_rec_field{
+                        name = handler,
+                        binary_name = <<"handler">>,
+                        type = #sp_function{args = any, return = #sp_simple_type{type = term}}
+                    }
                 ],
             arity = 3
         },

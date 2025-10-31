@@ -10,7 +10,7 @@
 -type type_info() :: spectra_type_info:type_info().
 -type var_type() :: {VarName :: atom(), sp_type()}.
 -type user_type_name() :: atom().
--type record_field() :: {FieldName :: atom(), sp_type()}.
+-type record_field_arg() :: {FieldName :: atom(), sp_type()}.
 %% FIXME: Add doc here.
 %% iolist and iodata are aliases, but are so complex, so it is easier to handle them as separate types
 -type sp_type() ::
@@ -31,9 +31,7 @@
     | #sp_maybe_improper_list{}
     | #sp_nonempty_improper_list{}
     | #sp_remote_type{}.
--type map_field() ::
-    {map_field_assoc | map_field_exact, Name :: atom(), sp_type()}
-    | {map_field_type_assoc | map_field_type_exact, sp_type(), sp_type()}.
+-type map_field() :: #literal_map_field{} | #typed_map_field{}.
 -type sp_type_reference() ::
     {type, Name :: atom(), Arity :: arity()} | {record, Name :: atom()}.
 -type error() :: #sp_error{}.
@@ -48,7 +46,7 @@
     sp_type_or_ref/0,
     var_type/0,
     type_info/0,
-    record_field/0,
+    record_field_arg/0,
     error/0,
     map_field/0,
     user_type_name/0,

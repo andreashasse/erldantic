@@ -21,7 +21,13 @@ add_and_get_record_test() ->
     Record =
         #sp_rec{
             name = user,
-            fields = [{id, #sp_simple_type{type = integer}}],
+            fields = [
+                #sp_rec_field{
+                    name = id,
+                    binary_name = <<"id">>,
+                    type = #sp_simple_type{type = integer}
+                }
+            ],
             arity = 2
         },
     TypeInfo1 = spectra_type_info:add_record(TypeInfo0, user, Record),

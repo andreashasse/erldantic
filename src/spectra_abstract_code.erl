@@ -162,7 +162,7 @@ type_in_form({attribute, _, TypeOrOpaque, _} = T) when
 type_in_form(_) ->
     false.
 
--spec record_field_types(list()) -> {atom(), [{atom(), spectra:sp_type()}]}.
+-spec record_field_types(list()) -> {atom(), [spectra:record_field_arg()]}.
 record_field_types(Attrs) ->
     [{atom, _, RecordName} | FieldInfo] = Attrs,
     true = is_atom(RecordName),
@@ -208,7 +208,13 @@ field_info_to_type({Type, _, map, any}) when
     Type =:= type orelse Type =:= opaque orelse Type =:= nominal
 ->
     MapFields =
-        [{map_field_type_assoc, #sp_simple_type{type = term}, #sp_simple_type{type = term}}],
+        [
+            #typed_map_field{
+                kind = assoc_type,
+                key_type = #sp_simple_type{type = term},
+                val_type = #sp_simple_type{type = term}
+            }
+        ],
     [#sp_map{fields = MapFields, struct_name = undefined}];
 field_info_to_type({Type, _, tuple, any}) when
     Type =:= type orelse Type =:= opaque orelse Type =:= nominal
@@ -422,21 +428,31 @@ integer_value({op, _, Operator, Unary}) ->
     end.
 
 -spec map_field_info(term()) ->
-    [
-        {map_field_assoc | map_field_exact, atom(), spectra:sp_type()}
-        | {map_field_type_assoc | map_field_type_exact, spectra:sp_type(), spectra:sp_type()}
-    ].
+    [spectra:map_field()].
 map_field_info({TypeOfType, _, Type, TypeAttrs}) ->
     case {TypeOfType, Type} of
         {type, map_field_assoc} ->
             case TypeAttrs of
                 [{atom, _, MapFieldName}, FieldInfo] when is_atom(MapFieldName) ->
                     [AType] = field_info_to_type(FieldInfo),
-                    [{map_field_assoc, MapFieldName, AType}];
+                    [
+                        #literal_map_field{
+                            kind = assoc,
+                            name = MapFieldName,
+                            binary_name = atom_to_binary(MapFieldName),
+                            val_type = AType
+                        }
+                    ];
                 [KeyFieldInfo, ValueFieldInfo] ->
                     [KeyType] = field_info_to_type(KeyFieldInfo),
                     [ValueType] = field_info_to_type(ValueFieldInfo),
-                    [{map_field_type_assoc, KeyType, ValueType}]
+                    [
+                        #typed_map_field{
+                            kind = assoc_type,
+                            key_type = KeyType,
+                            val_type = ValueType
+                        }
+                    ]
             end;
         {type, map_field_exact} ->
             case TypeAttrs of
@@ -444,32 +460,63 @@ map_field_info({TypeOfType, _, Type, TypeAttrs}) ->
                     %%                    beam_core_to_ssa:format_error(Arg1),
                     true = is_atom(MapFieldName),
                     [AType] = field_info_to_type(FieldInfo),
-                    [{map_field_exact, MapFieldName, AType}];
+                    [
+                        #literal_map_field{
+                            kind = exact,
+                            name = MapFieldName,
+                            binary_name = atom_to_binary(MapFieldName),
+                            val_type = AType
+                        }
+                    ];
                 [KeyFieldInfo, ValueFieldInfo] ->
                     [KeyType] = field_info_to_type(KeyFieldInfo),
                     [ValueType] = field_info_to_type(ValueFieldInfo),
-                    [{map_field_type_exact, KeyType, ValueType}]
+                    [
+                        #typed_map_field{
+                            kind = exact_type,
+                            key_type = KeyType,
+                            val_type = ValueType
+                        }
+                    ]
             end
     end.
 
--spec record_field_info(erl_parse__af_field_decl()) -> {atom(), spectra:sp_type()}.
-record_field_info({record_field, _, {atom, _, FieldName}, _Type}) when
+-spec record_field_info(erl_parse__af_field_decl()) -> #sp_rec_field{}.
+record_field_info({record_field, _, {atom, _, FieldName}, _Default}) when
     is_atom(FieldName)
 ->
     %% FIXME: Handle default values in record fields. Also handle default values in typed_record_field?
-    {FieldName, #sp_simple_type{type = term}};
+    #sp_rec_field{
+        name = FieldName,
+        binary_name = atom_to_binary(FieldName),
+        type = #sp_simple_type{type = term}
+    };
 record_field_info({record_field, _, {atom, _, FieldName}}) when is_atom(FieldName) ->
-    {FieldName, #sp_simple_type{type = term}};
+    #sp_rec_field{
+        name = FieldName,
+        binary_name = atom_to_binary(FieldName),
+        type = #sp_simple_type{type = term}
+    };
 record_field_info({typed_record_field, {record_field, _, {atom, _, FieldName}}, Type}) when
     is_atom(FieldName)
 ->
     [TypeInfo] = field_info_to_type(Type),
-    {FieldName, TypeInfo};
-record_field_info({typed_record_field, {record_field, _, {atom, _, FieldName}, _}, Type}) when
+    #sp_rec_field{
+        name = FieldName,
+        binary_name = atom_to_binary(FieldName),
+        type = TypeInfo
+    };
+record_field_info(
+    {typed_record_field, {record_field, _, {atom, _, FieldName}, _Default}, Type}
+) when
     is_atom(FieldName)
 ->
     [TypeInfo] = field_info_to_type(Type),
-    {FieldName, TypeInfo}.
+    #sp_rec_field{
+        name = FieldName,
+        binary_name = atom_to_binary(FieldName),
+        type = TypeInfo
+    }.
 
 %% Helper functions for bounded_fun handling
 -spec bound_fun_constraints(list()) -> #{atom() => term()}.
@@ -498,9 +545,9 @@ extract_struct_name(MapFields) ->
     case
         lists:partition(
             fun
-                ({map_field_exact, '__struct__', _}) ->
+                (#literal_map_field{name = '__struct__', kind = exact}) ->
                     true;
-                ({map_field_assoc, '__struct__', _}) ->
+                (#literal_map_field{name = '__struct__', kind = assoc}) ->
                     true;
                 (_) ->
                     false
@@ -508,7 +555,9 @@ extract_struct_name(MapFields) ->
             MapFields
         )
     of
-        {[{_, '__struct__', #sp_literal{value = SName}}], OtherMapFields} when is_atom(SName) ->
+        {[#literal_map_field{val_type = #sp_literal{value = SName}}], OtherMapFields} when
+            is_atom(SName)
+        ->
             {SName, OtherMapFields};
         {[], _} ->
             {undefined, MapFields}

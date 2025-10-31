@@ -41,9 +41,24 @@ run_to_json() ->
         #sp_map{
             fields =
                 [
-                    {map_field_exact, name, #sp_simple_type{type = binary}},
-                    {map_field_exact, age, #sp_simple_type{type = non_neg_integer}},
-                    {map_field_exact, email, #sp_simple_type{type = binary}}
+                    #literal_map_field{
+                        kind = exact,
+                        name = name,
+                        binary_name = <<"name">>,
+                        val_type = #sp_simple_type{type = binary}
+                    },
+                    #literal_map_field{
+                        kind = exact,
+                        name = age,
+                        binary_name = <<"age">>,
+                        val_type = #sp_simple_type{type = non_neg_integer}
+                    },
+                    #literal_map_field{
+                        kind = exact,
+                        name = email,
+                        binary_name = <<"email">>,
+                        val_type = #sp_simple_type{type = binary}
+                    }
                 ],
             struct_name = 'Elixir.TestUserStruct'
         },
@@ -87,9 +102,24 @@ run_from_json() ->
         #sp_map{
             fields =
                 [
-                    {map_field_exact, name, #sp_simple_type{type = binary}},
-                    {map_field_exact, age, #sp_simple_type{type = non_neg_integer}},
-                    {map_field_exact, email, #sp_simple_type{type = binary}}
+                    #literal_map_field{
+                        kind = exact,
+                        name = name,
+                        binary_name = <<"name">>,
+                        val_type = #sp_simple_type{type = binary}
+                    },
+                    #literal_map_field{
+                        kind = exact,
+                        name = age,
+                        binary_name = <<"age">>,
+                        val_type = #sp_simple_type{type = non_neg_integer}
+                    },
+                    #literal_map_field{
+                        kind = exact,
+                        name = email,
+                        binary_name = <<"email">>,
+                        val_type = #sp_simple_type{type = binary}
+                    }
                 ],
             struct_name = 'Elixir.TestUserStruct'
         },

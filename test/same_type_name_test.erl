@@ -22,8 +22,11 @@ type_in_form_test() ->
                     #sp_map{
                         fields =
                             [
-                                {map_field_type_assoc, #sp_simple_type{type = atom},
-                                    #sp_simple_type{type = integer}}
+                                #typed_map_field{
+                                    kind = assoc_type,
+                                    key_type = #sp_simple_type{type = atom},
+                                    val_type = #sp_simple_type{type = integer}
+                                }
                             ]
                     }
                 ]
@@ -69,12 +72,14 @@ map1_to_json_bad_test() ->
                                         #sp_map{
                                             fields =
                                                 [
-                                                    {map_field_type_assoc,
-                                                        #sp_simple_type{type = atom},
-                                                        #sp_simple_type{
+                                                    #typed_map_field{
+                                                        kind = assoc_type,
+                                                        key_type = #sp_simple_type{type = atom},
+                                                        val_type = #sp_simple_type{
                                                             type =
                                                                 integer
-                                                        }}
+                                                        }
+                                                    }
                                                 ]
                                         },
                                         #sp_literal{value = error}
@@ -100,12 +105,14 @@ map1_to_json_bad_test() ->
                                         #sp_map{
                                             fields =
                                                 [
-                                                    {map_field_type_assoc,
-                                                        #sp_simple_type{type = atom},
-                                                        #sp_simple_type{
+                                                    #typed_map_field{
+                                                        kind = assoc_type,
+                                                        key_type = #sp_simple_type{type = atom},
+                                                        val_type = #sp_simple_type{
                                                             type =
                                                                 integer
-                                                        }}
+                                                        }
+                                                    }
                                                 ]
                                         },
                                         #sp_literal{value = error}
@@ -133,12 +140,14 @@ map1_from_json_bad_test() ->
                                         #sp_map{
                                             fields =
                                                 [
-                                                    {map_field_type_assoc,
-                                                        #sp_simple_type{type = atom},
-                                                        #sp_simple_type{
+                                                    #typed_map_field{
+                                                        kind = assoc_type,
+                                                        key_type = #sp_simple_type{type = atom},
+                                                        val_type = #sp_simple_type{
                                                             type =
                                                                 integer
-                                                        }}
+                                                        }
+                                                    }
                                                 ]
                                         },
                                         #sp_literal{value = error}
@@ -164,12 +173,14 @@ map1_from_json_bad_test() ->
                                         #sp_map{
                                             fields =
                                                 [
-                                                    {map_field_type_assoc,
-                                                        #sp_simple_type{type = atom},
-                                                        #sp_simple_type{
+                                                    #typed_map_field{
+                                                        kind = assoc_type,
+                                                        key_type = #sp_simple_type{type = atom},
+                                                        val_type = #sp_simple_type{
                                                             type =
                                                                 integer
-                                                        }}
+                                                        }
+                                                    }
                                                 ]
                                         },
                                         #sp_literal{value = error}

@@ -23,8 +23,18 @@ simple_test() ->
         #sp_map{
             fields =
                 [
-                    {map_field_assoc, name, #sp_simple_type{type = binary}},
-                    {map_field_assoc, age, #sp_simple_type{type = pos_integer}}
+                    #literal_map_field{
+                        kind = assoc,
+                        name = name,
+                        binary_name = <<"name">>,
+                        val_type = #sp_simple_type{type = binary}
+                    },
+                    #literal_map_field{
+                        kind = assoc,
+                        name = age,
+                        binary_name = <<"age">>,
+                        val_type = #sp_simple_type{type = pos_integer}
+                    }
                 ]
         },
         PersonType
@@ -47,8 +57,12 @@ simple_test() ->
             name = my_rec,
             fields =
                 [
-                    {id, #sp_simple_type{type = integer}},
-                    {data, #sp_simple_type{type = term}}
+                    #sp_rec_field{
+                        name = id, binary_name = <<"id">>, type = #sp_simple_type{type = integer}
+                    },
+                    #sp_rec_field{
+                        name = data, binary_name = <<"data">>, type = #sp_simple_type{type = term}
+                    }
                 ],
             arity = 3
         },

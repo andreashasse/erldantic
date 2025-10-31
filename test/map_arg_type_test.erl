@@ -27,14 +27,24 @@ type_in_form_test() ->
                 #sp_map{
                     fields =
                         [
-                            {map_field_assoc, result, #sp_var{name = 'ResultType'}},
-                            {map_field_assoc, errors, #sp_list{
-                                type =
-                                    #sp_simple_type{
-                                        type =
-                                            atom
-                                    }
-                            }}
+                            #literal_map_field{
+                                kind = assoc,
+                                name = result,
+                                binary_name = <<"result">>,
+                                val_type = #sp_var{name = 'ResultType'}
+                            },
+                            #literal_map_field{
+                                kind = assoc,
+                                name = errors,
+                                binary_name = <<"errors">>,
+                                val_type = #sp_list{
+                                    type =
+                                        #sp_simple_type{
+                                            type =
+                                                atom
+                                        }
+                                }
+                            }
                         ]
                 },
             vars = ['ResultType']
