@@ -76,8 +76,14 @@ simple_test() ->
             name = my_rec,
             fields =
                 [
-                    {id, #sp_user_type_ref{type_name = user_id, variables = []}},
-                    {data, #sp_simple_type{type = term}}
+                    #sp_rec_field{
+                        name = id,
+                        binary_name = <<"id">>,
+                        type = #sp_user_type_ref{type_name = user_id, variables = []}
+                    },
+                    #sp_rec_field{
+                        name = data, binary_name = <<"data">>, type = #sp_simple_type{type = term}
+                    }
                 ],
             arity = 3
         },

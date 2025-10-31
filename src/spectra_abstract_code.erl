@@ -486,21 +486,37 @@ record_field_info({record_field, _, {atom, _, FieldName}, _Default}) when
     is_atom(FieldName)
 ->
     %% FIXME: Handle default values in record fields. Also handle default values in typed_record_field?
-    {FieldName, #sp_simple_type{type = term}};
+    #sp_rec_field{
+        name = FieldName,
+        binary_name = atom_to_binary(FieldName),
+        type = #sp_simple_type{type = term}
+    };
 record_field_info({record_field, _, {atom, _, FieldName}}) when is_atom(FieldName) ->
-    {FieldName, #sp_simple_type{type = term}};
+    #sp_rec_field{
+        name = FieldName,
+        binary_name = atom_to_binary(FieldName),
+        type = #sp_simple_type{type = term}
+    };
 record_field_info({typed_record_field, {record_field, _, {atom, _, FieldName}}, Type}) when
     is_atom(FieldName)
 ->
     [TypeInfo] = field_info_to_type(Type),
-    {FieldName, TypeInfo};
+    #sp_rec_field{
+        name = FieldName,
+        binary_name = atom_to_binary(FieldName),
+        type = TypeInfo
+    };
 record_field_info(
     {typed_record_field, {record_field, _, {atom, _, FieldName}, _Default}, Type}
 ) when
     is_atom(FieldName)
 ->
     [TypeInfo] = field_info_to_type(Type),
-    {FieldName, TypeInfo}.
+    #sp_rec_field{
+        name = FieldName,
+        binary_name = atom_to_binary(FieldName),
+        type = TypeInfo
+    }.
 
 %% Helper functions for bounded_fun handling
 -spec bound_fun_constraints(list()) -> #{atom() => term()}.

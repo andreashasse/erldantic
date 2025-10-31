@@ -174,8 +174,16 @@ do_to_schema(_TypeInfo, Type) ->
 
 record_replace_vars(RecordInfo, TypeArgs) ->
     lists:foldl(
-        fun({Field, Type}, Fields) ->
-            lists:keyreplace(Field, 1, Fields, {Field, Type})
+        fun({FieldName, Type}, Fields) ->
+            lists:map(
+                fun
+                    (#sp_rec_field{name = Name} = Field) when Name =:= FieldName ->
+                        Field#sp_rec_field{type = Type};
+                    (Field) ->
+                        Field
+                end,
+                Fields
+            )
         end,
         RecordInfo,
         TypeArgs
@@ -201,32 +209,17 @@ type_replace_vars(TypeInfo, #sp_type_with_variables{type = Type}, NamedTypes) ->
                         UnionTypes
                     )
             };
-        #sp_map{fields = Fields} ->
-            #sp_map{
+        #sp_map{fields = Fields} = Map ->
+            Map#sp_map{
                 fields =
                     lists:map(
                         fun
-                            (
-                                #literal_map_field{
-                                    kind = Kind,
-                                    name = FieldName,
-                                    binary_name = BinaryName,
-                                    val_type = FieldType
-                                }
-                            ) ->
-                                #literal_map_field{
-                                    kind = Kind,
-                                    name = FieldName,
-                                    binary_name = BinaryName,
+                            (#literal_map_field{val_type = FieldType} = Field) ->
+                                Field#literal_map_field{
                                     val_type = type_replace_vars(TypeInfo, FieldType, NamedTypes)
                                 };
-                            (
-                                #typed_map_field{
-                                    kind = Kind, key_type = KeyType, val_type = ValueType
-                                }
-                            ) ->
-                                #typed_map_field{
-                                    kind = Kind,
+                            (#typed_map_field{key_type = KeyType, val_type = ValueType} = Field) ->
+                                Field#typed_map_field{
                                     key_type = type_replace_vars(TypeInfo, KeyType, NamedTypes),
                                     val_type = type_replace_vars(TypeInfo, ValueType, NamedTypes)
                                 }
@@ -251,8 +244,10 @@ type_replace_vars(_TypeInfo, #sp_rec{fields = Fields} = Rec, NamedTypes) ->
     Rec#sp_rec{
         fields =
             lists:map(
-                fun({Name, NType}) ->
-                    {Name, type_replace_vars(_TypeInfo, NType, NamedTypes)}
+                fun(#sp_rec_field{type = NType} = Field) ->
+                    Field#sp_rec_field{
+                        type = type_replace_vars(_TypeInfo, NType, NamedTypes)
+                    }
                 end,
                 Fields
             )
@@ -370,14 +365,16 @@ record_to_schema_internal(TypeInfo, #sp_rec{fields = Fields}) ->
 
 -spec process_record_fields(
     spectra:type_info(),
-    [{atom(), spectra:sp_type()}],
+    [#sp_rec_field{}],
     map(),
     [atom()]
 ) ->
     {ok, map(), [atom()]} | {error, [spectra:error()]}.
 process_record_fields(_TypeInfo, [], Properties, Required) ->
     {ok, Properties, lists:reverse(Required)};
-process_record_fields(TypeInfo, [{FieldName, FieldType} | Rest], Properties, Required) ->
+process_record_fields(
+    TypeInfo, [#sp_rec_field{name = FieldName, type = FieldType} | Rest], Properties, Required
+) ->
     case do_to_schema(TypeInfo, FieldType) of
         {ok, FieldSchema} ->
             NewProperties = Properties#{FieldName => FieldSchema},

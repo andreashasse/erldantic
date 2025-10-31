@@ -399,8 +399,16 @@ record_to_json(_TypeInfo, RecordName, Record, TypeArgs) ->
 ) -> [#sp_rec_field{}].
 record_replace_vars(RecordInfo, TypeArgs) ->
     lists:foldl(
-        fun({Field, Type}, Fields) ->
-            lists:keyreplace(Field, 1, Fields, {Field, Type})
+        fun({FieldName, Type}, Fields) ->
+            lists:map(
+                fun
+                    (#sp_rec_field{name = Name} = Field) when Name =:= FieldName ->
+                        Field#sp_rec_field{type = Type};
+                    (Field) ->
+                        Field
+                end,
+                Fields
+            )
         end,
         RecordInfo,
         TypeArgs
@@ -412,7 +420,7 @@ record_replace_vars(RecordInfo, TypeArgs) ->
 ) ->
     {ok, #{atom() => json}} | {error, [spectra:error()]}.
 do_record_to_json(TypeInfo, RecFieldTypesWithData) ->
-    Fun = fun({{FieldName, FieldType}, RecordFieldData}, FieldsAcc) when is_atom(FieldName) ->
+    Fun = fun({#sp_rec_field{name = FieldName, type = FieldType}, RecordFieldData}, FieldsAcc) ->
         case do_to_json(TypeInfo, FieldType, RecordFieldData) of
             {ok, FieldJson} ->
                 {ok, [{FieldName, FieldJson}] ++ FieldsAcc};
@@ -804,40 +812,24 @@ type_replace_vars(TypeInfo, #sp_type_with_variables{type = Type}, NamedTypes) ->
                         UnionTypes
                     )
             };
-        #sp_map{fields = Fields, struct_name = StructName} ->
-            #sp_map{
+        #sp_map{fields = Fields} = Map ->
+            Map#sp_map{
                 fields =
                     lists:map(
                         fun
-                            (
-                                #literal_map_field{
-                                    kind = Kind,
-                                    name = FieldName,
-                                    binary_name = BinaryName,
-                                    val_type = FieldType
-                                }
-                            ) ->
-                                #literal_map_field{
-                                    kind = Kind,
-                                    name = FieldName,
-                                    binary_name = BinaryName,
+                            (#literal_map_field{val_type = FieldType} = Field) ->
+                                Field#literal_map_field{
                                     val_type = type_replace_vars(TypeInfo, FieldType, NamedTypes)
                                 };
-                            (
-                                #typed_map_field{
-                                    kind = Kind, key_type = KeyType, val_type = ValueType
-                                }
-                            ) ->
+                            (#typed_map_field{key_type = KeyType, val_type = ValueType} = Field) ->
                                 %% ADD TESTS
-                                #typed_map_field{
-                                    kind = Kind,
+                                Field#typed_map_field{
                                     key_type = type_replace_vars(TypeInfo, KeyType, NamedTypes),
                                     val_type = type_replace_vars(TypeInfo, ValueType, NamedTypes)
                                 }
                         end,
                         Fields
-                    ),
-                struct_name = StructName
+                    )
             };
         #sp_rec_ref{record_name = RecordName, field_types = RefFieldTypes} ->
             {ok, #sp_rec{fields = Fields} = Rec} = spectra_type_info:get_record(
@@ -857,8 +849,10 @@ type_replace_vars(TypeInfo, #sp_rec{fields = Fields} = Rec, NamedTypes) ->
     Rec#sp_rec{
         fields =
             lists:map(
-                fun({Name, NType}) ->
-                    {Name, type_replace_vars(TypeInfo, NType, NamedTypes)}
+                fun(#sp_rec_field{type = NType} = Field) ->
+                    Field#sp_rec_field{
+                        type = type_replace_vars(TypeInfo, NType, NamedTypes)
+                    }
                 end,
                 Fields
             )
@@ -1042,13 +1036,13 @@ record_from_json(TypeInfo, #sp_rec{name = RecordName} = ARec, Json, TypeArgs) ->
 -spec do_record_from_json(
     TypeInfo :: spectra:type_info(),
     RecordName :: atom(),
-    RecordInfo :: #sp_rec_field{},
+    RecordInfo :: [#sp_rec_field{}],
     Json :: json:decode_value()
 ) ->
     {ok, term()} | {error, list()}.
 do_record_from_json(TypeInfo, RecordName, RecordInfo, Json) when is_map(Json) ->
-    Fun = fun({FieldName, FieldType}) when is_atom(FieldName) ->
-        case maps:find(atom_to_binary(FieldName), Json) of
+    Fun = fun(#sp_rec_field{name = FieldName, binary_name = BinaryName, type = FieldType}) ->
+        case maps:find(BinaryName, Json) of
             {ok, RecordFieldData} ->
                 case do_from_json(TypeInfo, FieldType, RecordFieldData) of
                     {ok, FieldJson} ->
