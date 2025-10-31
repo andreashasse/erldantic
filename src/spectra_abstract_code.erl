@@ -162,7 +162,7 @@ type_in_form({attribute, _, TypeOrOpaque, _} = T) when
 type_in_form(_) ->
     false.
 
--spec record_field_types(list()) -> {atom(), [{atom(), spectra:sp_type()}]}.
+-spec record_field_types(list()) -> {atom(), [spectra:record_field_arg()]}.
 record_field_types(Attrs) ->
     [{atom, _, RecordName} | FieldInfo] = Attrs,
     true = is_atom(RecordName),
@@ -481,8 +481,8 @@ map_field_info({TypeOfType, _, Type, TypeAttrs}) ->
             end
     end.
 
--spec record_field_info(erl_parse__af_field_decl()) -> {atom(), spectra:sp_type()}.
-record_field_info({record_field, _, {atom, _, FieldName}, _Type}) when
+-spec record_field_info(erl_parse__af_field_decl()) -> #sp_rec_field{}.
+record_field_info({record_field, _, {atom, _, FieldName}, _Default}) when
     is_atom(FieldName)
 ->
     %% FIXME: Handle default values in record fields. Also handle default values in typed_record_field?
@@ -494,7 +494,9 @@ record_field_info({typed_record_field, {record_field, _, {atom, _, FieldName}}, 
 ->
     [TypeInfo] = field_info_to_type(Type),
     {FieldName, TypeInfo};
-record_field_info({typed_record_field, {record_field, _, {atom, _, FieldName}, _}, Type}) when
+record_field_info(
+    {typed_record_field, {record_field, _, {atom, _, FieldName}, _Default}, Type}
+) when
     is_atom(FieldName)
 ->
     [TypeInfo] = field_info_to_type(Type),

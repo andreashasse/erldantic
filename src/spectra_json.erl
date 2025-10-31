@@ -393,6 +393,10 @@ record_to_json(_TypeInfo, RecordName, Record, TypeArgs) ->
         }
     ]}.
 
+-spec record_replace_vars(
+    RecordInfo :: [#sp_rec_field{}],
+    TypeArgs :: [spectra:record_field_arg()]
+) -> [#sp_rec_field{}].
 record_replace_vars(RecordInfo, TypeArgs) ->
     lists:foldl(
         fun({Field, Type}, Fields) ->
@@ -404,7 +408,7 @@ record_replace_vars(RecordInfo, TypeArgs) ->
 
 -spec do_record_to_json(
     spectra:type_info(),
-    [{{atom(), spectra:sp_type()}, term()}]
+    [{#sp_rec_field{}, Value :: term()}]
 ) ->
     {ok, #{atom() => json}} | {error, [spectra:error()]}.
 do_record_to_json(TypeInfo, RecFieldTypesWithData) ->
@@ -1025,7 +1029,7 @@ map_field_type_from_json(TypeInfo, KeyType, ValueType, Json) ->
     TypeInfo :: spectra:type_info(),
     RecordName :: atom() | #sp_rec{},
     Json :: json:decode_value(),
-    TypeArgs :: [spectra:record_field()]
+    TypeArgs :: [spectra:record_field_arg()]
 ) ->
     {ok, term()} | {error, list()}.
 record_from_json(TypeInfo, RecordName, Json, TypeArgs) when is_atom(RecordName) ->
@@ -1038,7 +1042,7 @@ record_from_json(TypeInfo, #sp_rec{name = RecordName} = ARec, Json, TypeArgs) ->
 -spec do_record_from_json(
     TypeInfo :: spectra:type_info(),
     RecordName :: atom(),
-    RecordInfo :: list(),
+    RecordInfo :: #sp_rec_field{},
     Json :: json:decode_value()
 ) ->
     {ok, term()} | {error, list()}.
