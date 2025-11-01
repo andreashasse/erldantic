@@ -305,8 +305,7 @@ map_fields_to_json(TypeInfo, MapFieldTypes, Data) ->
                             {error, [
                                 #sp_error{
                                     type = missing_data,
-                                    location = [FieldName],
-                                    ctx = #{fields => FieldsAcc, data => DataAcc}
+                                    location = [FieldName]
                                 }
                             ]}
                     end
@@ -932,8 +931,7 @@ map_from_json(TypeInfo, MapFieldType, Json) when is_map(Json) ->
                             {error, [
                                 #sp_error{
                                     type = missing_data,
-                                    location = [FieldName],
-                                    ctx = #{json => JsonAcc, fields => FieldsAcc}
+                                    location = [FieldName]
                                 }
                             ]}
                     end
@@ -1083,8 +1081,7 @@ do_record_from_json(TypeInfo, RecordName, RecordInfo, Json) when is_map(Json) ->
                         {error, [
                             #sp_error{
                                 type = missing_data,
-                                location = [FieldName],
-                                ctx = #{record_name => RecordName, record => Json}
+                                location = [FieldName]
                             }
                         ]}
                 end
