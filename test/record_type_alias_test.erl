@@ -56,7 +56,7 @@ type_in_form_test() ->
 
 to_json_person_record_test() ->
     Person = #person{name = "John", age = 30},
-    ?assertEqual({ok, #{name => <<"John">>, age => 30}}, to_json_person(Person)).
+    ?assertEqual({ok, #{<<"name">> => <<"John">>, <<"age">> => 30}}, to_json_person(Person)).
 
 to_json_person_record_bad_test() ->
     NotPersonArity = {person, "John"},
@@ -68,7 +68,7 @@ from_json_person_record_test() ->
 
 to_json_person_alias_test() ->
     Person = #person{name = "John", age = -1},
-    ?assertEqual({ok, #{name => <<"John">>, age => -1}}, to_json_person_alias(Person)).
+    ?assertEqual({ok, #{<<"name">> => <<"John">>, <<"age">> => -1}}, to_json_person_alias(Person)).
 
 to_json_person_alias_bad_test() ->
     Person = #person{name = "John", age = "not_an_integer"},
@@ -89,7 +89,7 @@ to_json_person_alias_bad_test() ->
 
 to_json_person_new_age_test() ->
     Person = #person{name = "John", age = 0},
-    ?assertEqual({ok, #{name => <<"John">>, age => 0}}, to_json_person_new_age(Person)).
+    ?assertEqual({ok, #{<<"name">> => <<"John">>, <<"age">> => 0}}, to_json_person_new_age(Person)).
 
 to_json_person_new_age_bad_test() ->
     Person = #person{name = "John", age = -1},
@@ -107,7 +107,7 @@ to_json_person_new_age_bad_test() ->
 
 to_json_person_t_test() ->
     Person = #person{name = "John", age = 0},
-    ?assertEqual({ok, #{name => <<"John">>, age => 0}}, to_json_person_t(Person)).
+    ?assertEqual({ok, #{<<"name">> => <<"John">>, <<"age">> => 0}}, to_json_person_t(Person)).
 
 from_json_person_alias_test() ->
     Json = #{<<"name">> => <<"John">>, <<"age">> => 30},
@@ -172,7 +172,7 @@ from_json_person_t_bad_test() ->
 to_json_address_alias_test() ->
     Address = #address{street = "Main St", city = "Boston"},
     ?assertEqual(
-        {ok, #{street => <<"Main St">>, city => <<"Boston">>}},
+        {ok, #{<<"street">> => <<"Main St">>, <<"city">> => <<"Boston">>}},
         to_json_address_alias(Address)
     ).
 

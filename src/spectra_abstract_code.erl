@@ -182,14 +182,14 @@ record_field_types(Attrs) ->
 field_info_to_type({ann_type, _, [{var, _, _VarName}, Type]}) ->
     field_info_to_type(Type);
 field_info_to_type({atom, _, Value}) when is_atom(Value) ->
-    [#sp_literal{value = Value}];
+    [#sp_literal{value = Value, binary_value = atom_to_binary(Value)}];
 field_info_to_type({char, _, Value}) when is_integer(Value) ->
-    [#sp_literal{value = Value}];
+    [#sp_literal{value = Value, binary_value = integer_to_binary(Value)}];
 field_info_to_type({integer, _, Value}) when is_integer(Value) ->
-    [#sp_literal{value = Value}];
+    [#sp_literal{value = Value, binary_value = integer_to_binary(Value)}];
 field_info_to_type(Op) when element(1, Op) =:= op ->
     Value = integer_value(Op),
-    [#sp_literal{value = Value}];
+    [#sp_literal{value = Value, binary_value = integer_to_binary(Value)}];
 field_info_to_type({var, _, VarName}) when is_atom(VarName) ->
     [#sp_var{name = VarName}];
 field_info_to_type({remote_type, _, [{atom, _, Module}, {atom, _, Type}, Args]}) when
@@ -303,7 +303,7 @@ field_info_to_type({TypeOrOpaque, _, Type, TypeAttrs}) when
                     types =
                         [
                             #sp_simple_type{type = non_neg_integer},
-                            #sp_literal{value = infinity}
+                            #sp_literal{value = infinity, binary_value = <<"infinity">>}
                         ]
                 }
             ];
@@ -383,7 +383,8 @@ field_info_to_type({TypeOrOpaque, _, Type, TypeAttrs}) when
         dynamic ->
             [#sp_simple_type{type = term}];
         nil ->
-            [#sp_literal{value = []}];
+            %% FIXME: Need to investigate nil. is this the same nil as in elixir?
+            [#sp_literal{value = [], binary_value = <<"[]">>}];
         none ->
             [#sp_simple_type{type = none}];
         no_return ->

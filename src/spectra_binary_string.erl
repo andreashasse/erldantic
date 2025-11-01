@@ -355,6 +355,26 @@ do_convert_binary_string_to_type(Type, BinaryString) ->
 
 -spec try_convert_binary_string_to_literal(Literal :: term(), BinaryString :: binary()) ->
     {ok, term()} | {error, [spectra:error()]}.
+try_convert_binary_string_to_literal(Literal, BinaryString) when is_boolean(Literal) ->
+    case convert_binary_string_to_type(boolean, BinaryString) of
+        {ok, Literal} ->
+            {ok, Literal};
+        {ok, _Other} ->
+            {error, [
+                #sp_error{
+                    type = type_mismatch,
+                    location = [],
+                    ctx = #{
+                        type => #sp_literal{
+                            value = Literal, binary_value = atom_to_binary(Literal, utf8)
+                        },
+                        value => BinaryString
+                    }
+                }
+            ]};
+        {error, Reason} ->
+            {error, Reason}
+    end;
 try_convert_binary_string_to_literal(Literal, BinaryString) when is_atom(Literal) ->
     case convert_binary_string_to_type(atom, BinaryString) of
         {ok, Literal} ->
@@ -364,7 +384,12 @@ try_convert_binary_string_to_literal(Literal, BinaryString) when is_atom(Literal
                 #sp_error{
                     type = type_mismatch,
                     location = [],
-                    ctx = #{type => #sp_literal{value = Literal}, value => BinaryString}
+                    ctx = #{
+                        type => #sp_literal{
+                            value = Literal, binary_value = atom_to_binary(Literal, utf8)
+                        },
+                        value => BinaryString
+                    }
                 }
             ]};
         {error, Reason} ->
@@ -379,22 +404,12 @@ try_convert_binary_string_to_literal(Literal, BinaryString) when is_integer(Lite
                 #sp_error{
                     type = type_mismatch,
                     location = [],
-                    ctx = #{type => #sp_literal{value = Literal}, value => BinaryString}
-                }
-            ]};
-        {error, Reason} ->
-            {error, Reason}
-    end;
-try_convert_binary_string_to_literal(Literal, BinaryString) when is_boolean(Literal) ->
-    case convert_binary_string_to_type(boolean, BinaryString) of
-        {ok, Literal} ->
-            {ok, Literal};
-        {ok, _Other} ->
-            {error, [
-                #sp_error{
-                    type = type_mismatch,
-                    location = [],
-                    ctx = #{type => #sp_literal{value = Literal}, value => BinaryString}
+                    ctx = #{
+                        type => #sp_literal{
+                            value = Literal, binary_value = integer_to_binary(Literal)
+                        },
+                        value => BinaryString
+                    }
                 }
             ]};
         {error, Reason} ->
@@ -405,7 +420,10 @@ try_convert_binary_string_to_literal(Literal, BinaryString) ->
         #sp_error{
             type = type_mismatch,
             location = [],
-            ctx = #{type => #sp_literal{value = Literal}, value => BinaryString}
+            ctx = #{
+                literal => Literal,
+                value => BinaryString
+            }
         }
     ]}.
 
@@ -653,7 +671,10 @@ try_convert_literal_to_binary_string(Literal, Data) ->
         #sp_error{
             type = type_mismatch,
             location = [],
-            ctx = #{type => #sp_literal{value = Literal}, value => Data}
+            ctx = #{
+                literal => Literal,
+                value => Data
+            }
         }
     ]}.
 

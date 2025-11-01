@@ -339,6 +339,26 @@ do_convert_string_to_type(Type, String) ->
 
 -spec try_convert_string_to_literal(Literal :: term(), String :: string()) ->
     {ok, term()} | {error, [spectra:error()]}.
+try_convert_string_to_literal(Literal, String) when is_boolean(Literal) ->
+    case convert_string_to_type(boolean, String) of
+        {ok, Literal} ->
+            {ok, Literal};
+        {ok, _Other} ->
+            {error, [
+                #sp_error{
+                    type = type_mismatch,
+                    location = [],
+                    ctx = #{
+                        type => #sp_literal{
+                            value = Literal, binary_value = atom_to_binary(Literal, utf8)
+                        },
+                        value => String
+                    }
+                }
+            ]};
+        {error, Reason} ->
+            {error, Reason}
+    end;
 try_convert_string_to_literal(Literal, String) when is_atom(Literal) ->
     case convert_string_to_type(atom, String) of
         {ok, Literal} ->
@@ -348,7 +368,12 @@ try_convert_string_to_literal(Literal, String) when is_atom(Literal) ->
                 #sp_error{
                     type = type_mismatch,
                     location = [],
-                    ctx = #{type => #sp_literal{value = Literal}, value => String}
+                    ctx = #{
+                        type => #sp_literal{
+                            value = Literal, binary_value = atom_to_binary(Literal, utf8)
+                        },
+                        value => String
+                    }
                 }
             ]};
         {error, Reason} ->
@@ -363,22 +388,12 @@ try_convert_string_to_literal(Literal, String) when is_integer(Literal) ->
                 #sp_error{
                     type = type_mismatch,
                     location = [],
-                    ctx = #{type => #sp_literal{value = Literal}, value => String}
-                }
-            ]};
-        {error, Reason} ->
-            {error, Reason}
-    end;
-try_convert_string_to_literal(Literal, String) when is_boolean(Literal) ->
-    case convert_string_to_type(boolean, String) of
-        {ok, Literal} ->
-            {ok, Literal};
-        {ok, _Other} ->
-            {error, [
-                #sp_error{
-                    type = type_mismatch,
-                    location = [],
-                    ctx = #{type => #sp_literal{value = Literal}, value => String}
+                    ctx = #{
+                        type => #sp_literal{
+                            value = Literal, binary_value = integer_to_binary(Literal)
+                        },
+                        value => String
+                    }
                 }
             ]};
         {error, Reason} ->
@@ -389,7 +404,10 @@ try_convert_string_to_literal(Literal, String) ->
         #sp_error{
             type = type_mismatch,
             location = [],
-            ctx = #{type => #sp_literal{value = Literal}, value => String}
+            ctx = #{
+                literal => Literal,
+                value => String
+            }
         }
     ]}.
 
@@ -632,7 +650,10 @@ try_convert_literal_to_string(Literal, Data) ->
         #sp_error{
             type = type_mismatch,
             location = [],
-            ctx = #{type => #sp_literal{value = Literal}, value => Data}
+            ctx = #{
+                literal => Literal,
+                value => Data
+            }
         }
     ]}.
 

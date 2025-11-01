@@ -21,11 +21,11 @@ validate_term_field_test() ->
     {ok, JsonWithTuple} = to_json(RecordWithTuple),
 
     % Check conversion results
-    ?assertEqual(#{id => <<"record1">>, value => "string value"}, JsonWithString),
-    ?assertEqual(#{id => <<"record2">>, value => 42}, JsonWithInteger),
-    ?assertEqual(#{id => <<"record3">>, value => #{a => 1, b => 2}}, JsonWithMap),
-    ?assertEqual(#{id => <<"record4">>, value => [1, 2, 3]}, JsonWithList),
-    ?assertEqual(#{id => <<"record5">>, value => {a, b, c}}, JsonWithTuple),
+    ?assertEqual(#{<<"id">> => <<"record1">>, <<"value">> => "string value"}, JsonWithString),
+    ?assertEqual(#{<<"id">> => <<"record2">>, <<"value">> => 42}, JsonWithInteger),
+    ?assertEqual(#{<<"id">> => <<"record3">>, <<"value">> => #{a => 1, b => 2}}, JsonWithMap),
+    ?assertEqual(#{<<"id">> => <<"record4">>, <<"value">> => [1, 2, 3]}, JsonWithList),
+    ?assertEqual(#{<<"id">> => <<"record5">>, <<"value">> => {a, b, c}}, JsonWithTuple),
 
     % Test from_json conversion
     {ok, RecordFromString} =

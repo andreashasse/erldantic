@@ -46,15 +46,15 @@ user_with_account_valid_test() ->
         },
     Expected =
         #{
-            name => <<"John Doe">>,
-            account => #{id => <<"user123">>, balance => 1500},
-            active => true
+            <<"name">> => <<"John Doe">>,
+            <<"account">> => #{<<"id">> => <<"user123">>, <<"balance">> => 1500},
+            <<"active">> => true
         },
     ?assertEqual({ok, Expected}, to_json_user_with_account(ValidData)).
 
 user_with_account_optional_field_test() ->
     ValidData = #{name => "Jane Doe", active => false},
-    Expected = #{name => <<"Jane Doe">>, active => false},
+    Expected = #{<<"name">> => <<"Jane Doe">>, <<"active">> => false},
     ?assertEqual({ok, Expected}, to_json_user_with_account(ValidData)).
 
 user_with_account_invalid_remote_test() ->
@@ -93,8 +93,11 @@ organization_valid_test() ->
         },
     {ok, JsonData} = to_json_organization(ValidData),
     ?assertEqual(
-        [#{id => <<"user1">>, balance => 100}, #{id => <<"user2">>, balance => 200}],
-        maps:get(users, JsonData)
+        [
+            #{<<"id">> => <<"user1">>, <<"balance">> => 100},
+            #{<<"id">> => <<"user2">>, <<"balance">> => 200}
+        ],
+        maps:get(<<"users">>, JsonData)
     ).
 
 organization_required_only_test() ->

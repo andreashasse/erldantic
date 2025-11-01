@@ -12,7 +12,7 @@ validate_remote_test() ->
 
     % Test with valid data
     ?assertEqual(
-        {ok, #{a => #{id => <<"123">>, balance => 1000}}},
+        {ok, #{<<"a">> => #{<<"id">> => <<"123">>, <<"balance">> => 1000}}},
         to_json_remote(ValidData)
     ),
 

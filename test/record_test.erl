@@ -34,7 +34,7 @@ missing_test() ->
         PersonRecord
     ),
     ?assertEqual(
-        {ok, #{name => <<"John">>, age => 1}},
+        {ok, #{<<"name">> => <<"John">>, <<"age">> => 1}},
         spectra_json:to_json(?MODULE, {record, person}, #person{name = "John"}),
         "Default value for age picked up when constructing the record, no change needed for to_json"
     ),

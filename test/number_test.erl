@@ -15,10 +15,12 @@ validate_number_test() ->
     InvalidData = #{name => "Invalid", value => "not a number"},
 
     % Test with integer
-    ?assertEqual({ok, #{name => <<"Integer">>, value => 42}}, to_json(ValidIntegerData)),
+    ?assertEqual(
+        {ok, #{<<"name">> => <<"Integer">>, <<"value">> => 42}}, to_json(ValidIntegerData)
+    ),
 
     % Test with float
-    ?assertEqual({ok, #{name => <<"Float">>, value => 3.14}}, to_json(ValidFloatData)),
+    ?assertEqual({ok, #{<<"name">> => <<"Float">>, <<"value">> => 3.14}}, to_json(ValidFloatData)),
 
     % Test with invalid data
     {error, Errors} = to_json(InvalidData),

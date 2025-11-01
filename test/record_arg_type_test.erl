@@ -45,7 +45,7 @@ type_in_form_test() ->
 
 map1_to_json_test() ->
     ?assertEqual(
-        {ok, #{value => 1, errors => []}},
+        {ok, #{<<"value">> => 1, <<"errors">> => []}},
         to_json_result_1(#result{value = 1, errors = []})
     ),
     ?assertEqual(

@@ -50,7 +50,7 @@ sp_types_to_json_test() ->
     {ok, MapType} = spectra_type_info:get_type(TypeInfo, my_map, 0),
     MapData = #{name => "John", age => 30},
     ?assertEqual(
-        {ok, #{name => <<"John">>, age => 30}},
+        {ok, #{<<"name">> => <<"John">>, <<"age">> => 30}},
         spectra_json:to_json(TypeInfo, MapType, MapData)
     ).
 
@@ -100,9 +100,9 @@ sp_record_types_test() ->
 
     ?assertEqual(
         {ok, #{
-            id => 1,
-            name => <<"Alice">>,
-            email => <<"alice@example.com">>
+            <<"id">> => 1,
+            <<"name">> => <<"Alice">>,
+            <<"email">> => <<"alice@example.com">>
         }},
         spectra_json:to_json(TypeInfo, UserRecord, UserData)
     ),

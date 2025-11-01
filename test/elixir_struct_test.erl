@@ -68,9 +68,9 @@ run_to_json() ->
 
     %% Verify __struct__ field is not in JSON
     ?assertEqual(false, maps:is_key('__struct__', Json)),
-    ?assertEqual(<<"John">>, maps:get(name, Json)),
-    ?assertEqual(30, maps:get(age, Json)),
-    ?assertEqual(<<"john@example.com">>, maps:get(email, Json)).
+    ?assertEqual(<<"John">>, maps:get(<<"name">>, Json)),
+    ?assertEqual(30, maps:get(<<"age">>, Json)),
+    ?assertEqual(<<"john@example.com">>, maps:get(<<"email">>, Json)).
 
 from_json_adds_struct_field_test() ->
     %% Skip test if Elixir module is not available

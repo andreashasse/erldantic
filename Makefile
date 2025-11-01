@@ -1,4 +1,4 @@
-.PHONY: all compile format test cover clean doc
+.PHONY: all compile format test cover clean doc perf
 
 all: compile format test cover doc
 
@@ -58,3 +58,9 @@ doc:
 hex:
 	rebar3 hex build
 	rebar3 hex publish
+
+perf: compile
+	@echo "Running performance benchmark..."
+	@erlc -o test +debug_info test/perf_benchmark.erl
+	@erl -pa _build/default/lib/*/ebin test -noshell -eval "perf_benchmark:run(), halt()."
+	@rm -f test/perf_benchmark.beam

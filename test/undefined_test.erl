@@ -58,7 +58,7 @@ undefined_record_test() ->
     {ok, Json2} = to_json(Record2),
 
     % Verify JSON contains only defined fields
-    ?assertEqual(#{string_field => <<"hello">>, list_field => [1, 2, 3]}, Json2),
+    ?assertEqual(#{<<"string_field">> => <<"hello">>, <<"list_field">> => [1, 2, 3]}, Json2),
 
     % Test from_json with undefined fields
     {ok, RecordFromJson1} =
@@ -84,7 +84,7 @@ undefined_map_test() ->
     {ok, JsonMap} = to_json_map(MapWithUndefined),
 
     % Verify undefined values are skipped in JSON
-    ?assertEqual(#{key1 => <<"value1">>, key3 => 123}, JsonMap),
+    ?assertEqual(#{<<"key1">> => <<"value1">>, <<"key3">> => 123}, JsonMap),
 
     % Test from_json with missing keys
     {ok, MapFromJson} = from_json_map(#{<<"key1">> => <<"value1">>, <<"key3">> => 123}),
