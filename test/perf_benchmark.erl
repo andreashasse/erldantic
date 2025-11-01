@@ -9,9 +9,10 @@
 %% Performance benchmark module for the spectra library.
 %%
 %% This module demonstrates:
-%% - Records for structured data (employee, contact, address, etc.)
+%% - Mix of records and maps for structured data
 %% - Enum types using atom unions with capital letters
-%% - Nested data structures with lists and records
+%% - Optional fields in maps (contact with optional email/phone, family_member with optional age)
+%% - Nested data structures with lists, records, and maps
 %% - Complex JSON encoding and decoding with type validation
 %%
 %% Benchmarks both operations:
@@ -41,24 +42,25 @@
 -type subtask_status() :: 'Not Started' | 'In Progress' | 'Completed'.
 -type relation() :: 'Spouse' | 'Child' | 'Parent'.
 
-%% Records for structured data
--record(contact, {
-    email :: binary(),
-    phone :: binary()
-}).
+%% Maps with optional fields
+-type contact() :: #{
+    email => binary(),
+    phone => binary()
+}.
 
+-type family_member() :: #{
+    relation := relation(),
+    name := binary(),
+    age => pos_integer(),
+    contact := contact()
+}.
+
+%% Records for structured data
 -record(address, {
     street :: binary(),
     city :: binary(),
     zip_code :: binary(),
     country :: binary()
-}).
-
--record(family_member, {
-    relation :: relation(),
-    name :: binary(),
-    age :: pos_integer(),
-    contact :: #contact{}
 }).
 
 -record(work_history_entry, {
@@ -87,7 +89,7 @@
     tasks :: [#task{}]
 }).
 
-%% Main employee record using all the above types
+%% Main employee record using all the above types (mix of records and maps)
 -record(employee, {
     employee_id :: pos_integer(),
     name :: binary(),
@@ -95,15 +97,12 @@
     position :: position(),
     department :: department(),
     manager :: binary(),
-    contact :: #contact{},
+    contact :: contact(),
     address :: #address{},
-    family :: [#family_member{}],
+    family :: [family_member()],
     work_history :: [#work_history_entry{}],
     projects :: [#project{}]
 }).
-
-%% Union type: employee list can be either a full list or empty
--type employee_list() :: [#employee{}] | [].
 
 %% Types exported for spectra to use
 -type employees() :: [#employee{}].
