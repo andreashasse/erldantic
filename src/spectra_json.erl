@@ -79,6 +79,8 @@ do_to_json(
     {ok, Value};
 do_to_json(_TypeInfo, #sp_literal{value = undefined}, undefined) ->
     skip;
+do_to_json(_TypeInfo, #sp_literal{value = Value, binary_value = BinaryValue}, Value) when is_atom(Value) ->
+    {ok, BinaryValue};
 do_to_json(_TypeInfo, #sp_literal{value = Value}, Value) ->
     {ok, Value};
 do_to_json(TypeInfo, #sp_union{} = Type, Data) ->
