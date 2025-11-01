@@ -1,17 +1,19 @@
-Performance tests are run on a macbook m3
+Performance tests are run on a macbook m3 pro
 
-# Version 1.3
-Loading sample data from test/sample10k.json...
-File size: 10476 bytes (10.23 KB)
+# Version 0.1.3
 
-Running decode benchmark...
-Warming up (5 iterations)...
-Running benchmark (100 iterations)...
+## JSON Decode Benchmark
+Mean time:   0.22 ms
+Median time: 0.20 ms
+Min time:    0.17 ms
+Max time:    2.91 ms
+Std dev:     0.14 ms
+Throughput:  4481.35 decodes/sec
 
-Mean time:   0.23 ms
-Median time: 0.22 ms
-Min time:    0.19 ms
-Max time:    0.57 ms
-Std dev:     0.05 ms
-
-Throughput:  4317.60 decodes/sec
+## JSON Encode Benchmark
+Mean time:   0.26 ms
+Median time: 0.16 ms
+Min time:    0.14 ms
+Max time:    14.83 ms
+Std dev:     0.82 ms
+Throughput:  3812.27 encodes/sec
