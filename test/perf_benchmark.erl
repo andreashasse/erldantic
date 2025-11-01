@@ -2,39 +2,8 @@
 
 -compile(nowarn_unused_type).
 
-%% API exports
 -export([run/0]).
 
-%% @doc
-%% Performance benchmark module for the spectra library.
-%%
-%% This module demonstrates:
-%% - Mix of records and maps for structured data
-%% - Enum types using atom unions with capital letters
-%% - Optional fields in maps (contact with optional email/phone, family_member with optional age)
-%% - Nested data structures with lists, records, and maps
-%% - Complex JSON encoding and decoding with type validation
-%%
-%% Benchmarks both operations:
-%% - JSON decode: JSON binary -> Erlang terms
-%% - JSON encode: Erlang terms -> JSON binary
-%%
-%% Usage:
-%%   From command line:
-%%     $ make perf
-%%
-%%   From Erlang shell:
-%%     $ rebar3 as test shell
-%%     1> perf_benchmark:run().
-%%
-%%   Or manually:
-%%     $ erlc -o test +debug_info test/perf_benchmark.erl
-%%     $ erl -pa _build/default/lib/*/ebin test -noshell -eval "perf_benchmark:run(), halt()."
-%% @end
-
-%% Type definitions using various Erlang constructs
-
-%% Enums using atom unions (atoms can start with capital letters when quoted)
 -type position() :: 'Developer' | 'Manager' | 'Analyst' | 'Designer'.
 -type department() :: 'Marketing' | 'Sales' | 'IT' | 'Finance' | 'HR'.
 -type project_status() :: 'Ongoing' | 'Completed' | 'On Hold'.
@@ -89,7 +58,6 @@
     tasks :: [#task{}]
 }).
 
-%% Main employee record using all the above types (mix of records and maps)
 -record(employee, {
     employee_id :: pos_integer(),
     name :: binary(),
@@ -104,10 +72,7 @@
     projects :: [#project{}]
 }).
 
-%% Types exported for spectra to use
 -type employees() :: [#employee{}].
-
-%% Benchmark functions
 
 run() ->
     io:format("~n=== Spectra Performance Benchmark ===~n"),
@@ -159,14 +124,12 @@ run_benchmark(Fun, Operation) ->
      || _ <- lists:seq(1, Iterations)
     ],
 
-    % Calculate statistics
     SortedTimes = lists:sort(Times),
     MinTime = lists:min(Times),
     MaxTime = lists:max(Times),
     MeanTime = lists:sum(Times) / length(Times),
     MedianTime = lists:nth(length(Times) div 2, SortedTimes),
 
-    % Calculate standard deviation
     Variance = lists:sum([math:pow(T - MeanTime, 2) || T <- Times]) / length(Times),
     StdDev = math:sqrt(Variance),
 
