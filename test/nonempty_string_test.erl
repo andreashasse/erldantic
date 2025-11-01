@@ -14,7 +14,7 @@ validate_nonempty_string_test() ->
     InvalidUser = #{name => "", email => "john@example.com"},
 
     {ok, Json} = to_json(ValidUser),
-    ?assertMatch(#{name := <<"John">>, email := <<"john@example.com">>}, Json),
+    ?assertMatch(#{<<"name">> := <<"John">>, <<"email">> := <<"john@example.com">>}, Json),
 
     {error, Errors} = to_json(InvalidUser),
     ?assertMatch([#sp_error{type = type_mismatch}], Errors),

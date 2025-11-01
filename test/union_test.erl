@@ -19,15 +19,18 @@ validate_weird_union_test() ->
 
     % Test with valid record
     ?assertEqual(
-        {ok, #{street => <<"Main St">>, city => <<"New York">>}},
+        {ok, #{<<"street">> => <<"Main St">>, <<"city">> => <<"New York">>}},
         to_json_weird_union(ValidRecord)
     ),
 
     % Test with valid map
     ?assertEqual(
         {ok, #{
-            city => <<"Boston">>,
-            score => #{value => 8, comment => #{lang => <<"en">>, text => <<"Great">>}}
+            <<"city">> => <<"Boston">>,
+            <<"score">> => #{
+                <<"value">> => 8,
+                <<"comment">> => #{<<"lang">> => <<"en">>, <<"text">> => <<"Great">>}
+            }
         }},
         to_json_weird_union(ValidMap)
     ),

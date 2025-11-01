@@ -19,7 +19,7 @@
 -type map_in_map_key() :: #{#{string() => integer()} => integer()}.
 
 map1_test() ->
-    ?assertEqual({ok, #{a1 => 1}}, to_json_atom_map(#{a1 => 1})).
+    ?assertEqual({ok, #{<<"a1">> => 1}}, to_json_atom_map(#{a1 => 1})).
 
 map1_bad_test() ->
     ?assertEqual(
@@ -39,7 +39,7 @@ map1_bad_test() ->
 
 map2_test() ->
     ?assertEqual(
-        {ok, #{a1 => 1, other => value2}},
+        {ok, #{<<"a1">> => 1, other => value2}},
         to_json_atom_map2(#{a1 => 1, other => value2})
     ).
 
@@ -49,7 +49,9 @@ map2_bad_test() ->
             #sp_error{
                 location = [a1],
                 type = type_mismatch,
-                ctx = #{type => #sp_literal{value = 1}, value => should_not_work}
+                ctx = #{
+                    type => #sp_literal{value = 1, binary_value = <<"1">>}, value => should_not_work
+                }
             }
         ]},
         to_json_atom_map2(#{a1 => should_not_work, other => value2})
@@ -66,10 +68,10 @@ map2_bad_test() ->
     ).
 
 map3_test() ->
-    ?assertEqual({ok, #{a1 => kalle}}, to_json_atom_map3(#{a1 => kalle})).
+    ?assertEqual({ok, #{<<"a1">> => kalle}}, to_json_atom_map3(#{a1 => kalle})).
 
 map3_bad_test() ->
-    ?assertEqual(
+    ?assertMatch(
         {error, [#sp_error{location = [a1], type = missing_data}]},
         to_json_atom_map3(#{not_a1 => kalle})
     ).
@@ -167,7 +169,7 @@ from_json_map2_bad_test() ->
             #sp_error{
                 location = [a1],
                 type = type_mismatch,
-                ctx = #{type => #sp_literal{value = 1}, value => 2}
+                ctx = #{type => #sp_literal{value = 1, binary_value = <<"1">>}, value => 2}
             }
         ]},
         from_json_atom_map2(#{<<"a1">> => 2, <<"other">> => <<"value2">>})
@@ -177,7 +179,7 @@ from_json_map3_test() ->
     ?assertEqual({ok, #{a1 => kalle}}, from_json_atom_map3(#{<<"a1">> => <<"kalle">>})).
 
 from_json_map3_bad_test() ->
-    ?assertEqual(
+    ?assertMatch(
         {error, [#sp_error{location = [a1], type = missing_data}]},
         from_json_atom_map3(#{<<"not_a1">> => <<"kalle">>})
     ).
@@ -355,7 +357,7 @@ from_json_map_with_fun_key_test() ->
 
 map_in_map_value_test() ->
     ?assertEqual(
-        {ok, #{hej => #{<<"key1">> => 42, <<"key2">> => 100}}},
+        {ok, #{<<"hej">> => #{<<"key1">> => 42, <<"key2">> => 100}}},
         to_json_map_in_map_value(#{hej => #{"key1" => 42, "key2" => 100}})
     ).
 

@@ -36,7 +36,7 @@
 -record(sp_type_with_variables, {type :: spectra:sp_type(), vars :: [atom()]}).
 -record(sp_function, {args :: any | [spectra:sp_type()], return :: spectra:sp_type()}).
 -record(sp_union, {types = [spectra:sp_type()]}).
--record(sp_literal, {value :: term()}).
+-record(sp_literal, {value :: integer() | atom() | [], binary_value :: binary()}).
 -record(sp_rec_ref, {
     record_name :: spectra:user_type_name(), field_types :: [spectra:record_field_arg()]
 }).

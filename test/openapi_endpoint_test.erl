@@ -169,9 +169,11 @@ single_endpoint_to_openapi_test() ->
 
     ?assertMatch(
         #{
-            openapi := <<"3.0.0">>,
-            info := #{title := _, version := _},
-            paths := #{<<"/users">> := #{get := #{responses := #{<<"200">> := _}}}}
+            <<"openapi">> := <<"3.0.0">>,
+            <<"info">> := #{<<"title">> := _, <<"version">> := _},
+            <<"paths">> := #{
+                <<"/users">> := #{get := #{<<"responses">> := #{<<"200">> := _}}}
+            }
         },
         OpenAPISpec
     ).
@@ -224,10 +226,10 @@ multiple_endpoints_to_openapi_test() ->
             Endpoints
         ),
 
-    #{paths := #{<<"/users/{id}">> := UsersIdPath}} = OpenAPISpec,
+    #{<<"paths">> := #{<<"/users/{id}">> := UsersIdPath}} = OpenAPISpec,
     ?assertMatch(
         #{
-            paths :=
+            <<"paths">> :=
                 #{<<"/users">> := #{get := _, post := _}, <<"/users/{id}">> := _}
         },
         OpenAPISpec
@@ -253,10 +255,10 @@ openapi_with_components_test() ->
             [Endpoint]
         ),
 
-    ?assertMatch(#{components := #{schemas := _}}, OpenAPISpec),
+    ?assertMatch(#{<<"components">> := #{<<"schemas">> := _}}, OpenAPISpec),
 
-    Components = maps:get(components, OpenAPISpec),
-    Schemas = maps:get(schemas, Components),
+    Components = maps:get(<<"components">>, OpenAPISpec),
+    Schemas = maps:get(<<"schemas">>, Components),
 
     ?assert(maps:is_key(<<"User">>, Schemas) orelse maps:is_key(<<"user">>, Schemas)),
     ?assert(

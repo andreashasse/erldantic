@@ -60,7 +60,10 @@ simple_test() ->
         PersonType
     ),
     Person = #{id => 1, name => <<"John">>, age => 42},
-    ?assertEqual({ok, Person}, spectra_json:to_json(?MODULE, {type, person, 0}, Person)),
+    ?assertEqual(
+        {ok, #{<<"id">> => 1, <<"name">> => <<"John">>, <<"age">> => 42}},
+        spectra_json:to_json(?MODULE, {type, person, 0}, Person)
+    ),
     ?assertEqual(
         {ok, Person},
         spectra_json:from_json(
@@ -100,7 +103,9 @@ simple_test() ->
     ),
 
     ?assertEqual(
-        {ok, #{id => 1, data => #{id => 2, name => <<"John">>, age => 42}}},
+        {ok, #{
+            <<"id">> => 1, <<"data">> => #{<<"id">> => 2, <<"name">> => <<"John">>, <<"age">> => 42}
+        }},
         spectra_json:to_json(
             ?MODULE,
             {type, my_rec_t, 0},

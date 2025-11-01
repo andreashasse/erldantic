@@ -216,7 +216,9 @@ map_to_json(_TypeInfo, _MapFieldTypes, Data) ->
 map_fields_to_json(TypeInfo, MapFieldTypes, Data) ->
     Fun = fun
         (
-            #literal_map_field{kind = assoc, name = FieldName, val_type = FieldType},
+            #literal_map_field{
+                kind = assoc, name = FieldName, binary_name = BinaryFieldName, val_type = FieldType
+            },
             {FieldsAcc, DataAcc}
         ) ->
             case maps:take(FieldName, DataAcc) of
@@ -224,7 +226,7 @@ map_fields_to_json(TypeInfo, MapFieldTypes, Data) ->
                     case do_to_json(TypeInfo, FieldType, FieldData) of
                         {ok, FieldJson} ->
                             {ok, {
-                                [{FieldName, FieldJson}] ++ FieldsAcc,
+                                [{BinaryFieldName, FieldJson}] ++ FieldsAcc,
                                 maps:remove(FieldName, DataAcc)
                             }};
                         skip ->
@@ -274,14 +276,16 @@ map_fields_to_json(TypeInfo, MapFieldTypes, Data) ->
                     Err
             end;
         (
-            #literal_map_field{kind = exact, name = FieldName, val_type = FieldType},
+            #literal_map_field{
+                kind = exact, name = FieldName, binary_name = BinaryFieldName, val_type = FieldType
+            },
             {FieldsAcc, DataAcc}
         ) ->
             case maps:take(FieldName, DataAcc) of
                 {FieldData, NewDataAcc} ->
                     case do_to_json(TypeInfo, FieldType, FieldData) of
                         {ok, FieldJson} ->
-                            {ok, {[{FieldName, FieldJson}] ++ FieldsAcc, NewDataAcc}};
+                            {ok, {[{BinaryFieldName, FieldJson}] ++ FieldsAcc, NewDataAcc}};
                         skip ->
                             %% FIXME: Warn about weird type def??
                             {ok, {FieldsAcc, NewDataAcc}};
@@ -298,7 +302,13 @@ map_fields_to_json(TypeInfo, MapFieldTypes, Data) ->
                         true ->
                             {ok, {FieldsAcc, DataAcc}};
                         false ->
-                            {error, [#sp_error{type = missing_data, location = [FieldName]}]}
+                            {error, [
+                                #sp_error{
+                                    type = missing_data,
+                                    location = [FieldName],
+                                    ctx = #{fields => FieldsAcc, data => DataAcc}
+                                }
+                            ]}
                     end
             end
     end,
@@ -420,10 +430,16 @@ record_replace_vars(RecordInfo, TypeArgs) ->
 ) ->
     {ok, #{atom() => json}} | {error, [spectra:error()]}.
 do_record_to_json(TypeInfo, RecFieldTypesWithData) ->
-    Fun = fun({#sp_rec_field{name = FieldName, type = FieldType}, RecordFieldData}, FieldsAcc) ->
+    Fun = fun(
+        {
+            #sp_rec_field{name = FieldName, binary_name = BinaryFieldName, type = FieldType},
+            RecordFieldData
+        },
+        FieldsAcc
+    ) ->
         case do_to_json(TypeInfo, FieldType, RecordFieldData) of
             {ok, FieldJson} ->
-                {ok, [{FieldName, FieldJson}] ++ FieldsAcc};
+                {ok, [{BinaryFieldName, FieldJson}] ++ FieldsAcc};
             skip ->
                 {ok, FieldsAcc};
             {error, Errors} ->
@@ -523,8 +539,8 @@ do_from_json(_TypeInfo, #sp_simple_type{type = PrimaryType} = T, Json) ->
     end;
 do_from_json(_TypeInfo, #sp_literal{value = Literal}, Literal) ->
     {ok, Literal};
-do_from_json(_TypeInfo, #sp_literal{value = Literal} = Type, Value) ->
-    case try_convert_to_literal(Literal, Value) of
+do_from_json(_TypeInfo, #sp_literal{} = Type, Value) ->
+    case try_convert_to_literal(Type, Value) of
         {ok, Literal} ->
             {ok, Literal};
         false ->
@@ -588,17 +604,15 @@ do_from_json(_TypeInfo, Type, Value) ->
         }
     ]}.
 
-try_convert_to_literal(Literal, Value) when is_atom(Literal) andalso is_binary(Value) ->
-    try binary_to_existing_atom(Value, utf8) of
-        Literal when is_atom(Literal) ->
-            {ok, Literal};
-        _ ->
-            false
-    catch
-        error:badarg ->
-            false
-    end;
-try_convert_to_literal(_Literal, _Value) ->
+-spec try_convert_to_literal(
+    Type :: #sp_literal{},
+    Value :: term()
+) -> {ok, integer() | atom() | []} | false.
+try_convert_to_literal(
+    #sp_literal{value = LiteralValue, binary_value = BinaryLiteralValue}, Value
+) when Value =:= BinaryLiteralValue ->
+    {ok, LiteralValue};
+try_convert_to_literal(#sp_literal{}, _Value) ->
     false.
 
 nonempty_list_from_json(TypeInfo, Type, Data) when is_list(Data) andalso Data =/= [] ->
@@ -915,7 +929,13 @@ map_from_json(TypeInfo, MapFieldType, Json) when is_map(Json) ->
                         true ->
                             {ok, {[{FieldName, undefined}] ++ FieldsAcc, JsonAcc}};
                         false ->
-                            {error, [#sp_error{type = missing_data, location = [FieldName]}]}
+                            {error, [
+                                #sp_error{
+                                    type = missing_data,
+                                    location = [FieldName],
+                                    ctx = #{json => JsonAcc, fields => FieldsAcc}
+                                }
+                            ]}
                     end
             end;
         (
@@ -1060,7 +1080,13 @@ do_record_from_json(TypeInfo, RecordName, RecordInfo, Json) when is_map(Json) ->
                     true ->
                         {ok, undefined};
                     false ->
-                        {error, [#sp_error{type = missing_data, location = [FieldName]}]}
+                        {error, [
+                            #sp_error{
+                                type = missing_data,
+                                location = [FieldName],
+                                ctx = #{record_name => RecordName, record => Json}
+                            }
+                        ]}
                 end
         end
     end,

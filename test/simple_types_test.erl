@@ -119,7 +119,7 @@ missing_test() ->
             types =
                 [
                     #sp_simple_type{type = non_neg_integer},
-                    #sp_literal{value = infinity}
+                    #sp_literal{value = infinity, binary_value = <<"infinity">>}
                 ]
         },
         MyTimeoutType
@@ -262,7 +262,7 @@ missing_test() ->
 
     %% literal
     {ok, MyLiteralType} = spectra_type_info:get_type(TypeInfo, my_literal, 0),
-    ?assertEqual(#sp_literal{value = 1}, MyLiteralType),
+    ?assertEqual(#sp_literal{value = 1, binary_value = <<"1">>}, MyLiteralType),
     ?assertEqual({ok, 1}, spectra_json:to_json(?MODULE, {type, my_literal, 0}, 1)),
     ?assertEqual({ok, 1}, spectra_json:from_json(?MODULE, {type, my_literal, 0}, 1)),
 
@@ -306,7 +306,7 @@ missing_test() ->
 
     %% nil
     {ok, MyNilType} = spectra_type_info:get_type(TypeInfo, my_nil, 0),
-    ?assertEqual(#sp_literal{value = []}, MyNilType),
+    ?assertEqual(#sp_literal{value = [], binary_value = <<"[]">>}, MyNilType),
     ?assertEqual({ok, []}, spectra_json:to_json(?MODULE, {type, my_nil, 0}, [])),
     ?assertEqual({ok, []}, spectra_json:from_json(?MODULE, {type, my_nil, 0}, [])),
 

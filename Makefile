@@ -59,7 +59,7 @@ hex:
 	rebar3 hex build
 	rebar3 hex publish
 
-perf:
+perf: compile
 	@echo "Running performance benchmark..."
 	@erlc -o test +debug_info test/perf_benchmark.erl
 	@erl -pa _build/default/lib/*/ebin test -noshell -eval "perf_benchmark:run(), halt()."
