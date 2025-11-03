@@ -778,12 +778,12 @@ type_ref_to_component_name({type, TypeName, Arity}) ->
     Words = string:split(TypeStr, "_", all),
     PascalCase = lists:map(fun capitalize_word/1, Words),
     ArityStr = integer_to_list(Arity),
-    list_to_binary(lists:flatten(PascalCase ++ [ArityStr]));
+    iolist_to_binary([PascalCase, ArityStr]);
 type_ref_to_component_name({record, RecordName}) ->
     TypeStr = atom_to_list(RecordName),
     Words = string:split(TypeStr, "_", all),
     PascalCase = lists:map(fun capitalize_word/1, Words),
-    list_to_binary(lists:flatten(PascalCase)).
+    iolist_to_binary(PascalCase).
 
 capitalize_word([]) ->
     [];
