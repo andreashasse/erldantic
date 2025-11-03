@@ -182,7 +182,7 @@ record_field_types(Attrs) ->
 field_info_to_type({ann_type, _, [{var, _, _VarName}, Type]}) ->
     field_info_to_type(Type);
 field_info_to_type({atom, _, Value}) when is_atom(Value) ->
-    [#sp_literal{value = Value, binary_value = atom_to_binary(Value)}];
+    [#sp_literal{value = Value, binary_value = atom_to_binary(Value, utf8)}];
 field_info_to_type({char, _, Value}) when is_integer(Value) ->
     [#sp_literal{value = Value, binary_value = integer_to_binary(Value)}];
 field_info_to_type({integer, _, Value}) when is_integer(Value) ->
@@ -440,7 +440,7 @@ map_field_info({TypeOfType, _, Type, TypeAttrs}) ->
                         #literal_map_field{
                             kind = assoc,
                             name = MapFieldName,
-                            binary_name = atom_to_binary(MapFieldName),
+                            binary_name = atom_to_binary(MapFieldName, utf8),
                             val_type = AType
                         }
                     ];
@@ -465,7 +465,7 @@ map_field_info({TypeOfType, _, Type, TypeAttrs}) ->
                         #literal_map_field{
                             kind = exact,
                             name = MapFieldName,
-                            binary_name = atom_to_binary(MapFieldName),
+                            binary_name = atom_to_binary(MapFieldName, utf8),
                             val_type = AType
                         }
                     ];
@@ -489,13 +489,13 @@ record_field_info({record_field, _, {atom, _, FieldName}, _Default}) when
     %% FIXME: Handle default values in record fields. Also handle default values in typed_record_field?
     #sp_rec_field{
         name = FieldName,
-        binary_name = atom_to_binary(FieldName),
+        binary_name = atom_to_binary(FieldName, utf8),
         type = #sp_simple_type{type = term}
     };
 record_field_info({record_field, _, {atom, _, FieldName}}) when is_atom(FieldName) ->
     #sp_rec_field{
         name = FieldName,
-        binary_name = atom_to_binary(FieldName),
+        binary_name = atom_to_binary(FieldName, utf8),
         type = #sp_simple_type{type = term}
     };
 record_field_info({typed_record_field, {record_field, _, {atom, _, FieldName}}, Type}) when
@@ -504,7 +504,7 @@ record_field_info({typed_record_field, {record_field, _, {atom, _, FieldName}}, 
     [TypeInfo] = field_info_to_type(Type),
     #sp_rec_field{
         name = FieldName,
-        binary_name = atom_to_binary(FieldName),
+        binary_name = atom_to_binary(FieldName, utf8),
         type = TypeInfo
     };
 record_field_info(
@@ -515,7 +515,7 @@ record_field_info(
     [TypeInfo] = field_info_to_type(Type),
     #sp_rec_field{
         name = FieldName,
-        binary_name = atom_to_binary(FieldName),
+        binary_name = atom_to_binary(FieldName, utf8),
         type = TypeInfo
     }.
 
