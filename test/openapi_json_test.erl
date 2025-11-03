@@ -85,12 +85,12 @@ openapi_json_serializable_test() ->
     %% Validate core OpenAPI structure
     ?assertMatch(
         #{
-            openapi := <<"3.0.0">>,
-            info := #{title := <<"API Documentation">>, version := <<"1.0.0">>},
-            paths := #{<<"/users">> := _, <<"/users/{id}">> := _},
-            components :=
+            <<"openapi">> := <<"3.0.0">>,
+            <<"info">> := #{<<"title">> := <<"API Documentation">>, <<"version">> := <<"1.0.0">>},
+            <<"paths">> := #{<<"/users">> := _, <<"/users/{id}">> := _},
+            <<"components">> :=
                 #{
-                    schemas :=
+                    <<"schemas">> :=
                         #{
                             <<"User">> := _,
                             <<"CreateUserRequest">> := _,
@@ -102,24 +102,24 @@ openapi_json_serializable_test() ->
     ),
 
     %% Extract paths for detailed validation
-    #{paths := #{<<"/users">> := UsersPath, <<"/users/{id}">> := UsersByIdPath}} =
+    #{<<"paths">> := #{<<"/users">> := UsersPath, <<"/users/{id}">> := UsersByIdPath}} =
         OpenAPISpec,
 
     %% Validate /users GET endpoint
     ?assertMatch(
         #{
-            get :=
+            <<"get">> :=
                 #{
-                    responses :=
+                    <<"responses">> :=
                         #{
                             <<"200">> :=
                                 #{
-                                    description := <<"List of users">>,
-                                    content :=
+                                    <<"description">> := <<"List of users">>,
+                                    <<"content">> :=
                                         #{
                                             <<"application/json">> :=
                                                 #{
-                                                    schema :=
+                                                    <<"schema">> :=
                                                         #{
                                                             '$ref' :=
                                                                 <<"#/components/schemas/User">>
@@ -134,15 +134,16 @@ openapi_json_serializable_test() ->
     ),
 
     %% Validate /users POST endpoint
-    #{post := #{requestBody := PostRequestBody, responses := PostResponses}} = UsersPath,
+    #{<<"post">> := #{<<"requestBody">> := PostRequestBody, <<"responses">> := PostResponses}} =
+        UsersPath,
     ?assertMatch(
         #{
-            required := true,
-            content :=
+            <<"required">> := true,
+            <<"content">> :=
                 #{
                     <<"application/json">> :=
                         #{
-                            schema :=
+                            <<"schema">> :=
                                 #{'$ref' := <<"#/components/schemas/CreateUserRequest">>}
                         }
                 }
@@ -153,37 +154,37 @@ openapi_json_serializable_test() ->
     #{<<"201">> := Post201Response, <<"400">> := Post400Response} = PostResponses,
     ?assertMatch(
         #{
-            description := <<"User created">>,
-            content :=
+            <<"description">> := <<"User created">>,
+            <<"content">> :=
                 #{
                     <<"application/json">> :=
-                        #{schema := #{'$ref' := <<"#/components/schemas/User">>}}
+                        #{<<"schema">> := #{'$ref' := <<"#/components/schemas/User">>}}
                 }
         },
         Post201Response
     ),
     ?assertMatch(
         #{
-            description := <<"Invalid input">>,
-            content :=
+            <<"description">> := <<"Invalid input">>,
+            <<"content">> :=
                 #{
                     <<"application/json">> :=
-                        #{schema := #{'$ref' := <<"#/components/schemas/ErrorResponse">>}}
+                        #{<<"schema">> := #{'$ref' := <<"#/components/schemas/ErrorResponse">>}}
                 }
         },
         Post400Response
     ),
 
     %% Validate /users/{id} GET endpoint
-    #{get := #{parameters := GetByIdParameters, responses := GetByIdResponses}} =
+    #{<<"get">> := #{<<"parameters">> := GetByIdParameters, <<"responses">> := GetByIdResponses}} =
         UsersByIdPath,
     ?assertMatch(
         [
             #{
-                name := <<"id">>,
-                in := path,
-                required := true,
-                schema := #{type := <<"integer">>}
+                <<"name">> := <<"id">>,
+                <<"in">> := <<"path">>,
+                <<"required">> := true,
+                <<"schema">> := #{type := <<"integer">>}
             }
         ],
         GetByIdParameters
@@ -192,22 +193,22 @@ openapi_json_serializable_test() ->
     #{<<"200">> := GetById200Response, <<"404">> := GetById404Response} = GetByIdResponses,
     ?assertMatch(
         #{
-            description := <<"User details">>,
-            content :=
+            <<"description">> := <<"User details">>,
+            <<"content">> :=
                 #{
                     <<"application/json">> :=
-                        #{schema := #{'$ref' := <<"#/components/schemas/User">>}}
+                        #{<<"schema">> := #{'$ref' := <<"#/components/schemas/User">>}}
                 }
         },
         GetById200Response
     ),
     ?assertMatch(
         #{
-            description := <<"User not found">>,
-            content :=
+            <<"description">> := <<"User not found">>,
+            <<"content">> :=
                 #{
                     <<"application/json">> :=
-                        #{schema := #{'$ref' := <<"#/components/schemas/ErrorResponse">>}}
+                        #{<<"schema">> := #{'$ref' := <<"#/components/schemas/ErrorResponse">>}}
                 }
         },
         GetById404Response
@@ -254,13 +255,13 @@ openapi_spec_completeness_test() ->
         ),
 
     %% Validate required OpenAPI 3.0 fields and structure
-    #{paths := Paths} = OpenAPISpec,
+    #{<<"paths">> := Paths} = OpenAPISpec,
     ?assertMatch(
         #{
-            openapi := _,
-            info := #{title := _, version := _},
-            paths := _,
-            components := #{schemas := _}
+            <<"openapi">> := _,
+            <<"info">> := #{<<"title">> := _, <<"version">> := _},
+            <<"paths">> := _,
+            <<"components">> := #{<<"schemas">> := _}
         },
         OpenAPISpec
     ),
@@ -309,15 +310,17 @@ complex_nested_structure_test() ->
     %% Deep validate the nested structure
     ?assertMatch(
         #{
-            paths :=
+            <<"paths">> :=
                 #{
                     <<"/complex">> :=
                         #{
-                            post :=
+                            <<"post">> :=
                                 #{
-                                    requestBody := #{required := true},
-                                    responses := #{<<"201">> := _, <<"400">> := _},
-                                    parameters := [#{name := <<"debug">>, in := query}]
+                                    <<"requestBody">> := #{<<"required">> := true},
+                                    <<"responses">> := #{<<"201">> := _, <<"400">> := _},
+                                    <<"parameters">> := [
+                                        #{<<"name">> := <<"debug">>, <<"in">> := <<"query">>}
+                                    ]
                                 }
                         }
                 }
@@ -401,9 +404,9 @@ final_json_output_test() ->
     %% Basic validation that the spec looks correct
     ?assertMatch(
         #{
-            openapi := <<"3.0.0">>,
-            paths := _,
-            components := _
+            <<"openapi">> := <<"3.0.0">>,
+            <<"paths">> := _,
+            <<"components">> := _
         },
         OpenAPISpec
     ).
@@ -556,13 +559,17 @@ custom_response_content_type_json_test() ->
 
     %% Validate that the generated spec uses the custom content type
     #{
-        paths :=
-            #{<<"/users">> := #{get := #{responses := #{<<"200">> := #{content := Content}}}}}
+        <<"paths">> :=
+            #{
+                <<"/users">> := #{
+                    <<"get">> := #{<<"responses">> := #{<<"200">> := #{<<"content">> := Content}}}
+                }
+            }
     } =
         OpenAPISpec,
 
     %% Check that the response has application/xml content type
-    ?assertMatch(#{<<"application/xml">> := #{schema := _}}, Content),
+    ?assertMatch(#{<<"application/xml">> := #{<<"schema">> := _}}, Content),
 
     %% Ensure it does NOT have application/json
     ?assertNot(maps:is_key(<<"application/json">>, Content)).
@@ -593,13 +600,14 @@ custom_request_body_content_type_json_test() ->
         ),
 
     %% Validate that the generated spec uses the custom content type
-    #{paths := #{<<"/users">> := #{post := #{requestBody := RequestBody}}}} = OpenAPISpec,
+    #{<<"paths">> := #{<<"/users">> := #{<<"post">> := #{<<"requestBody">> := RequestBody}}}} =
+        OpenAPISpec,
 
     %% Check that the request body has application/xml content type
-    ?assertMatch(#{content := #{<<"application/xml">> := #{schema := _}}}, RequestBody),
+    ?assertMatch(#{<<"content">> := #{<<"application/xml">> := #{<<"schema">> := _}}}, RequestBody),
 
     %% Ensure it does NOT have application/json for request body
-    #{content := Content} = RequestBody,
+    #{<<"content">> := Content} = RequestBody,
     ?assertNot(maps:is_key(<<"application/json">>, Content)).
 
 %% Test that default content type (application/json) is used when not specified
@@ -623,14 +631,14 @@ default_content_type_json_test() ->
 
     %% Validate that the generated spec defaults to application/json
     #{
-        paths :=
+        <<"paths">> :=
             #{
                 <<"/users">> :=
                     #{
-                        post :=
+                        <<"post">> :=
                             #{
-                                requestBody := RequestBody,
-                                responses := #{<<"201">> := ResponseInSpec}
+                                <<"requestBody">> := RequestBody,
+                                <<"responses">> := #{<<"201">> := ResponseInSpec}
                             }
                     }
             }
@@ -638,8 +646,12 @@ default_content_type_json_test() ->
         OpenAPISpec,
 
     %% Check that default content type is application/json
-    ?assertMatch(#{content := #{<<"application/json">> := #{schema := _}}}, RequestBody),
-    ?assertMatch(#{content := #{<<"application/json">> := #{schema := _}}}, ResponseInSpec).
+    ?assertMatch(
+        #{<<"content">> := #{<<"application/json">> := #{<<"schema">> := _}}}, RequestBody
+    ),
+    ?assertMatch(
+        #{<<"content">> := #{<<"application/json">> := #{<<"schema">> := _}}}, ResponseInSpec
+    ).
 
 %% Test mixed content types - different content types for request and response
 mixed_content_types_json_test() ->
@@ -682,16 +694,16 @@ mixed_content_types_json_test() ->
 
     %% Validate that each part has its specified content type
     #{
-        paths :=
+        <<"paths">> :=
             #{
                 <<"/users">> :=
                     #{
-                        post :=
+                        <<"post">> :=
                             #{
-                                requestBody := #{content := ReqContent},
-                                responses :=
+                                <<"requestBody">> := #{<<"content">> := ReqContent},
+                                <<"responses">> :=
                                     #{
-                                        <<"201">> := #{content := Resp201Content},
+                                        <<"201">> := #{<<"content">> := Resp201Content},
                                         <<"400">> := Response400InSpec
                                     }
                             }
@@ -701,10 +713,10 @@ mixed_content_types_json_test() ->
         OpenAPISpec,
 
     %% Check that each part has the correct content type
-    ?assertMatch(#{<<"application/xml">> := #{schema := _}}, ReqContent),
-    ?assertMatch(#{<<"text/plain">> := #{schema := _}}, Resp201Content),
+    ?assertMatch(#{<<"application/xml">> := #{<<"schema">> := _}}, ReqContent),
+    ?assertMatch(#{<<"text/plain">> := #{<<"schema">> := _}}, Resp201Content),
     ?assertMatch(
-        #{content := #{<<"application/json">> := #{schema := _}}},
+        #{<<"content">> := #{<<"application/json">> := #{<<"schema">> := _}}},
         Response400InSpec
     ),
 
@@ -754,33 +766,33 @@ response_headers_in_json_test() ->
     %% Validate that headers appear in the generated spec
     ?assertMatch(
         #{
-            paths :=
+            <<"paths">> :=
                 #{
                     <<"/users">> :=
                         #{
-                            get :=
+                            <<"get">> :=
                                 #{
-                                    responses :=
+                                    <<"responses">> :=
                                         #{
                                             <<"200">> :=
                                                 #{
-                                                    headers :=
+                                                    <<"headers">> :=
                                                         #{
                                                             <<"X-Rate-Limit">> :=
                                                                 #{
-                                                                    schema := #{
+                                                                    <<"schema">> := #{
                                                                         type := <<"integer">>
                                                                     },
-                                                                    description :=
+                                                                    <<"description">> :=
                                                                         <<"Request limit">>,
-                                                                    required := false
+                                                                    <<"required">> := false
                                                                 },
                                                             <<"X-Request-ID">> :=
                                                                 #{
-                                                                    schema := #{
+                                                                    <<"schema">> := #{
                                                                         type := <<"string">>
                                                                     },
-                                                                    required := true
+                                                                    <<"required">> := true
                                                                 }
                                                         }
                                                 }
@@ -810,11 +822,15 @@ response_without_headers_test() ->
         ),
 
     %% Validate that headers field is not present
-    #{paths := #{<<"/users">> := #{get := #{responses := #{<<"200">> := ResponseInSpec}}}}} =
+    #{
+        <<"paths">> := #{
+            <<"/users">> := #{<<"get">> := #{<<"responses">> := #{<<"200">> := ResponseInSpec}}}
+        }
+    } =
         OpenAPISpec,
 
     %% Should not have headers field
-    ?assertNot(maps:is_key(headers, ResponseInSpec)).
+    ?assertNot(maps:is_key(<<"headers">>, ResponseInSpec)).
 
 %% Test headers on different response status codes
 headers_on_different_responses_test() ->
@@ -859,30 +875,37 @@ headers_on_different_responses_test() ->
     %% Validate that headers appear on correct responses
     ?assertMatch(
         #{
-            paths :=
+            <<"paths">> :=
                 #{
                     <<"/users">> :=
                         #{
-                            post :=
+                            <<"post">> :=
                                 #{
-                                    responses :=
+                                    <<"responses">> :=
                                         #{
                                             <<"201">> :=
                                                 #{
-                                                    headers :=
+                                                    <<"headers">> :=
                                                         #{
                                                             <<"Location">> :=
-                                                                #{schema := #{type := <<"string">>}}
+                                                                #{
+                                                                    <<"schema">> := #{
+                                                                        type := <<"string">>
+                                                                    }
+                                                                }
                                                         }
                                                 },
                                             <<"429">> :=
                                                 #{
-                                                    headers :=
+                                                    <<"headers">> :=
                                                         #{
                                                             <<"Retry-After">> :=
                                                                 #{
-                                                                    schema :=
-                                                                        #{type := <<"integer">>}
+                                                                    <<"schema">> :=
+                                                                        #{
+                                                                            type :=
+                                                                                <<"integer">>
+                                                                        }
                                                                 }
                                                         }
                                                 }
@@ -927,28 +950,28 @@ response_builder_json_generation_test() ->
     %% Validate the generated JSON structure
     ?assertMatch(
         #{
-            paths :=
+            <<"paths">> :=
                 #{
                     <<"/users">> :=
                         #{
-                            get :=
+                            <<"get">> :=
                                 #{
-                                    responses :=
+                                    <<"responses">> :=
                                         #{
                                             <<"200">> :=
                                                 #{
-                                                    description := <<"Success">>,
-                                                    content := #{<<"application/json">> := _},
-                                                    headers :=
+                                                    <<"description">> := <<"Success">>,
+                                                    <<"content">> := #{<<"application/json">> := _},
+                                                    <<"headers">> :=
                                                         #{
                                                             <<"X-Rate-Limit">> :=
                                                                 #{
-                                                                    schema := #{
+                                                                    <<"schema">> := #{
                                                                         type := <<"integer">>
                                                                     },
-                                                                    description :=
+                                                                    <<"description">> :=
                                                                         <<"Requests remaining">>,
-                                                                    required := false
+                                                                    <<"required">> := false
                                                                 }
                                                         }
                                                 }
@@ -984,8 +1007,12 @@ response_builder_custom_content_type_json_test() ->
 
     %% Verify custom content type in JSON
     #{
-        paths :=
-            #{<<"/users">> := #{get := #{responses := #{<<"200">> := #{content := Content}}}}}
+        <<"paths">> :=
+            #{
+                <<"/users">> := #{
+                    <<"get">> := #{<<"responses">> := #{<<"200">> := #{<<"content">> := Content}}}
+                }
+            }
     } =
         OpenAPISpec,
     ?assertMatch(#{<<"application/xml">> := _}, Content),
@@ -1025,18 +1052,20 @@ response_builder_complete_endpoint_test() ->
             [Endpoint]
         ),
 
-    #{paths := #{<<"/users">> := #{post := Operation}}} = OpenAPISpec,
+    #{<<"paths">> := #{<<"/users">> := #{<<"post">> := Operation}}} = OpenAPISpec,
 
     %% Verify request body
-    ?assertMatch(#{requestBody := #{content := #{<<"application/json">> := _}}}, Operation),
+    ?assertMatch(
+        #{<<"requestBody">> := #{<<"content">> := #{<<"application/json">> := _}}}, Operation
+    ),
 
     %% Verify all responses
     ?assertMatch(
         #{
-            responses :=
+            <<"responses">> :=
                 #{
                     <<"200">> := _,
-                    <<"201">> := #{headers := #{<<"Location">> := _}},
+                    <<"201">> := #{<<"headers">> := #{<<"Location">> := _}},
                     <<"400">> := _
                 }
         },

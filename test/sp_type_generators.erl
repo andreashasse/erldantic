@@ -79,13 +79,13 @@ map_field(Size) ->
         ?LET({Name, Type}, {my_atom(), sp_type(Size)}, #literal_map_field{
             kind = assoc,
             name = Name,
-            binary_name = atom_to_binary(Name),
+            binary_name = atom_to_binary(Name, utf8),
             val_type = Type
         }),
         ?LET({Name, Type}, {my_atom(), sp_type(Size)}, #literal_map_field{
             kind = exact,
             name = Name,
-            binary_name = atom_to_binary(Name),
+            binary_name = atom_to_binary(Name, utf8),
             val_type = Type
         }),
         ?LET(

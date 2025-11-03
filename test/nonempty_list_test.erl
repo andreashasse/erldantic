@@ -15,7 +15,7 @@ validate_nonempty_list_test() ->
     ValidUser = #{name => "John", items => [1, 2, 3]},
     InvalidUser = #{name => "John", items => []},
 
-    ?assertEqual({ok, #{name => <<"John">>, items => [1, 2, 3]}}, to_json(ValidUser)),
+    ?assertEqual({ok, #{<<"name">> => <<"John">>, <<"items">> => [1, 2, 3]}}, to_json(ValidUser)),
 
     {error, Errors} = to_json(InvalidUser),
     ?assertEqual(

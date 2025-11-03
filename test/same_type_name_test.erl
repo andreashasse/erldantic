@@ -41,7 +41,7 @@ type_in_form_test() ->
                     types =
                         [
                             #sp_var{name = 'OkType'},
-                            #sp_literal{value = error}
+                            #sp_literal{value = error, binary_value = <<"error">>}
                         ]
                 },
             vars = ['OkType']
@@ -51,7 +51,7 @@ type_in_form_test() ->
 
 map1_to_json_test() ->
     ?assertEqual({ok, #{a1 => 1}}, to_json_result_1(#{a1 => 1})),
-    ?assertEqual({ok, error}, to_json_result_1(error)).
+    ?assertEqual({ok, <<"error">>}, to_json_result_1(error)).
 
 map1_from_json_test() ->
     ?assertEqual({ok, #{a1 => 1}}, from_json_result_1(#{a1 => 1})),
@@ -82,7 +82,7 @@ map1_to_json_bad_test() ->
                                                     }
                                                 ]
                                         },
-                                        #sp_literal{value = error}
+                                        #sp_literal{value = error, binary_value = <<"error">>}
                                     ]
                             },
                         value => #{a1 => hej}
@@ -115,7 +115,7 @@ map1_to_json_bad_test() ->
                                                     }
                                                 ]
                                         },
-                                        #sp_literal{value = error}
+                                        #sp_literal{value = error, binary_value = <<"error">>}
                                     ]
                             },
                         value => pelle
@@ -150,7 +150,7 @@ map1_from_json_bad_test() ->
                                                     }
                                                 ]
                                         },
-                                        #sp_literal{value = error}
+                                        #sp_literal{value = error, binary_value = <<"error">>}
                                     ]
                             },
                         value => #{a1 => hej}
@@ -183,7 +183,7 @@ map1_from_json_bad_test() ->
                                                     }
                                                 ]
                                         },
-                                        #sp_literal{value = error}
+                                        #sp_literal{value = error, binary_value = <<"error">>}
                                     ]
                             },
                         value => pelle

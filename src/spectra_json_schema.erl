@@ -76,8 +76,10 @@ do_to_schema(
 %% Literal types
 do_to_schema(_TypeInfo, #sp_literal{value = undefined}) ->
     {ok, #{enum => [null]}};
-do_to_schema(_TypeInfo, #sp_literal{value = Value}) when is_atom(Value) ->
-    {ok, #{enum => [atom_to_binary(Value, utf8)]}};
+do_to_schema(_TypeInfo, #sp_literal{value = Value, binary_value = BinaryValue}) when
+    is_atom(Value)
+->
+    {ok, #{enum => [BinaryValue]}};
 do_to_schema(_TypeInfo, #sp_literal{value = Value}) ->
     {ok, #{enum => [Value]}};
 %% List types
