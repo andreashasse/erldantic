@@ -188,8 +188,8 @@ map_types_test() ->
         {ok, #{
             type => <<"object">>,
             properties =>
-                #{name => #{type => <<"string">>}, age => #{type => <<"integer">>}},
-            required => [age, name],
+                #{<<"name">> => #{type => <<"string">>}, <<"age">> => #{type => <<"integer">>}},
+            required => [<<"age">>, <<"name">>],
             additionalProperties => false
         }},
         spectra_json_schema:to_schema(?MODULE, {type, my_map, 0})
@@ -200,8 +200,11 @@ map_types_test() ->
         {ok, #{
             type => <<"object">>,
             properties =>
-                #{config => #{type => <<"string">>}, timeout => #{type => <<"integer">>}},
-            required => [timeout, config],
+                #{
+                    <<"config">> => #{type => <<"string">>},
+                    <<"timeout">> => #{type => <<"integer">>}
+                },
+            required => [<<"timeout">>, <<"config">>],
             additionalProperties => false
         }},
         spectra_json_schema:to_schema(?MODULE, {type, my_flexible_map, 0})
@@ -219,8 +222,8 @@ generic_map_types_test() ->
     ?assertEqual(
         {ok, #{
             type => <<"object">>,
-            properties => #{name => #{type => <<"string">>}},
-            required => [name],
+            properties => #{<<"name">> => #{type => <<"string">>}},
+            required => [<<"name">>],
             additionalProperties => true
         }},
         spectra_json_schema:to_schema(?MODULE, {type, my_mixed_map, 0})
@@ -234,27 +237,27 @@ record_types_test() ->
             type => <<"object">>,
             properties =>
                 #{
-                    id => #{type => <<"integer">>},
-                    name => #{type => <<"string">>},
-                    email => #{type => <<"string">>}
+                    <<"id">> => #{type => <<"integer">>},
+                    <<"name">> => #{type => <<"string">>},
+                    <<"email">> => #{type => <<"string">>}
                 },
-            required => [id, name, email]
+            required => [<<"id">>, <<"name">>, <<"email">>]
         }},
         spectra_json_schema:to_schema(?MODULE, {record, user})
     ),
     %% Record with array field
     ExpectedProps =
         #{
-            id => #{type => <<"integer">>},
-            name => #{type => <<"string">>},
-            price => #{type => <<"number">>, format => <<"float">>},
-            tags => #{type => <<"array">>, items => #{type => <<"string">>}}
+            <<"id">> => #{type => <<"integer">>},
+            <<"name">> => #{type => <<"string">>},
+            <<"price">> => #{type => <<"number">>, format => <<"float">>},
+            <<"tags">> => #{type => <<"array">>, items => #{type => <<"string">>}}
         },
     ?assertEqual(
         {ok, #{
             type => <<"object">>,
             properties => ExpectedProps,
-            required => [id, name, price, tags]
+            required => [<<"id">>, <<"name">>, <<"price">>, <<"tags">>]
         }},
         spectra_json_schema:to_schema(?MODULE, {record, product})
     ).
@@ -268,11 +271,11 @@ record_with_optional_fields_test() ->
             type => <<"object">>,
             properties =>
                 #{
-                    id => #{type => <<"integer">>},
-                    name => #{type => <<"string">>},
-                    email => #{type => <<"string">>}
+                    <<"id">> => #{type => <<"integer">>},
+                    <<"name">> => #{type => <<"string">>},
+                    <<"email">> => #{type => <<"string">>}
                 },
-            required => [id, name]
+            required => [<<"id">>, <<"name">>]
         }},
         spectra_json_schema:to_schema(?MODULE, {record, user_with_optional})
     ).

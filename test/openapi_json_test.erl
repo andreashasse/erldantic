@@ -228,9 +228,9 @@ schema_json_structure_test() ->
             type := <<"object">>,
             properties :=
                 #{
-                    id := #{type := <<"integer">>},
-                    name := #{type := <<"string">>},
-                    email := #{type := <<"string">>}
+                    <<"id">> := #{type := <<"integer">>},
+                    <<"name">> := #{type := <<"string">>},
+                    <<"email">> := #{type := <<"string">>}
                 }
         },
         UserSchema
@@ -425,9 +425,9 @@ json_encoding_test() ->
             type := <<"object">>,
             properties :=
                 #{
-                    id := #{type := <<"integer">>},
-                    name := #{type := <<"string">>},
-                    email := #{type := <<"string">>}
+                    <<"id">> := #{type := <<"integer">>},
+                    <<"name">> := #{type := <<"string">>},
+                    <<"email">> := #{type := <<"string">>}
                 }
         },
         UserSchema

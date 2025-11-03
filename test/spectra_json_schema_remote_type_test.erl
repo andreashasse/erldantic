@@ -49,12 +49,12 @@ simple_remote_type_test() ->
         #{
             type := <<"object">>,
             properties := #{
-                name := _,
-                account := #{
+                <<"name">> := _,
+                <<"account">> := #{
                     type := <<"object">>,
                     properties := #{
-                        id := #{type := <<"string">>},
-                        balance := #{type := <<"integer">>}
+                        <<"id">> := #{type := <<"string">>},
+                        <<"balance">> := #{type := <<"integer">>}
                     }
                 }
             }
@@ -67,11 +67,11 @@ remote_type_with_variables_test() ->
     ?assertMatch(
         #{
             properties := #{
-                result := #{
+                <<"result">> := #{
                     type := <<"object">>,
                     properties := #{
-                        value := #{type := <<"string">>},
-                        errors := _
+                        <<"value">> := #{type := <<"string">>},
+                        <<"errors">> := _
                     }
                 }
             }
@@ -83,23 +83,23 @@ multiple_remote_types_test() ->
     {ok, Schema} = spectra_json_schema:to_schema(?MODULE, {type, organization, 0}),
     #{
         properties := #{
-            primary_account := PrimaryAccount,
-            backup_account := BackupAccount
+            <<"primary_account">> := PrimaryAccount,
+            <<"backup_account">> := BackupAccount
         },
         required := Required
     } = Schema,
     ?assertEqual(maps:get(type, PrimaryAccount), maps:get(type, BackupAccount)),
     ?assertMatch(
         #{
-            primary_account := #{type := <<"object">>},
-            backup_account := #{type := <<"object">>},
-            status := #{type := <<"object">>}
+            <<"primary_account">> := #{type := <<"object">>},
+            <<"backup_account">> := #{type := <<"object">>},
+            <<"status">> := #{type := <<"object">>}
         },
         maps:get(properties, Schema)
     ),
-    ?assert(lists:member(primary_account, Required)),
-    ?assertNot(lists:member(backup_account, Required)),
-    ?assert(lists:member(status, Required)).
+    ?assert(lists:member(<<"primary_account">>, Required)),
+    ?assertNot(lists:member(<<"backup_account">>, Required)),
+    ?assert(lists:member(<<"status">>, Required)).
 
 remote_type_in_record_test() ->
     {ok, Schema} = spectra_json_schema:to_schema(?MODULE, {record, transaction}),
@@ -107,11 +107,11 @@ remote_type_in_record_test() ->
         #{
             type := <<"object">>,
             properties := #{
-                id := _,
-                account := #{type := <<"object">>},
-                result := #{
+                <<"id">> := _,
+                <<"account">> := #{type := <<"object">>},
+                <<"result">> := #{
                     type := <<"object">>,
-                    properties := #{value := #{type := <<"string">>}}
+                    properties := #{<<"value">> := #{type := <<"string">>}}
                 }
             }
         },
@@ -121,10 +121,12 @@ remote_type_in_record_test() ->
 optional_remote_type_field_test() ->
     {ok, Schema} = spectra_json_schema:to_schema(?MODULE, {record, optional_account_holder}),
     #{properties := Props, required := Required} = Schema,
-    ?assertMatch(#{id := _, name := _, account := #{type := <<"object">>}}, Props),
-    ?assert(lists:member(id, Required)),
-    ?assert(lists:member(name, Required)),
-    ?assertNot(lists:member(account, Required)).
+    ?assertMatch(
+        #{<<"id">> := _, <<"name">> := _, <<"account">> := #{type := <<"object">>}}, Props
+    ),
+    ?assert(lists:member(<<"id">>, Required)),
+    ?assert(lists:member(<<"name">>, Required)),
+    ?assertNot(lists:member(<<"account">>, Required)).
 
 remote_type_in_list_test() ->
     {ok, Schema} = spectra_json_schema:to_schema(?MODULE, {type, account_list, 0}),
@@ -133,7 +135,7 @@ remote_type_in_list_test() ->
             type := <<"array">>,
             items := #{
                 type := <<"object">>,
-                properties := #{id := _, balance := _}
+                properties := #{<<"id">> := _, <<"balance">> := _}
             }
         },
         Schema
