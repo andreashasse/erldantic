@@ -108,7 +108,7 @@ openapi_json_serializable_test() ->
     %% Validate /users GET endpoint
     ?assertMatch(
         #{
-            get :=
+            <<"get">> :=
                 #{
                     <<"responses">> :=
                         #{
@@ -134,7 +134,7 @@ openapi_json_serializable_test() ->
     ),
 
     %% Validate /users POST endpoint
-    #{post := #{<<"requestBody">> := PostRequestBody, <<"responses">> := PostResponses}} =
+    #{<<"post">> := #{<<"requestBody">> := PostRequestBody, <<"responses">> := PostResponses}} =
         UsersPath,
     ?assertMatch(
         #{
@@ -176,13 +176,13 @@ openapi_json_serializable_test() ->
     ),
 
     %% Validate /users/{id} GET endpoint
-    #{get := #{<<"parameters">> := GetByIdParameters, <<"responses">> := GetByIdResponses}} =
+    #{<<"get">> := #{<<"parameters">> := GetByIdParameters, <<"responses">> := GetByIdResponses}} =
         UsersByIdPath,
     ?assertMatch(
         [
             #{
                 <<"name">> := <<"id">>,
-                <<"in">> := path,
+                <<"in">> := <<"path">>,
                 <<"required">> := true,
                 <<"schema">> := #{type := <<"integer">>}
             }
@@ -314,12 +314,12 @@ complex_nested_structure_test() ->
                 #{
                     <<"/complex">> :=
                         #{
-                            post :=
+                            <<"post">> :=
                                 #{
                                     <<"requestBody">> := #{<<"required">> := true},
                                     <<"responses">> := #{<<"201">> := _, <<"400">> := _},
                                     <<"parameters">> := [
-                                        #{<<"name">> := <<"debug">>, <<"in">> := query}
+                                        #{<<"name">> := <<"debug">>, <<"in">> := <<"query">>}
                                     ]
                                 }
                         }
@@ -562,7 +562,7 @@ custom_response_content_type_json_test() ->
         <<"paths">> :=
             #{
                 <<"/users">> := #{
-                    get := #{<<"responses">> := #{<<"200">> := #{<<"content">> := Content}}}
+                    <<"get">> := #{<<"responses">> := #{<<"200">> := #{<<"content">> := Content}}}
                 }
             }
     } =
@@ -600,7 +600,7 @@ custom_request_body_content_type_json_test() ->
         ),
 
     %% Validate that the generated spec uses the custom content type
-    #{<<"paths">> := #{<<"/users">> := #{post := #{<<"requestBody">> := RequestBody}}}} =
+    #{<<"paths">> := #{<<"/users">> := #{<<"post">> := #{<<"requestBody">> := RequestBody}}}} =
         OpenAPISpec,
 
     %% Check that the request body has application/xml content type
@@ -635,7 +635,7 @@ default_content_type_json_test() ->
             #{
                 <<"/users">> :=
                     #{
-                        post :=
+                        <<"post">> :=
                             #{
                                 <<"requestBody">> := RequestBody,
                                 <<"responses">> := #{<<"201">> := ResponseInSpec}
@@ -698,7 +698,7 @@ mixed_content_types_json_test() ->
             #{
                 <<"/users">> :=
                     #{
-                        post :=
+                        <<"post">> :=
                             #{
                                 <<"requestBody">> := #{<<"content">> := ReqContent},
                                 <<"responses">> :=
@@ -770,7 +770,7 @@ response_headers_in_json_test() ->
                 #{
                     <<"/users">> :=
                         #{
-                            get :=
+                            <<"get">> :=
                                 #{
                                     <<"responses">> :=
                                         #{
@@ -824,7 +824,7 @@ response_without_headers_test() ->
     %% Validate that headers field is not present
     #{
         <<"paths">> := #{
-            <<"/users">> := #{get := #{<<"responses">> := #{<<"200">> := ResponseInSpec}}}
+            <<"/users">> := #{<<"get">> := #{<<"responses">> := #{<<"200">> := ResponseInSpec}}}
         }
     } =
         OpenAPISpec,
@@ -879,7 +879,7 @@ headers_on_different_responses_test() ->
                 #{
                     <<"/users">> :=
                         #{
-                            post :=
+                            <<"post">> :=
                                 #{
                                     <<"responses">> :=
                                         #{
@@ -954,7 +954,7 @@ response_builder_json_generation_test() ->
                 #{
                     <<"/users">> :=
                         #{
-                            get :=
+                            <<"get">> :=
                                 #{
                                     <<"responses">> :=
                                         #{
@@ -1010,7 +1010,7 @@ response_builder_custom_content_type_json_test() ->
         <<"paths">> :=
             #{
                 <<"/users">> := #{
-                    get := #{<<"responses">> := #{<<"200">> := #{<<"content">> := Content}}}
+                    <<"get">> := #{<<"responses">> := #{<<"200">> := #{<<"content">> := Content}}}
                 }
             }
     } =
@@ -1052,7 +1052,7 @@ response_builder_complete_endpoint_test() ->
             [Endpoint]
         ),
 
-    #{<<"paths">> := #{<<"/users">> := #{post := Operation}}} = OpenAPISpec,
+    #{<<"paths">> := #{<<"/users">> := #{<<"post">> := Operation}}} = OpenAPISpec,
 
     %% Verify request body
     ?assertMatch(

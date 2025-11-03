@@ -172,7 +172,7 @@ single_endpoint_to_openapi_test() ->
             <<"openapi">> := <<"3.0.0">>,
             <<"info">> := #{<<"title">> := _, <<"version">> := _},
             <<"paths">> := #{
-                <<"/users">> := #{get := #{<<"responses">> := #{<<"200">> := _}}}
+                <<"/users">> := #{<<"get">> := #{<<"responses">> := #{<<"200">> := _}}}
             }
         },
         OpenAPISpec
@@ -230,11 +230,11 @@ multiple_endpoints_to_openapi_test() ->
     ?assertMatch(
         #{
             <<"paths">> :=
-                #{<<"/users">> := #{get := _, post := _}, <<"/users/{id}">> := _}
+                #{<<"/users">> := #{<<"get">> := _, <<"post">> := _}, <<"/users/{id}">> := _}
         },
         OpenAPISpec
     ),
-    ?assertNot(is_map_key(post, UsersIdPath)).
+    ?assertNot(is_map_key(<<"post">>, UsersIdPath)).
 
 %% Test OpenAPI spec includes component schemas
 openapi_with_components_test() ->

@@ -122,7 +122,7 @@ literal_sp_types_test() ->
 
     %% Test literal atom
     {ok, AtomLiteralType} = spectra_type_info:get_type(TypeInfo, my_literal_atom, 0),
-    ?assertEqual({ok, hello}, spectra_json:to_json(TypeInfo, AtomLiteralType, hello)),
+    ?assertEqual({ok, <<"hello">>}, spectra_json:to_json(TypeInfo, AtomLiteralType, hello)),
     ?assertEqual(
         {ok, hello},
         spectra_json:from_json(TypeInfo, AtomLiteralType, <<"hello">>)

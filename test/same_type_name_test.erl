@@ -51,7 +51,7 @@ type_in_form_test() ->
 
 map1_to_json_test() ->
     ?assertEqual({ok, #{a1 => 1}}, to_json_result_1(#{a1 => 1})),
-    ?assertEqual({ok, error}, to_json_result_1(error)).
+    ?assertEqual({ok, <<"error">>}, to_json_result_1(error)).
 
 map1_from_json_test() ->
     ?assertEqual({ok, #{a1 => 1}}, from_json_result_1(#{a1 => 1})),

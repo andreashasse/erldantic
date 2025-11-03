@@ -129,7 +129,7 @@ missing_test() ->
         spectra_json:to_json(?MODULE, {type, my_timeout, 0}, <<"infinity">>)
     ),
     ?assertEqual(
-        {ok, infinity},
+        {ok, <<"infinity">>},
         spectra_json:to_json(?MODULE, {type, my_timeout, 0}, infinity)
     ),
     ?assertEqual({ok, 42}, spectra_json:to_json(?MODULE, {type, my_timeout, 0}, 42)),

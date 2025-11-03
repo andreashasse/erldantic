@@ -17,9 +17,9 @@ validate_accesses_test() ->
     InvalidData = [read, invalid],
 
     % Test with valid values
-    ?assertEqual({ok, [read]}, to_json_accesses(ValidData1)),
-    ?assertEqual({ok, [write]}, to_json_accesses(ValidData2)),
-    ?assertEqual({ok, [read, write]}, to_json_accesses(ValidData3)),
+    ?assertEqual({ok, [<<"read">>]}, to_json_accesses(ValidData1)),
+    ?assertEqual({ok, [<<"write">>]}, to_json_accesses(ValidData2)),
+    ?assertEqual({ok, [<<"read">>, <<"write">>]}, to_json_accesses(ValidData3)),
     ?assertEqual({ok, []}, to_json_accesses(ValidData4)),
 
     % Test with invalid data

@@ -68,7 +68,7 @@ map2_bad_test() ->
     ).
 
 map3_test() ->
-    ?assertEqual({ok, #{<<"a1">> => kalle}}, to_json_atom_map3(#{a1 => kalle})).
+    ?assertEqual({ok, #{<<"a1">> => <<"kalle">>}}, to_json_atom_map3(#{a1 => kalle})).
 
 map3_bad_test() ->
     ?assertMatch(

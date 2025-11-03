@@ -83,9 +83,9 @@ validate_role_test() ->
     InvalidData = moderator,
 
     % Test with valid values
-    ?assertEqual({ok, admin}, to_json_role(ValidData1)),
-    ?assertEqual({ok, user}, to_json_role(ValidData2)),
-    ?assertEqual({ok, guest}, to_json_role(ValidData3)),
+    ?assertEqual({ok, <<"admin">>}, to_json_role(ValidData1)),
+    ?assertEqual({ok, <<"user">>}, to_json_role(ValidData2)),
+    ?assertEqual({ok, <<"guest">>}, to_json_role(ValidData3)),
 
     % Test with invalid data
     {error, Errors} = to_json_role(InvalidData),
