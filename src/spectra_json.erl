@@ -1063,12 +1063,15 @@ record_from_json(TypeInfo, #sp_rec{name = RecordName} = ARec, Json, TypeArgs) ->
 ) ->
     {ok, term()} | {error, list()}.
 do_record_from_json(TypeInfo, RecordName, RecordInfo, Json) when is_map(Json) ->
-    Fun = fun(#sp_rec_field{name = FieldName, binary_name = BinaryName, type = FieldType}) ->
-        case maps:find(BinaryName, Json) of
-            {ok, RecordFieldData} ->
+    Fun = fun(
+        #sp_rec_field{name = FieldName, binary_name = BinaryName, type = FieldType},
+        {FieldsAcc, JsonAcc}
+    ) ->
+        case maps:take(BinaryName, JsonAcc) of
+            {RecordFieldData, NewJsonAcc} ->
                 case do_from_json(TypeInfo, FieldType, RecordFieldData) of
                     {ok, FieldJson} ->
-                        {ok, FieldJson};
+                        {ok, {[FieldJson | FieldsAcc], NewJsonAcc}};
                     {error, Errs} ->
                         Errs2 =
                             lists:map(
@@ -1080,7 +1083,7 @@ do_record_from_json(TypeInfo, RecordName, RecordInfo, Json) when is_map(Json) ->
             error ->
                 case spectra_type:can_be_undefined(TypeInfo, FieldType) of
                     true ->
-                        {ok, undefined};
+                        {ok, {[undefined | FieldsAcc], JsonAcc}};
                     false ->
                         {error, [
                             #sp_error{
@@ -1091,9 +1094,24 @@ do_record_from_json(TypeInfo, RecordName, RecordInfo, Json) when is_map(Json) ->
                 end
         end
     end,
-    case spectra_util:map_until_error(Fun, RecordInfo) of
-        {ok, Fields} ->
-            {ok, list_to_tuple([RecordName | Fields])};
+    case spectra_util:fold_until_error(Fun, {[], Json}, RecordInfo) of
+        {ok, {Fields, NotMapped}} ->
+            case maps:size(NotMapped) of
+                0 ->
+                    {ok, list_to_tuple([RecordName | lists:reverse(Fields)])};
+                _ ->
+                    {error,
+                        lists:map(
+                            fun({Key, Value}) ->
+                                #sp_error{
+                                    type = not_matched_fields,
+                                    location = [],
+                                    ctx = #{key => Key, value => Value}
+                                }
+                            end,
+                            maps:to_list(NotMapped)
+                        )}
+            end;
         {error, Errs} ->
             {error, Errs}
     end;
