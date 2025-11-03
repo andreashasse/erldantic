@@ -292,10 +292,10 @@ map_fields_to_schema(TypeInfo, Fields) ->
     spectra:type_info(),
     [spectra:map_field()],
     map(),
-    [atom()],
+    [atom() | integer()],
     boolean()
 ) ->
-    {ok, map(), [atom()], boolean()} | {error, [spectra:error()]}.
+    {ok, map(), [atom() | integer()], boolean()} | {error, [spectra:error()]}.
 process_map_fields(_TypeInfo, [], Properties, Required, HasAdditional) ->
     {ok, Properties, Required, HasAdditional};
 process_map_fields(
@@ -329,7 +329,7 @@ process_map_fields(
     end;
 process_map_fields(
     _TypeInfo,
-    [#typed_map_field{kind = assoc_type} | Rest],
+    [#typed_map_field{kind = assoc} | Rest],
     Properties,
     Required,
     _HasAdditional
@@ -338,7 +338,7 @@ process_map_fields(
     process_map_fields(_TypeInfo, Rest, Properties, Required, true);
 process_map_fields(
     _TypeInfo,
-    [#typed_map_field{kind = exact_type} | Rest],
+    [#typed_map_field{kind = exact} | Rest],
     Properties,
     Required,
     _HasAdditional

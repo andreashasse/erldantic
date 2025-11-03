@@ -163,7 +163,7 @@ function_spec_extraction_test() ->
                         fields =
                             [
                                 #typed_map_field{
-                                    kind = assoc_type,
+                                    kind = assoc,
                                     key_type = #sp_simple_type{type = atom},
                                     val_type = #sp_simple_type{type = binary}
                                 }
@@ -252,7 +252,7 @@ user_defined_types_test() ->
                         fields =
                             [
                                 #typed_map_field{
-                                    kind = assoc_type,
+                                    kind = assoc,
                                     key_type = #sp_simple_type{type = term},
                                     val_type = #sp_simple_type{type = term}
                                 }

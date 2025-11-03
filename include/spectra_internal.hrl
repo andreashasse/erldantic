@@ -53,12 +53,12 @@
 -record(sp_function_spec, {args :: [spectra:sp_type()], return :: spectra:sp_type()}).
 -record(literal_map_field, {
     kind :: assoc | exact,
-    name :: atom(),
+    name :: atom() | integer(),
     binary_name :: binary(),
     val_type :: spectra:sp_type()
 }).
 -record(typed_map_field, {
-    kind :: assoc_type | exact_type,
+    kind :: assoc | exact,
     key_type :: spectra:sp_type(),
     val_type :: spectra:sp_type()
 }).

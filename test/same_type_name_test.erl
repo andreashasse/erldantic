@@ -23,7 +23,7 @@ type_in_form_test() ->
                         fields =
                             [
                                 #typed_map_field{
-                                    kind = assoc_type,
+                                    kind = assoc,
                                     key_type = #sp_simple_type{type = atom},
                                     val_type = #sp_simple_type{type = integer}
                                 }
@@ -73,7 +73,7 @@ map1_to_json_bad_test() ->
                                             fields =
                                                 [
                                                     #typed_map_field{
-                                                        kind = assoc_type,
+                                                        kind = assoc,
                                                         key_type = #sp_simple_type{type = atom},
                                                         val_type = #sp_simple_type{
                                                             type =
@@ -106,7 +106,7 @@ map1_to_json_bad_test() ->
                                             fields =
                                                 [
                                                     #typed_map_field{
-                                                        kind = assoc_type,
+                                                        kind = assoc,
                                                         key_type = #sp_simple_type{type = atom},
                                                         val_type = #sp_simple_type{
                                                             type =
@@ -141,7 +141,7 @@ map1_from_json_bad_test() ->
                                             fields =
                                                 [
                                                     #typed_map_field{
-                                                        kind = assoc_type,
+                                                        kind = assoc,
                                                         key_type = #sp_simple_type{type = atom},
                                                         val_type = #sp_simple_type{
                                                             type =
@@ -174,7 +174,7 @@ map1_from_json_bad_test() ->
                                             fields =
                                                 [
                                                     #typed_map_field{
-                                                        kind = assoc_type,
+                                                        kind = assoc,
                                                         key_type = #sp_simple_type{type = atom},
                                                         val_type = #sp_simple_type{
                                                             type =

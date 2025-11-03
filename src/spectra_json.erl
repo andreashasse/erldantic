@@ -247,7 +247,7 @@ map_fields_to_json(TypeInfo, MapFieldTypes, Data) ->
                     {ok, {FieldsAcc, DataAcc}}
             end;
         (
-            #typed_map_field{kind = assoc_type, key_type = KeyType, val_type = ValueType},
+            #typed_map_field{kind = assoc, key_type = KeyType, val_type = ValueType},
             {FieldsAcc, DataAcc}
         ) ->
             case map_field_type(TypeInfo, KeyType, ValueType, DataAcc) of
@@ -257,7 +257,7 @@ map_fields_to_json(TypeInfo, MapFieldTypes, Data) ->
                     Err
             end;
         (
-            #typed_map_field{kind = exact_type, key_type = KeyType, val_type = ValueType},
+            #typed_map_field{kind = exact, key_type = KeyType, val_type = ValueType},
             {FieldsAcc, DataAcc}
         ) ->
             case map_field_type(TypeInfo, KeyType, ValueType, DataAcc) of
@@ -269,7 +269,7 @@ map_fields_to_json(TypeInfo, MapFieldTypes, Data) ->
                             ctx =
                                 #{
                                     type => #typed_map_field{
-                                        kind = exact_type, key_type = KeyType, val_type = ValueType
+                                        kind = exact, key_type = KeyType, val_type = ValueType
                                     }
                                 }
                         },
@@ -941,7 +941,7 @@ map_from_json(TypeInfo, MapFieldType, Json) when is_map(Json) ->
                     end
             end;
         (
-            #typed_map_field{kind = assoc_type, key_type = KeyType, val_type = ValueType},
+            #typed_map_field{kind = assoc, key_type = KeyType, val_type = ValueType},
             {FieldsAcc, JsonAcc}
         ) ->
             case map_field_type_from_json(TypeInfo, KeyType, ValueType, JsonAcc) of
@@ -951,7 +951,7 @@ map_from_json(TypeInfo, MapFieldType, Json) when is_map(Json) ->
                     {error, Reason}
             end;
         (
-            #typed_map_field{kind = exact_type, key_type = KeyType, val_type = ValueType},
+            #typed_map_field{kind = exact, key_type = KeyType, val_type = ValueType},
             {FieldsAcc, JsonAcc}
         ) ->
             case map_field_type_from_json(TypeInfo, KeyType, ValueType, JsonAcc) of
@@ -966,7 +966,7 @@ map_from_json(TypeInfo, MapFieldType, Json) when is_map(Json) ->
                                         #{
                                             type =>
                                                 #typed_map_field{
-                                                    kind = exact_type,
+                                                    kind = exact,
                                                     key_type = KeyType,
                                                     val_type = ValueType
                                                 }
