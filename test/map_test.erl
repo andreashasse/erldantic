@@ -122,7 +122,7 @@ mandatory_type_map_bad_test() ->
                     #{
                         type =>
                             #typed_map_field{
-                                kind = exact_type,
+                                kind = exact,
                                 key_type = #sp_simple_type{type = atom},
                                 val_type = #sp_simple_type{
                                     type = atom

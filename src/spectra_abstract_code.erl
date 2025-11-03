@@ -210,7 +210,7 @@ field_info_to_type({Type, _, map, any}) when
     MapFields =
         [
             #typed_map_field{
-                kind = assoc_type,
+                kind = assoc,
                 key_type = #sp_simple_type{type = term},
                 val_type = #sp_simple_type{type = term}
             }
@@ -430,56 +430,45 @@ integer_value({op, _, Operator, Unary}) ->
 
 -spec map_field_info(term()) ->
     [spectra:map_field()].
-map_field_info({TypeOfType, _, Type, TypeAttrs}) ->
-    case {TypeOfType, Type} of
-        {type, map_field_assoc} ->
-            case TypeAttrs of
-                [{atom, _, MapFieldName}, FieldInfo] when is_atom(MapFieldName) ->
-                    [AType] = field_info_to_type(FieldInfo),
-                    [
-                        #literal_map_field{
-                            kind = assoc,
-                            name = MapFieldName,
-                            binary_name = atom_to_binary(MapFieldName, utf8),
-                            val_type = AType
-                        }
-                    ];
-                [KeyFieldInfo, ValueFieldInfo] ->
-                    [KeyType] = field_info_to_type(KeyFieldInfo),
-                    [ValueType] = field_info_to_type(ValueFieldInfo),
-                    [
-                        #typed_map_field{
-                            kind = assoc_type,
-                            key_type = KeyType,
-                            val_type = ValueType
-                        }
-                    ]
-            end;
-        {type, map_field_exact} ->
-            case TypeAttrs of
-                [{atom, _, MapFieldName}, FieldInfo] ->
-                    %%                    beam_core_to_ssa:format_error(Arg1),
-                    true = is_atom(MapFieldName),
-                    [AType] = field_info_to_type(FieldInfo),
-                    [
-                        #literal_map_field{
-                            kind = exact,
-                            name = MapFieldName,
-                            binary_name = atom_to_binary(MapFieldName, utf8),
-                            val_type = AType
-                        }
-                    ];
-                [KeyFieldInfo, ValueFieldInfo] ->
-                    [KeyType] = field_info_to_type(KeyFieldInfo),
-                    [ValueType] = field_info_to_type(ValueFieldInfo),
-                    [
-                        #typed_map_field{
-                            kind = exact_type,
-                            key_type = KeyType,
-                            val_type = ValueType
-                        }
-                    ]
-            end
+map_field_info({_TypeOfType, _, Type, TypeAttrs}) ->
+    Kind =
+        case Type of
+            map_field_assoc ->
+                assoc;
+            map_field_exact ->
+                exact
+        end,
+    case TypeAttrs of
+        [{integer, _, MapFieldName}, FieldInfo] when is_integer(MapFieldName) ->
+            [AType] = field_info_to_type(FieldInfo),
+            [
+                #literal_map_field{
+                    kind = Kind,
+                    name = MapFieldName,
+                    binary_name = integer_to_binary(MapFieldName),
+                    val_type = AType
+                }
+            ];
+        [{atom, _, MapFieldName}, FieldInfo] when is_atom(MapFieldName) ->
+            [AType] = field_info_to_type(FieldInfo),
+            [
+                #literal_map_field{
+                    kind = Kind,
+                    name = MapFieldName,
+                    binary_name = atom_to_binary(MapFieldName, utf8),
+                    val_type = AType
+                }
+            ];
+        [KeyFieldInfo, ValueFieldInfo] ->
+            [KeyType] = field_info_to_type(KeyFieldInfo),
+            [ValueType] = field_info_to_type(ValueFieldInfo),
+            [
+                #typed_map_field{
+                    kind = Kind,
+                    key_type = KeyType,
+                    val_type = ValueType
+                }
+            ]
     end.
 
 -spec record_field_info(erl_parse__af_field_decl()) -> #sp_rec_field{}.

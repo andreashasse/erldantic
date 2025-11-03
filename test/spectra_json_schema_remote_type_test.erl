@@ -49,12 +49,12 @@ simple_remote_type_test() ->
         #{
             type := <<"object">>,
             properties := #{
-                name := _,
-                account := #{
+                <<"name">> := _,
+                <<"account">> := #{
                     type := <<"object">>,
                     properties := #{
-                        id := #{type := <<"string">>},
-                        balance := #{type := <<"integer">>}
+                        <<"id">> := #{type := <<"string">>},
+                        <<"balance">> := #{type := <<"integer">>}
                     }
                 }
             }
@@ -67,11 +67,11 @@ remote_type_with_variables_test() ->
     ?assertMatch(
         #{
             properties := #{
-                result := #{
+                <<"result">> := #{
                     type := <<"object">>,
                     properties := #{
-                        value := #{type := <<"string">>},
-                        errors := _
+                        <<"value">> := #{type := <<"string">>},
+                        <<"errors">> := _
                     }
                 }
             }
@@ -81,25 +81,20 @@ remote_type_with_variables_test() ->
 
 multiple_remote_types_test() ->
     {ok, Schema} = spectra_json_schema:to_schema(?MODULE, {type, organization, 0}),
-    #{
-        properties := #{
-            primary_account := PrimaryAccount,
-            backup_account := BackupAccount
-        },
-        required := Required
-    } = Schema,
-    ?assertEqual(maps:get(type, PrimaryAccount), maps:get(type, BackupAccount)),
     ?assertMatch(
         #{
-            primary_account := #{type := <<"object">>},
-            backup_account := #{type := <<"object">>},
-            status := #{type := <<"object">>}
+            type := <<"object">>,
+            properties := #{
+                <<"primary_account">> := #{type := <<"object">>},
+                <<"backup_account">> := #{type := <<"object">>},
+                <<"status">> := #{type := <<"object">>}
+            },
+            required := _
         },
-        maps:get(properties, Schema)
+        Schema
     ),
-    ?assert(lists:member(primary_account, Required)),
-    ?assertNot(lists:member(backup_account, Required)),
-    ?assert(lists:member(status, Required)).
+    #{required := Required} = Schema,
+    ?assertEqual([<<"primary_account">>, <<"status">>], lists:sort(Required)).
 
 remote_type_in_record_test() ->
     {ok, Schema} = spectra_json_schema:to_schema(?MODULE, {record, transaction}),
@@ -107,11 +102,11 @@ remote_type_in_record_test() ->
         #{
             type := <<"object">>,
             properties := #{
-                id := _,
-                account := #{type := <<"object">>},
-                result := #{
+                <<"id">> := _,
+                <<"account">> := #{type := <<"object">>},
+                <<"result">> := #{
                     type := <<"object">>,
-                    properties := #{value := #{type := <<"string">>}}
+                    properties := #{<<"value">> := #{type := <<"string">>}}
                 }
             }
         },
@@ -120,11 +115,20 @@ remote_type_in_record_test() ->
 
 optional_remote_type_field_test() ->
     {ok, Schema} = spectra_json_schema:to_schema(?MODULE, {record, optional_account_holder}),
-    #{properties := Props, required := Required} = Schema,
-    ?assertMatch(#{id := _, name := _, account := #{type := <<"object">>}}, Props),
-    ?assert(lists:member(id, Required)),
-    ?assert(lists:member(name, Required)),
-    ?assertNot(lists:member(account, Required)).
+    ?assertMatch(
+        #{
+            type := <<"object">>,
+            properties := #{
+                <<"id">> := _,
+                <<"name">> := _,
+                <<"account">> := #{type := <<"object">>}
+            },
+            required := _
+        },
+        Schema
+    ),
+    #{required := Required} = Schema,
+    ?assertEqual([<<"id">>, <<"name">>], lists:sort(Required)).
 
 remote_type_in_list_test() ->
     {ok, Schema} = spectra_json_schema:to_schema(?MODULE, {type, account_list, 0}),
@@ -133,16 +137,13 @@ remote_type_in_list_test() ->
             type := <<"array">>,
             items := #{
                 type := <<"object">>,
-                properties := #{id := _, balance := _}
+                properties := #{<<"id">> := _, <<"balance">> := _}
             }
         },
         Schema
     ).
 
 remote_type_in_union_test() ->
-    {ok, Schema} = spectra_json_schema:to_schema(?MODULE, {type, account_or_string, 0}),
-    #{oneOf := OneOf} = Schema,
-    ?assertEqual(2, length(OneOf)),
-    Types = [maps:get(type, S) || S <- OneOf],
-    ?assert(lists:member(<<"object">>, Types)),
-    ?assert(lists:member(<<"string">>, Types)).
+    {ok, #{oneOf := OneOf}} = spectra_json_schema:to_schema(?MODULE, {type, account_or_string, 0}),
+    Types = lists:sort([maps:get(type, S) || S <- OneOf]),
+    ?assertEqual([<<"object">>, <<"string">>], Types).

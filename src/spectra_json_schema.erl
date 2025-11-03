@@ -292,44 +292,44 @@ map_fields_to_schema(TypeInfo, Fields) ->
     spectra:type_info(),
     [spectra:map_field()],
     map(),
-    [atom()],
+    [binary()],
     boolean()
 ) ->
-    {ok, map(), [atom()], boolean()} | {error, [spectra:error()]}.
+    {ok, map(), [binary()], boolean()} | {error, [spectra:error()]}.
 process_map_fields(_TypeInfo, [], Properties, Required, HasAdditional) ->
     {ok, Properties, Required, HasAdditional};
 process_map_fields(
     TypeInfo,
-    [#literal_map_field{kind = assoc, name = FieldName, val_type = FieldType} | Rest],
+    [#literal_map_field{kind = assoc, binary_name = BinaryName, val_type = FieldType} | Rest],
     Properties,
     Required,
     HasAdditional
 ) ->
     case do_to_schema(TypeInfo, FieldType) of
         {ok, FieldSchema} ->
-            NewProperties = maps:put(FieldName, FieldSchema, Properties),
+            NewProperties = maps:put(BinaryName, FieldSchema, Properties),
             process_map_fields(TypeInfo, Rest, NewProperties, Required, HasAdditional);
         {error, _} = Err ->
             Err
     end;
 process_map_fields(
     TypeInfo,
-    [#literal_map_field{kind = exact, name = FieldName, val_type = FieldType} | Rest],
+    [#literal_map_field{kind = exact, binary_name = BinaryName, val_type = FieldType} | Rest],
     Properties,
     Required,
     HasAdditional
 ) ->
     case do_to_schema(TypeInfo, FieldType) of
         {ok, FieldSchema} ->
-            NewProperties = maps:put(FieldName, FieldSchema, Properties),
-            NewRequired = [FieldName | Required],
+            NewProperties = maps:put(BinaryName, FieldSchema, Properties),
+            NewRequired = [BinaryName | Required],
             process_map_fields(TypeInfo, Rest, NewProperties, NewRequired, HasAdditional);
         {error, _} = Err ->
             Err
     end;
 process_map_fields(
     _TypeInfo,
-    [#typed_map_field{kind = assoc_type} | Rest],
+    [#typed_map_field{kind = assoc} | Rest],
     Properties,
     Required,
     _HasAdditional
@@ -338,7 +338,7 @@ process_map_fields(
     process_map_fields(_TypeInfo, Rest, Properties, Required, true);
 process_map_fields(
     _TypeInfo,
-    [#typed_map_field{kind = exact_type} | Rest],
+    [#typed_map_field{kind = exact} | Rest],
     Properties,
     Required,
     _HasAdditional
@@ -369,23 +369,26 @@ record_to_schema_internal(TypeInfo, #sp_rec{fields = Fields}) ->
     spectra:type_info(),
     [#sp_rec_field{}],
     map(),
-    [atom()]
+    [binary()]
 ) ->
-    {ok, map(), [atom()]} | {error, [spectra:error()]}.
+    {ok, map(), [binary()]} | {error, [spectra:error()]}.
 process_record_fields(_TypeInfo, [], Properties, Required) ->
     {ok, Properties, lists:reverse(Required)};
 process_record_fields(
-    TypeInfo, [#sp_rec_field{name = FieldName, type = FieldType} | Rest], Properties, Required
+    TypeInfo,
+    [#sp_rec_field{binary_name = BinaryName, type = FieldType} | Rest],
+    Properties,
+    Required
 ) ->
     case do_to_schema(TypeInfo, FieldType) of
         {ok, FieldSchema} ->
-            NewProperties = Properties#{FieldName => FieldSchema},
+            NewProperties = Properties#{BinaryName => FieldSchema},
             NewRequired =
                 case spectra_type:can_be_undefined(TypeInfo, FieldType) of
                     true ->
                         Required;
                     false ->
-                        [FieldName | Required]
+                        [BinaryName | Required]
                 end,
             process_record_fields(TypeInfo, Rest, NewProperties, NewRequired);
         {error, _} = Err ->

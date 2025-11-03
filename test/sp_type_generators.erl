@@ -92,7 +92,7 @@ map_field(Size) ->
             {KeyType, ValueType},
             {sp_type(Size), sp_type(Size)},
             #typed_map_field{
-                kind = assoc_type,
+                kind = assoc,
                 key_type = KeyType,
                 val_type = ValueType
             }
@@ -101,7 +101,7 @@ map_field(Size) ->
             {KeyType, ValueType},
             {sp_type(Size), sp_type(Size)},
             #typed_map_field{
-                kind = exact_type,
+                kind = exact,
                 key_type = KeyType,
                 val_type = ValueType
             }
