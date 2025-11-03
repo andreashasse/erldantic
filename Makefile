@@ -55,12 +55,18 @@ type_check:
 doc:
 	rebar3 ex_doc
 
-hex:
-	@read -r -p "Did you create a CHANGELOG entry? (Y/N) " a && [ "$$a" = "Y" ] || { echo "Aborted."; exit 1; }
-	@read -r -p "Did you update spectra.app.src? (Y/N) " a && [ "$$a" = "Y" ] || { echo "Aborted."; exit 1; }
-	@read -r -p "Did you update the README install instructions? (Y/N) " a && [ "$$a" = "Y" ] || { echo "Aborted."; exit 1; }
-	rebar3 hex build
-	rebar3 hex publish
+release:
+	@echo "Last 5 tags:"
+	@git tag --sort=-version:refname | head -n 5
+	@echo ""
+	@read -r -p "Enter the next tag (e.g., v1.0.0): " tag && [ -n "$$tag" ] || { echo "Tag cannot be empty. Aborted."; exit 1; }; \
+	read -r -p "Did you update the README install instructions? (Y/N) " a && [ "$$a" = "Y" ] || { echo "Aborted."; exit 1; }; \
+	rebar3 compile && \
+	rebar3 hex build && \
+	rebar3 hex publish && \
+	git tag "$$tag" && \
+	git push origin "$$tag" && \
+	echo "Released and tagged as $$tag"\
 
 perf: compile
 	@echo "Running performance benchmark..."
