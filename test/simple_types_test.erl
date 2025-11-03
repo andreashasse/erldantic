@@ -182,15 +182,15 @@ missing_test() ->
     {ok, MyIolistType} = spectra_type_info:get_type(TypeInfo, my_iolist, 0),
     ?assertEqual(#sp_simple_type{type = iolist}, MyIolistType),
     ?assertEqual(
-        {ok, [<<"helloworld">>]},
+        {ok, <<"helloworld">>},
         spectra_json:to_json(?MODULE, {type, my_iolist, 0}, IoList1)
     ),
     ?assertEqual(
-        {ok, [<<"helloworld">>]},
+        {ok, <<"helloworld">>},
         spectra_json:to_json(?MODULE, {type, my_iolist, 0}, IoList2)
     ),
     ?assertEqual(
-        {ok, [<<"helloworld">>]},
+        {ok, <<"helloworld">>},
         spectra_json:to_json(?MODULE, {type, my_iolist, 0}, IoList3)
     ),
     ?assertMatch(
