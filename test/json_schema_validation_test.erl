@@ -4,7 +4,6 @@
 
 -compile(nowarn_unused_type).
 
-%% Test types for Jesse validation
 -type user_id() :: pos_integer().
 -type user_name() :: string().
 -type user_email() :: binary().
@@ -14,7 +13,7 @@
 }).
 
 -type user_profile() :: #user_profile{}.
-%% Complex map type with various constraints
+
 -type user_settings() ::
     #{
         theme := dark | light,
@@ -23,63 +22,34 @@
         tags => [string()],
         metadata => #{version := string(), created_at := string()}
     }.
-%% Test type with binary keys - this should fail
+
 -type binary_key_map() :: #{binary() => integer()}.
 
-%% Tests
 simple_type_validation_test() ->
-    %% Test integer type validation
     {ok, IntSchema} = spectra_json_schema:to_schema(?MODULE, {type, user_id, 0}),
-    %% Convert to Jesse-compatible format by encoding then decoding
     JesseSchema = json:decode(iolist_to_binary(json:encode(IntSchema))),
-
-    %% Valid positive integer
     ?assertEqual({ok, 123}, jesse:validate_with_schema(JesseSchema, 123)),
-
-    %% Invalid negative integer (pos_integer should only allow positive)
-    Result1 = jesse:validate_with_schema(JesseSchema, -1),
-    ?assertMatch({error, _}, Result1),
-
-    %% Invalid type (string instead of integer)
-    Result2 = jesse:validate_with_schema(JesseSchema, <<"not_an_integer">>),
-    ?assertMatch({error, _}, Result2).
+    ?assertMatch({error, _}, jesse:validate_with_schema(JesseSchema, -1)),
+    ?assertMatch({error, _}, jesse:validate_with_schema(JesseSchema, <<"not_an_integer">>)).
 
 string_type_validation_test() ->
-    %% Test string type validation
     {ok, StringSchema} = spectra_json_schema:to_schema(?MODULE, {type, user_name, 0}),
     JesseSchema = json:decode(iolist_to_binary(json:encode(StringSchema))),
-
-    %% Valid string
-    ?assertEqual(
-        {ok, <<"John Doe">>},
-        jesse:validate_with_schema(JesseSchema, <<"John Doe">>)
-    ),
-
-    %% Invalid type (integer instead of string)
-    Result = jesse:validate_with_schema(JesseSchema, 123),
-    ?assertMatch({error, _}, Result).
+    ?assertEqual({ok, <<"John Doe">>}, jesse:validate_with_schema(JesseSchema, <<"John Doe">>)),
+    ?assertMatch({error, _}, jesse:validate_with_schema(JesseSchema, 123)).
 
 binary_type_validation_test() ->
-    %% Test binary type validation
     {ok, BinarySchema} = spectra_json_schema:to_schema(?MODULE, {type, user_email, 0}),
     JesseSchema = json:decode(iolist_to_binary(json:encode(BinarySchema))),
-
-    %% Valid binary string
     ?assertEqual(
         {ok, <<"user@example.com">>},
         jesse:validate_with_schema(JesseSchema, <<"user@example.com">>)
     ),
-
-    %% Invalid type (integer instead of string/binary)
-    Result = jesse:validate_with_schema(JesseSchema, 123),
-    ?assertMatch({error, _}, Result).
+    ?assertMatch({error, _}, jesse:validate_with_schema(JesseSchema, 123)).
 
 record_validation_test() ->
-    %% Test record schema validation
     {ok, RecordSchema} = spectra_json_schema:to_schema(?MODULE, {record, user_profile}),
     JesseSchema = json:decode(iolist_to_binary(json:encode(RecordSchema))),
-
-    %% Valid record data - use binary keys for Jesse
     ValidData =
         #{
             <<"id">> => 1,
@@ -88,36 +58,33 @@ record_validation_test() ->
             <<"age">> => 30
         },
     ?assertEqual({ok, ValidData}, jesse:validate_with_schema(JesseSchema, ValidData)),
-
-    %% Missing required field
-    InvalidData1 =
-        #{
-            <<"name">> => <<"John Doe">>,
-            <<"email">> => <<"john@example.com">>,
-            <<"age">> => 30
-        },
-    %% missing id
-    Result1 = jesse:validate_with_schema(JesseSchema, InvalidData1),
-    ?assertMatch({error, _}, Result1),
-
-    %% Wrong type for field
-    InvalidData2 =
-        %% Should be integer
-        #{
-            <<"id">> => <<"not_an_integer">>,
-            <<"name">> => <<"John Doe">>,
-            <<"email">> => <<"john@example.com">>,
-            <<"age">> => 30
-        },
-    Result2 = jesse:validate_with_schema(JesseSchema, InvalidData2),
-    ?assertMatch({error, _}, Result2).
+    ?assertMatch(
+        {error, _},
+        jesse:validate_with_schema(
+            JesseSchema,
+            #{
+                <<"name">> => <<"John Doe">>,
+                <<"email">> => <<"john@example.com">>,
+                <<"age">> => 30
+            }
+        )
+    ),
+    ?assertMatch(
+        {error, _},
+        jesse:validate_with_schema(
+            JesseSchema,
+            #{
+                <<"id">> => <<"not_an_integer">>,
+                <<"name">> => <<"John Doe">>,
+                <<"email">> => <<"john@example.com">>,
+                <<"age">> => 30
+            }
+        )
+    ).
 
 complex_map_validation_test() ->
-    %% Test complex map schema validation
     {ok, MapSchema} = spectra_json_schema:to_schema(?MODULE, {type, user_settings, 0}),
     JesseSchema = json:decode(iolist_to_binary(json:encode(MapSchema))),
-
-    %% Valid complex map data with all required and optional fields
     ValidCompleteData =
         #{
             <<"theme">> => <<"dark">>,
@@ -130,8 +97,6 @@ complex_map_validation_test() ->
         {ok, ValidCompleteData},
         jesse:validate_with_schema(JesseSchema, ValidCompleteData)
     ),
-
-    %% Valid data with only required fields
     ValidMinimalData =
         #{
             <<"theme">> => <<"light">>,
@@ -142,42 +107,44 @@ complex_map_validation_test() ->
         {ok, ValidMinimalData},
         jesse:validate_with_schema(JesseSchema, ValidMinimalData)
     ),
-
-    %% Invalid - missing required field 'theme'
-    InvalidData1 = #{<<"notifications">> => true, <<"max_items">> => 25},
-    Result1 = jesse:validate_with_schema(JesseSchema, InvalidData1),
-    ?assertMatch({error, _}, Result1),
-
-    %% Invalid - wrong type for 'theme' (should be dark or light)
-    InvalidData2 =
-        %% Invalid enum value
-        #{
-            <<"theme">> => <<"blue">>,
-            <<"notifications">> => true,
-            <<"max_items">> => 25
-        },
-    Result2 = jesse:validate_with_schema(JesseSchema, InvalidData2),
-    ?assertMatch({error, _}, Result2),
-
-    %% Invalid - negative max_items (should be pos_integer)
-    InvalidData3 =
-        #{
-            <<"theme">> => <<"dark">>,
-            <<"notifications">> => true,
-            %% Should be positive
-            <<"max_items">> => -5
-        },
-    Result3 = jesse:validate_with_schema(JesseSchema, InvalidData3),
-    ?assertMatch({error, _}, Result3),
-
-    %% Invalid - wrong type for tags array
-    InvalidData4 =
-        #{
-            <<"theme">> => <<"light">>,
-            <<"notifications">> => false,
-            <<"max_items">> => 20,
-            %% Should be strings
-            <<"tags">> => [123, 456]
-        },
-    Result4 = jesse:validate_with_schema(JesseSchema, InvalidData4),
-    ?assertMatch({error, _}, Result4).
+    ?assertMatch(
+        {error, _},
+        jesse:validate_with_schema(
+            JesseSchema,
+            #{<<"notifications">> => true, <<"max_items">> => 25}
+        )
+    ),
+    ?assertMatch(
+        {error, _},
+        jesse:validate_with_schema(
+            JesseSchema,
+            #{
+                <<"theme">> => <<"blue">>,
+                <<"notifications">> => true,
+                <<"max_items">> => 25
+            }
+        )
+    ),
+    ?assertMatch(
+        {error, _},
+        jesse:validate_with_schema(
+            JesseSchema,
+            #{
+                <<"theme">> => <<"dark">>,
+                <<"notifications">> => true,
+                <<"max_items">> => -5
+            }
+        )
+    ),
+    ?assertMatch(
+        {error, _},
+        jesse:validate_with_schema(
+            JesseSchema,
+            #{
+                <<"theme">> => <<"light">>,
+                <<"notifications">> => false,
+                <<"max_items">> => 20,
+                <<"tags">> => [123, 456]
+            }
+        )
+    ).
