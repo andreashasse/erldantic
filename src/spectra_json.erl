@@ -179,6 +179,7 @@ list_to_json(TypeInfo, Type, Data) when is_list(Data) ->
             case do_to_json(TypeInfo, Type, Item) of
                 {ok, Json} ->
                     {ok, Json};
+                    %% undoing 'skip'
                 skip ->
                     {ok, undefined};
                 {error, Errs} ->
@@ -234,6 +235,7 @@ map_fields_to_json(TypeInfo, MapFieldTypes, Data) ->
                                 maps:remove(FieldName, DataAcc)
                             }};
                         skip ->
+                            % map field to json assoc, just call can new is_missing_literal before to_json
                             {ok, {FieldsAcc, NewDataAcc}};
                         {error, Errs} ->
                             Errs2 =
@@ -250,7 +252,7 @@ map_fields_to_json(TypeInfo, MapFieldTypes, Data) ->
             #typed_map_field{kind = assoc, key_type = KeyType, val_type = ValueType},
             {FieldsAcc, DataAcc}
         ) ->
-            case map_field_type(TypeInfo, KeyType, ValueType, DataAcc) of
+            case map_typed_field_to_json(TypeInfo, KeyType, ValueType, DataAcc) of
                 {ok, {NewFields, NewDataAcc}} ->
                     {ok, {NewFields ++ FieldsAcc, NewDataAcc}};
                 {error, _} = Err ->
@@ -260,7 +262,7 @@ map_fields_to_json(TypeInfo, MapFieldTypes, Data) ->
             #typed_map_field{kind = exact, key_type = KeyType, val_type = ValueType},
             {FieldsAcc, DataAcc}
         ) ->
-            case map_field_type(TypeInfo, KeyType, ValueType, DataAcc) of
+            case map_typed_field_to_json(TypeInfo, KeyType, ValueType, DataAcc) of
                 {ok, {[], _}} ->
                     NoExactMatch =
                         #sp_error{
@@ -291,7 +293,7 @@ map_fields_to_json(TypeInfo, MapFieldTypes, Data) ->
                         {ok, FieldJson} ->
                             {ok, {[{BinaryFieldName, FieldJson}] ++ FieldsAcc, NewDataAcc}};
                         skip ->
-                            %% FIXME: Warn about weird type def??
+                            %% call new function. This is natural in elixir.
                             {ok, {FieldsAcc, NewDataAcc}};
                         {error, Errs} ->
                             Errs2 =
@@ -302,7 +304,8 @@ map_fields_to_json(TypeInfo, MapFieldTypes, Data) ->
                             {error, Errs2}
                     end;
                 error ->
-                    case spectra_type:can_be_undefined(TypeInfo, FieldType) of
+                    % exact to json
+                    case spectra_type:can_be_missing(TypeInfo, FieldType) of
                         true ->
                             {ok, {FieldsAcc, DataAcc}};
                         false ->
@@ -337,7 +340,7 @@ map_fields_to_json(TypeInfo, MapFieldTypes, Data) ->
             Err
     end.
 
--spec map_field_type(
+-spec map_typed_field_to_json(
     TypeInfo :: spectra:type_info(),
     KeyType :: spectra:sp_type(),
     ValueType :: spectra:sp_type(),
@@ -345,13 +348,14 @@ map_fields_to_json(TypeInfo, MapFieldTypes, Data) ->
 ) ->
     {ok, {[{json:encode_value(), json:encode_value()}], map()}}
     | {error, [spectra:error()]}.
-map_field_type(TypeInfo, KeyType, ValueType, Data) ->
+map_typed_field_to_json(TypeInfo, KeyType, ValueType, Data) ->
     Fun = fun({Key, Value}, {FieldsAcc, DataAcc}) ->
         case do_to_json(TypeInfo, KeyType, Key) of
             {ok, KeyJson} ->
                 case do_to_json(TypeInfo, ValueType, Value) of
                     {ok, ValueJson} ->
                         {ok, {FieldsAcc ++ [{KeyJson, ValueJson}], maps:remove(Key, DataAcc)}};
+                        %% typed filed to json: call new function before to_json
                     skip ->
                         {ok, {FieldsAcc, DataAcc}};
                     {error, Errs} ->
@@ -775,6 +779,7 @@ do_first(_Fun, _TypeInfo, [], _Json) ->
     {error, no_match};
 do_first(Fun, TypeInfo, [Type | Rest], Json) ->
     case Fun(TypeInfo, Type, Json) of
+        %% try to just remove this when all other changes are done
         skip ->
             skip;
         {ok, Result} ->
@@ -928,7 +933,8 @@ map_from_json(TypeInfo, MapFieldType, Json) when is_map(Json) ->
                             {error, Errs2}
                     end;
                 error ->
-                    case spectra_type:can_be_undefined(TypeInfo, FieldType) of
+                    % exact from json
+                    case spectra_type:can_be_missing(TypeInfo, FieldType) of
                         true ->
                             {ok, {[{FieldName, undefined}] ++ FieldsAcc, JsonAcc}};
                         false ->
@@ -1081,7 +1087,8 @@ do_record_from_json(TypeInfo, RecordName, RecordInfo, Json) when is_map(Json) ->
                         {error, Errs2}
                 end;
             error ->
-                case spectra_type:can_be_undefined(TypeInfo, FieldType) of
+                % record from json
+                case spectra_type:can_be_missing(TypeInfo, FieldType) of
                     true ->
                         {ok, {[undefined | FieldsAcc], JsonAcc}};
                     false ->
