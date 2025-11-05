@@ -108,7 +108,7 @@ undefined_list_test() ->
     {ok, JsonList} = to_json_list(ListWithUndefined),
 
     % Verify undefined values are preserved in the JSON list
-    ?assertEqual([1, undefined, 3, undefined, 5], JsonList),
+    ?assertEqual([1, <<"undefined">>, 3, <<"undefined">>, 5], JsonList),
 
     % Test from_json with a list containing undefined
     {ok, ListFromJson} = from_json_list([1, undefined, 3, undefined, 6]),
@@ -123,7 +123,7 @@ undefined_scalar_test() ->
     {ok, JsonString} = to_json_maybe_string("test string"),
 
     % Verify conversions
-    ?assertEqual(undefined, JsonUndefined),
+    ?assertEqual(<<"undefined">>, JsonUndefined),
     ?assertEqual(<<"test string">>, JsonString),
 
     % Test from_json with undefined and string

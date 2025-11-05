@@ -1,11 +1,12 @@
 -module(spectra_type).
 
--include("../include/spectra.hrl").
 -include("../include/spectra_internal.hrl").
 
 -export([can_be_missing/3, is_type_reference/1]).
 
--spec can_be_missing(TypeInfo :: spectra:type_info(), Type :: spectra:sp_type(), undefined | nil) ->
+-spec can_be_missing(
+    TypeInfo :: spectra:type_info(), Type :: spectra:sp_type(), spectra:missing_value()
+) ->
     boolean().
 can_be_missing(TypeInfo, Type, MissingType) ->
     case Type of

@@ -37,7 +37,8 @@
 -type error() :: #sp_error{}.
 -type sp_type_or_ref() :: sp_type() | sp_type_reference().
 -type sp_function_spec() :: #sp_function_spec{}.
-
+%undefined in erlang, nil in elixir
+-type missing_value() :: undefined | nil.
 %% Internal type definitions moved from spectra_internal.hrl
 
 -export_type([
@@ -50,7 +51,8 @@
     error/0,
     map_field/0,
     user_type_name/0,
-    sp_function_spec/0
+    sp_function_spec/0,
+    missing_value/0
 ]).
 
 -doc """

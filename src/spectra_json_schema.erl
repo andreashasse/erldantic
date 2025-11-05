@@ -351,8 +351,8 @@ process_map_fields(
 record_to_schema_internal(TypeInfo, RecordName) when is_atom(RecordName) ->
     {ok, RecordInfo} = spectra_type_info:get_record(TypeInfo, RecordName),
     record_to_schema_internal(TypeInfo, RecordInfo);
-record_to_schema_internal(TypeInfo, #sp_rec{fields = Fields}) ->
-    case process_record_fields(TypeInfo, Fields, #{}, []) of
+record_to_schema_internal(TypeInfo, #sp_rec{fields = Fields, missing_value = MissingValue}) ->
+    case process_record_fields(TypeInfo, Fields, #{}, [], MissingValue) of
         {ok, Properties, Required} ->
             Schema =
                 #{
@@ -369,28 +369,30 @@ record_to_schema_internal(TypeInfo, #sp_rec{fields = Fields}) ->
     spectra:type_info(),
     [#sp_rec_field{}],
     map(),
-    [binary()]
+    [binary()],
+    spectra:missing_value()
 ) ->
     {ok, map(), [binary()]} | {error, [spectra:error()]}.
-process_record_fields(_TypeInfo, [], Properties, Required) ->
+process_record_fields(_TypeInfo, [], Properties, Required, _MissingValue) ->
     {ok, Properties, lists:reverse(Required)};
 process_record_fields(
     TypeInfo,
     [#sp_rec_field{binary_name = BinaryName, type = FieldType} | Rest],
     Properties,
-    Required
+    Required,
+    MissingValue
 ) ->
     case do_to_schema(TypeInfo, FieldType) of
         {ok, FieldSchema} ->
             NewProperties = Properties#{BinaryName => FieldSchema},
             NewRequired =
-                case spectra_type:can_be_missing(TypeInfo, FieldType) of
+                case spectra_type:can_be_missing(TypeInfo, FieldType, MissingValue) of
                     true ->
                         Required;
                     false ->
                         [BinaryName | Required]
                 end,
-            process_record_fields(TypeInfo, Rest, NewProperties, NewRequired);
+            process_record_fields(TypeInfo, Rest, NewProperties, NewRequired, MissingValue);
         {error, _} = Err ->
             Err
     end.

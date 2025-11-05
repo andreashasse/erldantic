@@ -2,8 +2,6 @@
 
 -include("../include/spectra_internal.hrl").
 
--include_lib("kernel/include/eep48.hrl").
-
 -export([types_in_module/1]).
 
 -define(is_primary_type(PrimaryType),
