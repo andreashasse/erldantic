@@ -32,7 +32,8 @@
 -record(sp_rec_field, {
     name :: atom(),
     binary_name :: binary(),
-    type :: spectra:sp_type()
+    type :: spectra:sp_type(),
+    can_be_missing :: {true, spectra:missing_value()} | false | {calculate, spectra:missing_value()}
 }).
 -record(sp_rec, {
     name :: atom(),
@@ -62,12 +63,14 @@
     kind :: assoc | exact,
     name :: atom() | integer(),
     binary_name :: binary(),
-    val_type :: spectra:sp_type()
+    val_type :: spectra:sp_type(),
+    can_be_missing :: {true, spectra:missing_value()} | false | {calculate, spectra:missing_value()}
 }).
 -record(typed_map_field, {
     kind :: assoc | exact,
     key_type :: spectra:sp_type(),
-    val_type :: spectra:sp_type()
+    val_type :: spectra:sp_type(),
+    can_be_missing :: {true, spectra:missing_value()} | false | {calculate, spectra:missing_value()}
 }).
 %% New structured type information
 -record(type_info, {

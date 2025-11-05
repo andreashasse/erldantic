@@ -279,7 +279,10 @@ map_fields_to_json(TypeInfo, MapFieldTypes, Data, MissingValue) ->
                             ctx =
                                 #{
                                     type => #typed_map_field{
-                                        kind = exact, key_type = KeyType, val_type = ValueType
+                                        kind = exact,
+                                        key_type = KeyType,
+                                        val_type = ValueType,
+                                        can_be_missing = false
                                     }
                                 }
                         },
@@ -999,7 +1002,8 @@ map_from_json(TypeInfo, MapFieldType, Json, MissingValue) when is_map(Json) ->
                                                 #typed_map_field{
                                                     kind = exact,
                                                     key_type = KeyType,
-                                                    val_type = ValueType
+                                                    val_type = ValueType,
+                                                    can_be_missing = false
                                                 }
                                         }
                                 },

@@ -66,12 +66,16 @@ erl_abstract_code_parses_fun_types_test() ->
             fields =
                 [
                     #sp_rec_field{
-                        name = id, binary_name = <<"id">>, type = #sp_simple_type{type = integer}
+                        name = id,
+                        binary_name = <<"id">>,
+                        type = #sp_simple_type{type = integer},
+                        can_be_missing = false
                     },
                     #sp_rec_field{
                         name = handler,
                         binary_name = <<"handler">>,
-                        type = #sp_function{args = any, return = #sp_simple_type{type = term}}
+                        type = #sp_function{args = any, return = #sp_simple_type{type = term}},
+                        can_be_missing = false
                     }
                 ],
             arity = 3

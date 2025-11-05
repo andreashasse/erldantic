@@ -25,7 +25,8 @@ type_in_form_test() ->
                                 #typed_map_field{
                                     kind = assoc,
                                     key_type = #sp_simple_type{type = atom},
-                                    val_type = #sp_simple_type{type = integer}
+                                    val_type = #sp_simple_type{type = integer},
+                                    can_be_missing = {calculate, undefined}
                                 }
                             ]
                     }
@@ -78,7 +79,8 @@ map1_to_json_bad_test() ->
                                                         val_type = #sp_simple_type{
                                                             type =
                                                                 integer
-                                                        }
+                                                        },
+                                                        can_be_missing = {calculate, undefined}
                                                     }
                                                 ]
                                         },
@@ -111,7 +113,8 @@ map1_to_json_bad_test() ->
                                                         val_type = #sp_simple_type{
                                                             type =
                                                                 integer
-                                                        }
+                                                        },
+                                                        can_be_missing = {calculate, undefined}
                                                     }
                                                 ]
                                         },
@@ -146,7 +149,8 @@ map1_from_json_bad_test() ->
                                                         val_type = #sp_simple_type{
                                                             type =
                                                                 integer
-                                                        }
+                                                        },
+                                                        can_be_missing = {calculate, undefined}
                                                     }
                                                 ]
                                         },
@@ -179,7 +183,8 @@ map1_from_json_bad_test() ->
                                                         val_type = #sp_simple_type{
                                                             type =
                                                                 integer
-                                                        }
+                                                        },
+                                                        can_be_missing = {calculate, undefined}
                                                     }
                                                 ]
                                         },

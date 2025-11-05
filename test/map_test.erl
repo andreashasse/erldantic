@@ -126,7 +126,8 @@ mandatory_type_map_bad_test() ->
                                 key_type = #sp_simple_type{type = atom},
                                 val_type = #sp_simple_type{
                                     type = atom
-                                }
+                                },
+                                can_be_missing = false
                             }
                     }
             }
