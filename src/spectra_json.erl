@@ -22,8 +22,6 @@ to_json(TypeInfo, Type, Data) ->
     case do_to_json(TypeInfo, Type, Data) of
         {ok, Json} ->
             {ok, Json};
-        skip ->
-            {ok, undefined};
         {error, Errs} ->
             {error, Errs}
     end.
@@ -34,7 +32,7 @@ to_json(TypeInfo, Type, Data) ->
     Type :: spectra:sp_type_or_ref(),
     Data :: dynamic()
 ) ->
-    {ok, json:encode_value()} | {error, [spectra:error()]} | skip.
+    {ok, json:encode_value()} | {error, [spectra:error()]}.
 do_to_json(TypeInfo, {record, RecordName}, Record) when is_atom(RecordName) ->
     record_to_json(TypeInfo, RecordName, Record, []);
 do_to_json(TypeInfo, #sp_rec{} = RecordInfo, Record) when is_tuple(Record) ->
@@ -77,8 +75,6 @@ do_to_json(
     is_integer(Value) andalso Min =< Value, Value =< Max
 ->
     {ok, Value};
-do_to_json(_TypeInfo, #sp_literal{value = undefined}, undefined) ->
-    skip;
 do_to_json(_TypeInfo, #sp_literal{value = Value, binary_value = BinaryValue}, Value) when
     is_atom(Value)
 ->
@@ -179,8 +175,6 @@ list_to_json(TypeInfo, Type, Data) when is_list(Data) ->
             case do_to_json(TypeInfo, Type, Item) of
                 {ok, Json} ->
                     {ok, Json};
-                skip ->
-                    {ok, undefined};
                 {error, Errs} ->
                     Errs2 =
                         lists:map(
@@ -193,7 +187,15 @@ list_to_json(TypeInfo, Type, Data) when is_list(Data) ->
         lists:enumerate(Data)
     ).
 
-map_to_json(TypeInfo, #sp_map{fields = Fields}, Data) when is_map(Data) ->
+-spec map_to_json(
+    TypeInfo :: spectra:type_info(),
+    MapFieldTypes :: #sp_map{},
+    Data :: map()
+) ->
+    {ok, json:encode_value()} | {error, [spectra:error()]}.
+map_to_json(TypeInfo, #sp_map{fields = Fields, missing_value = MissingValue}, Data) when
+    is_map(Data)
+->
     %% Check if this is an Elixir struct and remove __struct__ field for JSON serialization
     DataWithoutStruct =
         case maps:take('__struct__', Data) of
@@ -202,7 +204,7 @@ map_to_json(TypeInfo, #sp_map{fields = Fields}, Data) when is_map(Data) ->
             error ->
                 Data
         end,
-    case map_fields_to_json(TypeInfo, Fields, DataWithoutStruct) of
+    case map_fields_to_json(TypeInfo, Fields, DataWithoutStruct, MissingValue) of
         {ok, MapFields} ->
             {ok, maps:from_list(MapFields)};
         {error, Errors} ->
@@ -217,7 +219,14 @@ map_to_json(_TypeInfo, _MapFieldTypes, Data) ->
         }
     ]}.
 
-map_fields_to_json(TypeInfo, MapFieldTypes, Data) ->
+-spec map_fields_to_json(
+    TypeInfo :: spectra:type_info(),
+    MapFieldTypes :: [spectra:map_field()],
+    Data :: map(),
+    MissingValue :: spectra:missing_value()
+) ->
+    {ok, [{binary(), json:encode_value()}]} | {error, [spectra:error()]}.
+map_fields_to_json(TypeInfo, MapFieldTypes, Data, MissingValue) ->
     Fun = fun
         (
             #literal_map_field{
@@ -225,16 +234,17 @@ map_fields_to_json(TypeInfo, MapFieldTypes, Data) ->
             },
             {FieldsAcc, DataAcc}
         ) ->
+            CanBeMissing = spectra_type:can_be_missing(TypeInfo, FieldType, MissingValue),
             case maps:take(FieldName, DataAcc) of
+                {MissingValue, NewDataAcc} when CanBeMissing ->
+                    {ok, {FieldsAcc, NewDataAcc}};
                 {FieldData, NewDataAcc} ->
                     case do_to_json(TypeInfo, FieldType, FieldData) of
                         {ok, FieldJson} ->
                             {ok, {
                                 [{BinaryFieldName, FieldJson}] ++ FieldsAcc,
-                                maps:remove(FieldName, DataAcc)
+                                NewDataAcc
                             }};
-                        skip ->
-                            {ok, {FieldsAcc, NewDataAcc}};
                         {error, Errs} ->
                             Errs2 =
                                 lists:map(
@@ -250,7 +260,7 @@ map_fields_to_json(TypeInfo, MapFieldTypes, Data) ->
             #typed_map_field{kind = assoc, key_type = KeyType, val_type = ValueType},
             {FieldsAcc, DataAcc}
         ) ->
-            case map_field_type(TypeInfo, KeyType, ValueType, DataAcc) of
+            case map_typed_field_to_json(TypeInfo, KeyType, ValueType, DataAcc, MissingValue) of
                 {ok, {NewFields, NewDataAcc}} ->
                     {ok, {NewFields ++ FieldsAcc, NewDataAcc}};
                 {error, _} = Err ->
@@ -260,7 +270,7 @@ map_fields_to_json(TypeInfo, MapFieldTypes, Data) ->
             #typed_map_field{kind = exact, key_type = KeyType, val_type = ValueType},
             {FieldsAcc, DataAcc}
         ) ->
-            case map_field_type(TypeInfo, KeyType, ValueType, DataAcc) of
+            case map_typed_field_to_json(TypeInfo, KeyType, ValueType, DataAcc, MissingValue) of
                 {ok, {[], _}} ->
                     NoExactMatch =
                         #sp_error{
@@ -269,7 +279,10 @@ map_fields_to_json(TypeInfo, MapFieldTypes, Data) ->
                             ctx =
                                 #{
                                     type => #typed_map_field{
-                                        kind = exact, key_type = KeyType, val_type = ValueType
+                                        kind = exact,
+                                        key_type = KeyType,
+                                        val_type = ValueType,
+                                        can_be_missing = false
                                     }
                                 }
                         },
@@ -285,14 +298,14 @@ map_fields_to_json(TypeInfo, MapFieldTypes, Data) ->
             },
             {FieldsAcc, DataAcc}
         ) ->
+            CanBeMissing = spectra_type:can_be_missing(TypeInfo, FieldType, MissingValue),
             case maps:take(FieldName, DataAcc) of
+                {MissingValue, NewDataAcc} when CanBeMissing ->
+                    {ok, {FieldsAcc, NewDataAcc}};
                 {FieldData, NewDataAcc} ->
                     case do_to_json(TypeInfo, FieldType, FieldData) of
                         {ok, FieldJson} ->
                             {ok, {[{BinaryFieldName, FieldJson}] ++ FieldsAcc, NewDataAcc}};
-                        skip ->
-                            %% FIXME: Warn about weird type def??
-                            {ok, {FieldsAcc, NewDataAcc}};
                         {error, Errs} ->
                             Errs2 =
                                 lists:map(
@@ -302,7 +315,8 @@ map_fields_to_json(TypeInfo, MapFieldTypes, Data) ->
                             {error, Errs2}
                     end;
                 error ->
-                    case spectra_type:can_be_undefined(TypeInfo, FieldType) of
+                    % exact to json
+                    case spectra_type:can_be_missing(TypeInfo, FieldType, MissingValue) of
                         true ->
                             {ok, {FieldsAcc, DataAcc}};
                         false ->
@@ -337,26 +351,35 @@ map_fields_to_json(TypeInfo, MapFieldTypes, Data) ->
             Err
     end.
 
--spec map_field_type(
+-spec map_typed_field_to_json(
     TypeInfo :: spectra:type_info(),
     KeyType :: spectra:sp_type(),
     ValueType :: spectra:sp_type(),
-    Data :: map()
+    Data :: map(),
+    MissingValue :: spectra:missing_value()
 ) ->
     {ok, {[{json:encode_value(), json:encode_value()}], map()}}
     | {error, [spectra:error()]}.
-map_field_type(TypeInfo, KeyType, ValueType, Data) ->
+map_typed_field_to_json(TypeInfo, KeyType, ValueType, Data, MissingValue) ->
     Fun = fun({Key, Value}, {FieldsAcc, DataAcc}) ->
         case do_to_json(TypeInfo, KeyType, Key) of
             {ok, KeyJson} ->
-                case do_to_json(TypeInfo, ValueType, Value) of
-                    {ok, ValueJson} ->
-                        {ok, {FieldsAcc ++ [{KeyJson, ValueJson}], maps:remove(Key, DataAcc)}};
-                    skip ->
-                        {ok, {FieldsAcc, DataAcc}};
-                    {error, Errs} ->
-                        Errs2 = lists:map(fun(Err) -> err_append_location(Err, Key) end, Errs),
-                        {error, Errs2}
+                CanBeMissing = spectra_type:can_be_missing(TypeInfo, ValueType, MissingValue),
+                case Value of
+                    MissingValue when CanBeMissing ->
+                        {ok, {FieldsAcc, maps:remove(Key, DataAcc)}};
+                    _ ->
+                        case do_to_json(TypeInfo, ValueType, Value) of
+                            {ok, ValueJson} ->
+                                {ok, {
+                                    FieldsAcc ++ [{KeyJson, ValueJson}], maps:remove(Key, DataAcc)
+                                }};
+                            {error, Errs} ->
+                                Errs2 = lists:map(
+                                    fun(Err) -> err_append_location(Err, Key) end, Errs
+                                ),
+                                {error, Errs2}
+                        end
                 end;
             {error, _Errs} ->
                 {ok, {FieldsAcc, DataAcc}}
@@ -379,7 +402,8 @@ record_to_json(
     #sp_rec{
         name = RecordName,
         fields = Fields,
-        arity = Arity
+        arity = Arity,
+        missing_value = MissingValue
     },
     Record,
     TypeArgs
@@ -391,7 +415,7 @@ record_to_json(
     [RecordName | FieldsData] = tuple_to_list(Record),
     RecFieldTypes = record_replace_vars(Fields, TypeArgs),
     RecFieldTypesWithData = lists:zip(RecFieldTypes, FieldsData),
-    do_record_to_json(TypeInfo, RecFieldTypesWithData);
+    do_record_to_json(TypeInfo, RecFieldTypesWithData, MissingValue);
 record_to_json(_TypeInfo, RecordName, Record, TypeArgs) ->
     {error, [
         #sp_error{
@@ -429,10 +453,11 @@ record_replace_vars(RecordInfo, TypeArgs) ->
 
 -spec do_record_to_json(
     spectra:type_info(),
-    [{#sp_rec_field{}, Value :: term()}]
+    [{#sp_rec_field{}, Value :: term()}],
+    spectra:missing_value()
 ) ->
     {ok, #{atom() => json}} | {error, [spectra:error()]}.
-do_record_to_json(TypeInfo, RecFieldTypesWithData) ->
+do_record_to_json(TypeInfo, RecFieldTypesWithData, MissingValue) ->
     Fun = fun(
         {
             #sp_rec_field{name = FieldName, binary_name = BinaryFieldName, type = FieldType},
@@ -440,13 +465,20 @@ do_record_to_json(TypeInfo, RecFieldTypesWithData) ->
         },
         FieldsAcc
     ) ->
-        case do_to_json(TypeInfo, FieldType, RecordFieldData) of
-            {ok, FieldJson} ->
-                {ok, [{BinaryFieldName, FieldJson}] ++ FieldsAcc};
-            skip ->
+        CanBeMissing = spectra_type:can_be_missing(TypeInfo, FieldType, MissingValue),
+        case RecordFieldData of
+            MissingValue when CanBeMissing ->
                 {ok, FieldsAcc};
-            {error, Errors} ->
-                {error, lists:map(fun(Error) -> err_append_location(Error, FieldName) end, Errors)}
+            _ ->
+                case do_to_json(TypeInfo, FieldType, RecordFieldData) of
+                    {ok, FieldJson} ->
+                        {ok, [{BinaryFieldName, FieldJson}] ++ FieldsAcc};
+                    {error, Errors} ->
+                        {error,
+                            lists:map(
+                                fun(Error) -> err_append_location(Error, FieldName) end, Errors
+                            )}
+                end
         end
     end,
 
@@ -496,8 +528,10 @@ do_from_json(
     is_atom(RecordName)
 ->
     record_from_json(TypeInfo, RecordName, Json, TypeArgs);
-do_from_json(TypeInfo, #sp_map{fields = Fields, struct_name = StructName}, Json) ->
-    case map_from_json(TypeInfo, Fields, Json) of
+do_from_json(
+    TypeInfo, #sp_map{fields = Fields, struct_name = StructName, missing_value = MissingValue}, Json
+) ->
+    case map_from_json(TypeInfo, Fields, Json, MissingValue) of
         {ok, MapResult} when StructName =/= undefined ->
             %% Add back the __struct__ field for Elixir structs
             {ok, maps:put('__struct__', StructName, MapResult)};
@@ -775,8 +809,6 @@ do_first(_Fun, _TypeInfo, [], _Json) ->
     {error, no_match};
 do_first(Fun, TypeInfo, [Type | Rest], Json) ->
     case Fun(TypeInfo, Type, Json) of
-        skip ->
-            skip;
         {ok, Result} ->
             {ok, Result};
         {error, _} ->
@@ -880,11 +912,12 @@ type_replace_vars(_TypeInfo, Type, _NamedTypes) ->
 -spec map_from_json(
     spectra:type_info(),
     [spectra:map_field()],
-    json:decode_value()
+    json:decode_value(),
+    spectra:missing_value()
 ) ->
     {ok, #{json:encode_value() => json:encode_value()}}
     | {error, [spectra:error()]}.
-map_from_json(TypeInfo, MapFieldType, Json) when is_map(Json) ->
+map_from_json(TypeInfo, MapFieldType, Json, MissingValue) when is_map(Json) ->
     Fun = fun
         (
             #literal_map_field{
@@ -928,9 +961,10 @@ map_from_json(TypeInfo, MapFieldType, Json) when is_map(Json) ->
                             {error, Errs2}
                     end;
                 error ->
-                    case spectra_type:can_be_undefined(TypeInfo, FieldType) of
+                    % exact from json
+                    case spectra_type:can_be_missing(TypeInfo, FieldType, MissingValue) of
                         true ->
-                            {ok, {[{FieldName, undefined}] ++ FieldsAcc, JsonAcc}};
+                            {ok, {[{FieldName, MissingValue}] ++ FieldsAcc, JsonAcc}};
                         false ->
                             {error, [
                                 #sp_error{
@@ -968,7 +1002,8 @@ map_from_json(TypeInfo, MapFieldType, Json) when is_map(Json) ->
                                                 #typed_map_field{
                                                     kind = exact,
                                                     key_type = KeyType,
-                                                    val_type = ValueType
+                                                    val_type = ValueType,
+                                                    can_be_missing = false
                                                 }
                                         }
                                 },
@@ -1002,7 +1037,7 @@ map_from_json(TypeInfo, MapFieldType, Json) when is_map(Json) ->
         {error, _} = Err ->
             Err
     end;
-map_from_json(_TypeInfo, _MapFieldType, Json) ->
+map_from_json(_TypeInfo, _MapFieldType, Json, _MissingValue) ->
     %% Return error when Json is not a map
     {error, [
         #sp_error{
@@ -1051,18 +1086,21 @@ map_field_type_from_json(TypeInfo, KeyType, ValueType, Json) ->
 record_from_json(TypeInfo, RecordName, Json, TypeArgs) when is_atom(RecordName) ->
     {ok, Record} = spectra_type_info:get_record(TypeInfo, RecordName),
     record_from_json(TypeInfo, Record, Json, TypeArgs);
-record_from_json(TypeInfo, #sp_rec{name = RecordName} = ARec, Json, TypeArgs) ->
+record_from_json(
+    TypeInfo, #sp_rec{name = RecordName, missing_value = MissingValue} = ARec, Json, TypeArgs
+) ->
     RecordInfo = record_replace_vars(ARec#sp_rec.fields, TypeArgs),
-    do_record_from_json(TypeInfo, RecordName, RecordInfo, Json).
+    do_record_from_json(TypeInfo, RecordName, RecordInfo, Json, MissingValue).
 
 -spec do_record_from_json(
     TypeInfo :: spectra:type_info(),
     RecordName :: atom(),
     RecordInfo :: [#sp_rec_field{}],
-    Json :: json:decode_value()
+    Json :: json:decode_value(),
+    MissingValue :: spectra:missing_value()
 ) ->
     {ok, term()} | {error, list()}.
-do_record_from_json(TypeInfo, RecordName, RecordInfo, Json) when is_map(Json) ->
+do_record_from_json(TypeInfo, RecordName, RecordInfo, Json, MissingValue) when is_map(Json) ->
     Fun = fun(
         #sp_rec_field{name = FieldName, binary_name = BinaryName, type = FieldType},
         {FieldsAcc, JsonAcc}
@@ -1081,7 +1119,8 @@ do_record_from_json(TypeInfo, RecordName, RecordInfo, Json) when is_map(Json) ->
                         {error, Errs2}
                 end;
             error ->
-                case spectra_type:can_be_undefined(TypeInfo, FieldType) of
+                % record from json
+                case spectra_type:can_be_missing(TypeInfo, FieldType, MissingValue) of
                     true ->
                         {ok, {[undefined | FieldsAcc], JsonAcc}};
                     false ->
@@ -1115,7 +1154,7 @@ do_record_from_json(TypeInfo, RecordName, RecordInfo, Json) when is_map(Json) ->
         {error, Errs} ->
             {error, Errs}
     end;
-do_record_from_json(_TypeInfo, RecordName, _RecordInfo, Json) ->
+do_record_from_json(_TypeInfo, RecordName, _RecordInfo, Json, _MissingValue) ->
     {error, [
         #sp_error{
             type = type_mismatch,

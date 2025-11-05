@@ -33,10 +33,16 @@ erl_abstract_code_parses_tuple_types_test() ->
             fields =
                 [
                     #sp_rec_field{
-                        name = id, binary_name = <<"id">>, type = #sp_simple_type{type = integer}
+                        name = id,
+                        binary_name = <<"id">>,
+                        type = #sp_simple_type{type = integer},
+                        can_be_missing = false
                     },
                     #sp_rec_field{
-                        name = data, binary_name = <<"data">>, type = #sp_tuple{fields = any}
+                        name = data,
+                        binary_name = <<"data">>,
+                        type = #sp_tuple{fields = any},
+                        can_be_missing = false
                     }
                 ],
             arity = 3

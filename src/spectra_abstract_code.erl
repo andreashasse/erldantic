@@ -2,8 +2,6 @@
 
 -include("../include/spectra_internal.hrl").
 
--include_lib("kernel/include/eep48.hrl").
-
 -export([types_in_module/1]).
 
 -define(is_primary_type(PrimaryType),
@@ -49,7 +47,10 @@ types_in_module_path(FilePath) ->
     end.
 
 build_type_info(NamedTypes) ->
-    lists:foldl(fun build_type_info_fold/2, spectra_type_info:new(), NamedTypes).
+    %% First pass: build type info with {calculate, MissingValue} for fields
+    TypeInfo1 = lists:foldl(fun build_type_info_fold/2, spectra_type_info:new(), NamedTypes),
+    %% Second pass: resolve {calculate, MissingValue} to actual values
+    resolve_can_be_missing(TypeInfo1).
 
 build_type_info_fold({{type, Name, Arity}, Type}, TypeInfo) ->
     spectra_type_info:add_type(TypeInfo, Name, Arity, Type);
@@ -212,7 +213,8 @@ field_info_to_type({Type, _, map, any}) when
             #typed_map_field{
                 kind = assoc,
                 key_type = #sp_simple_type{type = term},
-                val_type = #sp_simple_type{type = term}
+                val_type = #sp_simple_type{type = term},
+                can_be_missing = false
             }
         ],
     [#sp_map{fields = MapFields, struct_name = undefined}];
@@ -446,7 +448,8 @@ map_field_info({_TypeOfType, _, Type, TypeAttrs}) ->
                     kind = Kind,
                     name = MapFieldName,
                     binary_name = integer_to_binary(MapFieldName),
-                    val_type = AType
+                    val_type = AType,
+                    can_be_missing = {calculate, undefined}
                 }
             ];
         [{atom, _, MapFieldName}, FieldInfo] when is_atom(MapFieldName) ->
@@ -456,17 +459,20 @@ map_field_info({_TypeOfType, _, Type, TypeAttrs}) ->
                     kind = Kind,
                     name = MapFieldName,
                     binary_name = atom_to_binary(MapFieldName, utf8),
-                    val_type = AType
+                    val_type = AType,
+                    can_be_missing = {calculate, undefined}
                 }
             ];
         [KeyFieldInfo, ValueFieldInfo] ->
             [KeyType] = field_info_to_type(KeyFieldInfo),
             [ValueType] = field_info_to_type(ValueFieldInfo),
             [
+                %% Can we really have missing fileds here?
                 #typed_map_field{
                     kind = Kind,
                     key_type = KeyType,
-                    val_type = ValueType
+                    val_type = ValueType,
+                    can_be_missing = {calculate, undefined}
                 }
             ]
     end.
@@ -479,13 +485,15 @@ record_field_info({record_field, _, {atom, _, FieldName}, _Default}) when
     #sp_rec_field{
         name = FieldName,
         binary_name = atom_to_binary(FieldName, utf8),
-        type = #sp_simple_type{type = term}
+        type = #sp_simple_type{type = term},
+        can_be_missing = {calculate, undefined}
     };
 record_field_info({record_field, _, {atom, _, FieldName}}) when is_atom(FieldName) ->
     #sp_rec_field{
         name = FieldName,
         binary_name = atom_to_binary(FieldName, utf8),
-        type = #sp_simple_type{type = term}
+        type = #sp_simple_type{type = term},
+        can_be_missing = {calculate, undefined}
     };
 record_field_info({typed_record_field, {record_field, _, {atom, _, FieldName}}, Type}) when
     is_atom(FieldName)
@@ -494,7 +502,8 @@ record_field_info({typed_record_field, {record_field, _, {atom, _, FieldName}}, 
     #sp_rec_field{
         name = FieldName,
         binary_name = atom_to_binary(FieldName, utf8),
-        type = TypeInfo
+        type = TypeInfo,
+        can_be_missing = {calculate, undefined}
     };
 record_field_info(
     {typed_record_field, {record_field, _, {atom, _, FieldName}, _Default}, Type}
@@ -505,7 +514,8 @@ record_field_info(
     #sp_rec_field{
         name = FieldName,
         binary_name = atom_to_binary(FieldName, utf8),
-        type = TypeInfo
+        type = TypeInfo,
+        can_be_missing = {calculate, undefined}
     }.
 
 %% Helper functions for bounded_fun handling
@@ -527,6 +537,169 @@ bound_fun_substitute_vars({var, _, VarName} = Var, ConstraintMap) when is_atom(V
     maps:get(VarName, ConstraintMap, Var);
 bound_fun_substitute_vars(Term, _ConstraintMap) ->
     Term.
+
+%% Second pass: resolve {calculate, MissingValue} in all records and types
+-spec resolve_can_be_missing(spectra:type_info()) -> spectra:type_info().
+resolve_can_be_missing(TypeInfo) ->
+    %% Resolve records
+    TypeInfo2 = resolve_records_can_be_missing(TypeInfo),
+    %% Resolve types (maps)
+    resolve_types_can_be_missing(TypeInfo2).
+
+%% Resolve can_be_missing for all record fields
+-spec resolve_records_can_be_missing(spectra:type_info()) -> spectra:type_info().
+resolve_records_can_be_missing(TypeInfo) ->
+    Records = spectra_type_info:all_records(TypeInfo),
+    lists:foldl(
+        fun({RecordName, Record}, AccTypeInfo) ->
+            ResolvedRecord = resolve_record_fields(AccTypeInfo, Record),
+            spectra_type_info:update_record(AccTypeInfo, RecordName, ResolvedRecord)
+        end,
+        TypeInfo,
+        maps:to_list(Records)
+    ).
+
+%% Resolve can_be_missing for a single record
+-spec resolve_record_fields(spectra:type_info(), #sp_rec{}) -> #sp_rec{}.
+resolve_record_fields(TypeInfo, #sp_rec{fields = Fields} = Record) ->
+    ResolvedFields = lists:map(
+        fun(Field) -> resolve_field_can_be_missing(TypeInfo, Field) end,
+        Fields
+    ),
+    Record#sp_rec{fields = ResolvedFields}.
+
+%% Resolve can_be_missing for a single record field
+-spec resolve_field_can_be_missing(spectra:type_info(), #sp_rec_field{}) -> #sp_rec_field{}.
+resolve_field_can_be_missing(
+    TypeInfo,
+    #sp_rec_field{type = FieldType, can_be_missing = {calculate, MissingValue}} = Field
+) ->
+    ResolvedCanBeMissing = resolve_can_be_missing_value(TypeInfo, FieldType, MissingValue),
+    Field#sp_rec_field{can_be_missing = ResolvedCanBeMissing};
+resolve_field_can_be_missing(_TypeInfo, Field) ->
+    Field.
+
+%% Resolve can_be_missing for all types (focusing on maps)
+-spec resolve_types_can_be_missing(spectra:type_info()) -> spectra:type_info().
+resolve_types_can_be_missing(TypeInfo) ->
+    Types = spectra_type_info:all_types(TypeInfo),
+    lists:foldl(
+        fun({{Name, Arity}, Type}, AccTypeInfo) ->
+            ResolvedType = resolve_type_can_be_missing(AccTypeInfo, Type),
+            spectra_type_info:update_type(AccTypeInfo, Name, Arity, ResolvedType)
+        end,
+        TypeInfo,
+        maps:to_list(Types)
+    ).
+
+%% Resolve can_be_missing in a type
+-spec resolve_type_can_be_missing(spectra:type_info(), spectra:sp_type()) -> spectra:sp_type().
+resolve_type_can_be_missing(TypeInfo, #sp_map{fields = Fields} = Map) ->
+    ResolvedFields = lists:map(
+        fun
+            (
+                #literal_map_field{val_type = ValType, can_be_missing = {calculate, MissingValue}} =
+                    Field
+            ) ->
+                ResolvedCanBeMissing = resolve_can_be_missing_value(
+                    TypeInfo, ValType, MissingValue
+                ),
+                Field#literal_map_field{can_be_missing = ResolvedCanBeMissing};
+            (
+                #typed_map_field{val_type = ValType, can_be_missing = {calculate, MissingValue}} =
+                    Field
+            ) ->
+                ResolvedCanBeMissing = resolve_can_be_missing_value(
+                    TypeInfo, ValType, MissingValue
+                ),
+                Field#typed_map_field{can_be_missing = ResolvedCanBeMissing};
+            (Field) ->
+                Field
+        end,
+        Fields
+    ),
+    Map#sp_map{fields = ResolvedFields};
+resolve_type_can_be_missing(TypeInfo, #sp_type_with_variables{type = Type} = TypeWithVars) ->
+    ResolvedType = resolve_type_can_be_missing(TypeInfo, Type),
+    TypeWithVars#sp_type_with_variables{type = ResolvedType};
+resolve_type_can_be_missing(_TypeInfo, Type) ->
+    Type.
+
+%% Resolve a {calculate, MissingValue} to actual value
+%% Check if the type (transitively) contains remote types or vars
+-spec resolve_can_be_missing_value(
+    spectra:type_info(), spectra:sp_type(), spectra:missing_value()
+) ->
+    {true, spectra:missing_value()} | false | {calculate, spectra:missing_value()}.
+resolve_can_be_missing_value(TypeInfo, Type, MissingValue) ->
+    case contains_unresolvable_type_transitive(TypeInfo, Type, sets:new([{version, 2}])) of
+        true ->
+            %% Transitively contains remote types or vars - keep as {calculate, MissingValue}
+            {calculate, MissingValue};
+        false ->
+            %% Can be resolved now
+            case spectra_type:can_be_missing(TypeInfo, Type, MissingValue) of
+                true ->
+                    {true, MissingValue};
+                false ->
+                    false
+            end
+    end.
+
+%% Check if a type transitively contains unresolvable types (remote types or vars)
+%% This follows user type refs to check their actual types, with cycle detection
+-spec contains_unresolvable_type_transitive(
+    spectra:type_info(), spectra:sp_type(), sets:set({atom(), arity()})
+) -> boolean().
+contains_unresolvable_type_transitive(_TypeInfo, #sp_remote_type{}, _Visited) ->
+    true;
+contains_unresolvable_type_transitive(_TypeInfo, #sp_var{}, _Visited) ->
+    true;
+contains_unresolvable_type_transitive(
+    TypeInfo, #sp_user_type_ref{type_name = TypeName, variables = TypeArgs}, Visited
+) ->
+    TypeArity = length(TypeArgs),
+    TypeKey = {TypeName, TypeArity},
+    case sets:is_element(TypeKey, Visited) of
+        true ->
+            %% Circular reference detected, treat as resolvable (will be checked at runtime)
+            false;
+        false ->
+            NewVisited = sets:add_element(TypeKey, Visited),
+            case spectra_type_info:get_type(TypeInfo, TypeName, TypeArity) of
+                {ok, RefType} ->
+                    contains_unresolvable_type_transitive(TypeInfo, RefType, NewVisited);
+                error ->
+                    %% Type not found, treat as unresolvable
+                    true
+            end
+    end;
+contains_unresolvable_type_transitive(TypeInfo, #sp_type_with_variables{type = Type}, Visited) ->
+    contains_unresolvable_type_transitive(TypeInfo, Type, Visited);
+contains_unresolvable_type_transitive(TypeInfo, #sp_union{types = Types}, Visited) ->
+    lists:any(fun(T) -> contains_unresolvable_type_transitive(TypeInfo, T, Visited) end, Types);
+contains_unresolvable_type_transitive(TypeInfo, #sp_list{type = Type}, Visited) ->
+    contains_unresolvable_type_transitive(TypeInfo, Type, Visited);
+contains_unresolvable_type_transitive(TypeInfo, #sp_nonempty_list{type = Type}, Visited) ->
+    contains_unresolvable_type_transitive(TypeInfo, Type, Visited);
+contains_unresolvable_type_transitive(
+    TypeInfo, #sp_maybe_improper_list{elements = Elements, tail = Tail}, Visited
+) ->
+    contains_unresolvable_type_transitive(TypeInfo, Elements, Visited) orelse
+        contains_unresolvable_type_transitive(TypeInfo, Tail, Visited);
+contains_unresolvable_type_transitive(
+    TypeInfo, #sp_nonempty_improper_list{elements = Elements, tail = Tail}, Visited
+) ->
+    contains_unresolvable_type_transitive(TypeInfo, Elements, Visited) orelse
+        contains_unresolvable_type_transitive(TypeInfo, Tail, Visited);
+contains_unresolvable_type_transitive(TypeInfo, #sp_tuple{fields = Fields}, Visited) when
+    is_list(Fields)
+->
+    lists:any(fun(F) -> contains_unresolvable_type_transitive(TypeInfo, F, Visited) end, Fields);
+contains_unresolvable_type_transitive(_TypeInfo, #sp_tuple{fields = any}, _Visited) ->
+    false;
+contains_unresolvable_type_transitive(_TypeInfo, _, _Visited) ->
+    false.
 
 %% Helper function to extract struct name from map fields for Elixir structs
 -spec extract_struct_name([spectra:map_field()]) ->

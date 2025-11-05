@@ -41,19 +41,22 @@ simple_test() ->
                         kind = exact,
                         name = id,
                         binary_name = <<"id">>,
-                        val_type = #sp_user_type_ref{type_name = user_id, variables = []}
+                        val_type = #sp_user_type_ref{type_name = user_id, variables = []},
+                        can_be_missing = false
                     },
                     #literal_map_field{
                         kind = assoc,
                         name = name,
                         binary_name = <<"name">>,
-                        val_type = #sp_simple_type{type = binary}
+                        val_type = #sp_simple_type{type = binary},
+                        can_be_missing = false
                     },
                     #literal_map_field{
                         kind = assoc,
                         name = age,
                         binary_name = <<"age">>,
-                        val_type = #sp_simple_type{type = pos_integer}
+                        val_type = #sp_simple_type{type = pos_integer},
+                        can_be_missing = false
                     }
                 ]
         },
@@ -82,10 +85,14 @@ simple_test() ->
                     #sp_rec_field{
                         name = id,
                         binary_name = <<"id">>,
-                        type = #sp_user_type_ref{type_name = user_id, variables = []}
+                        type = #sp_user_type_ref{type_name = user_id, variables = []},
+                        can_be_missing = false
                     },
                     #sp_rec_field{
-                        name = data, binary_name = <<"data">>, type = #sp_simple_type{type = term}
+                        name = data,
+                        binary_name = <<"data">>,
+                        type = #sp_simple_type{type = term},
+                        can_be_missing = false
                     }
                 ],
             arity = 3

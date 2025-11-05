@@ -2,7 +2,6 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--include("../include/spectra.hrl").
 -include("../include/spectra_internal.hrl").
 
 to_json_excludes_struct_field_test() ->

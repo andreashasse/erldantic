@@ -31,7 +31,8 @@ type_in_form_test() ->
                                 kind = assoc,
                                 name = result,
                                 binary_name = <<"result">>,
-                                val_type = #sp_var{name = 'ResultType'}
+                                val_type = #sp_var{name = 'ResultType'},
+                                can_be_missing = {calculate, undefined}
                             },
                             #literal_map_field{
                                 kind = assoc,
@@ -43,7 +44,8 @@ type_in_form_test() ->
                                             type =
                                                 atom
                                         }
-                                }
+                                },
+                                can_be_missing = false
                             }
                         ]
                 },
