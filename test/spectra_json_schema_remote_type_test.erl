@@ -2,9 +2,6 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--include("../include/spectra.hrl").
--include("external_type.hrl").
-
 -compile(nowarn_unused_type).
 
 -type user_with_account() :: #{

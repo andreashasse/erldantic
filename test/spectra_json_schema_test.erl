@@ -2,9 +2,6 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--include("../include/spectra.hrl").
--include_lib("stdlib/include/assert.hrl").
-
 -compile(nowarn_unused_type).
 
 %% Test types for schema generation
