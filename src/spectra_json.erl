@@ -1118,7 +1118,7 @@ do_record_from_json(TypeInfo, RecordName, RecordInfo, Json, MissingValue) when i
                 % record from json
                 case spectra_type:can_be_missing(TypeInfo, FieldType, MissingValue) of
                     true ->
-                        {ok, {[undefined | FieldsAcc], JsonAcc}};
+                        {ok, {[MissingValue | FieldsAcc], JsonAcc}};
                     false ->
                         {error, [
                             #sp_error{
