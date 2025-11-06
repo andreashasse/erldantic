@@ -312,7 +312,6 @@ map_fields_to_json(TypeInfo, MapFieldTypes, Data, MissingValue) ->
                             {error, Errs2}
                     end;
                 error ->
-                    % exact to json
                     case spectra_type:can_be_missing(TypeInfo, FieldType, MissingValue) of
                         true ->
                             {ok, {FieldsAcc, DataAcc}};
@@ -958,7 +957,6 @@ map_from_json(TypeInfo, MapFieldType, Json, MissingValue) when is_map(Json) ->
                             {error, Errs2}
                     end;
                 error ->
-                    % exact from json
                     case spectra_type:can_be_missing(TypeInfo, FieldType, MissingValue) of
                         true ->
                             {ok, {[{FieldName, MissingValue}] ++ FieldsAcc, JsonAcc}};
@@ -1115,7 +1113,6 @@ do_record_from_json(TypeInfo, RecordName, RecordInfo, Json, MissingValue) when i
                         {error, Errs2}
                 end;
             error ->
-                % record from json
                 case spectra_type:can_be_missing(TypeInfo, FieldType, MissingValue) of
                     true ->
                         {ok, {[MissingValue | FieldsAcc], JsonAcc}};
