@@ -217,11 +217,11 @@ These errors indicate a problem with your application's configuration or type de
 
 ## Special Handling
 
-### `undefined` Values
+### `undefined`  and `nil` Values
 
-In records and mandatory map fields (with the `:=` operator), the value `undefined` will be used when the value is missing if the type includes `undefined`.
+In records and mandatory map fields (with the `:=` operator), the value `undefined` and `nil` will be used when the value is missing if the type includes the literal value.
 
-For example, `integer() | undefined` will become `undefined` in records and maps mandatory fields if the value is missing, and the value will not be present in the JSON.
+For example, `integer() | undefined` will become `undefined` in records and maps mandatory fields if the value is missing, and the value will not be present in the JSON. When decoding JSON to erlang types, the value will become `undefined` if the field in missing. Similarly, `integer() | nil` will become `nil`.
 
 ### `term()` | `any()`
 

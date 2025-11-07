@@ -9,6 +9,7 @@
 ) ->
     boolean().
 can_be_missing(TypeInfo, Type, MissingType) ->
+    %% DON'T PASS IN MISSING TYPE: Return it.
     case Type of
         #sp_type_with_variables{type = Type2} ->
             can_be_missing(TypeInfo, Type2, MissingType);
