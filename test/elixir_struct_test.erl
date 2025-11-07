@@ -59,8 +59,7 @@ run_to_json() ->
                         val_type = #sp_simple_type{type = binary}
                     }
                 ],
-            struct_name = 'Elixir.TestUserStruct',
-            missing_value = nil
+            struct_name = 'Elixir.TestUserStruct'
         },
 
     %% Convert to JSON - should exclude __struct__ field and contain expected data
@@ -196,8 +195,7 @@ run_to_json_nil_email() ->
                             }
                     }
                 ],
-            struct_name = 'Elixir.TestUserStruct',
-            missing_value = nil
+            struct_name = 'Elixir.TestUserStruct'
         },
 
     %% Convert to JSON - nil email should be omitted from JSON
@@ -263,8 +261,7 @@ run_from_json_missing_email() ->
                             }
                     }
                 ],
-            struct_name = 'Elixir.TestUserStruct',
-            missing_value = nil
+            struct_name = 'Elixir.TestUserStruct'
         },
 
     %% Convert from JSON - missing email should become nil
