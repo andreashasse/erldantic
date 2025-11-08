@@ -223,6 +223,8 @@ In records and mandatory map fields (with the `:=` operator), the values `undefi
 
 For example, `integer() | undefined` will become `undefined` in records and mandatory map fields if the value is missing, and the value will not be present in the JSON. When decoding JSON to Erlang types, the value will become `undefined` if the field is missing. Similarly, `integer() | nil` will become `nil` when the value is missing.
 
+**Note**: If a union type includes both `undefined` and `nil` (e.g., `integer() | undefined | nil`), the selection of which missing value to use depends on the order they appear in the type definition. The last one encountered will be used. For predictable behavior, include only one missing value literal in your type definitions.
+
 ### `term()` | `any()`
 
 When using types with `term`, `spectra_json` will not reject any data, which means it can return data that `json.erl` cannot convert to JSON.
