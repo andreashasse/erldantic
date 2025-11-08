@@ -3,7 +3,6 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -include("../include/spectra.hrl").
--include("../include/spectra_internal.hrl").
 
 -compile(nowarn_unused_type).
 

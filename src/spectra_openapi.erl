@@ -24,8 +24,6 @@
     {spectra_openapi, add_response, 2}
 ]).
 
--include("../include/spectra.hrl").
-
 -compile(nowarn_unused_type).
 
 -define(DEFAULT_CONTENT_TYPE, <<"application/json">>).

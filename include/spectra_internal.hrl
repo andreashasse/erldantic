@@ -24,14 +24,19 @@
         | map
 }).
 -record(sp_tuple, {fields :: any | [spectra:sp_type()]}).
--record(sp_map, {fields :: [spectra:map_field()], struct_name :: undefined | atom()}).
+-record(sp_map, {
+    fields :: [spectra:map_field()],
+    struct_name :: undefined | atom()
+}).
 -record(sp_rec_field, {
     name :: atom(),
     binary_name :: binary(),
     type :: spectra:sp_type()
 }).
 -record(sp_rec, {
-    name :: atom(), fields :: [#sp_rec_field{}], arity :: pos_integer()
+    name :: atom(),
+    fields :: [#sp_rec_field{}],
+    arity :: pos_integer()
 }).
 -record(sp_type_with_variables, {type :: spectra:sp_type(), vars :: [atom()]}).
 -record(sp_function, {args :: any | [spectra:sp_type()], return :: spectra:sp_type()}).

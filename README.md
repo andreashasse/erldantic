@@ -8,7 +8,7 @@ Add spectra to your rebar.config dependencies:
 
 ```erlang
 {deps, [
-    {spectra, "~> 0.1.6"}
+    {spectra, "~> 0.1.7"}
 ]}.
 ```
 
@@ -217,11 +217,13 @@ These errors indicate a problem with your application's configuration or type de
 
 ## Special Handling
 
-### `undefined` Values
+### `undefined` and `nil` Values
 
-In records and mandatory map fields (with the `:=` operator), the value `undefined` will be used when the value is missing if the type includes `undefined`.
+In records and mandatory map fields (with the `:=` operator), the values `undefined` or `nil` will be used when the value is missing, if the type includes that literal value.
 
-For example, `integer() | undefined` will become `undefined` in records and maps mandatory fields if the value is missing, and the value will not be present in the JSON.
+For example, `integer() | undefined` will become `undefined` in records and mandatory map fields if the value is missing, and the value will not be present in the JSON. When decoding JSON to Erlang types, the value will become `undefined` if the field is missing. Similarly, `integer() | nil` will become `nil` when the value is missing.
+
+**Note**: If a union type includes both `undefined` and `nil` (e.g., `integer() | undefined | nil`), the selection of which missing value to use depends on the order they appear in the type definition. The last one encountered will be used. For predictable behavior, include only one missing value literal in your type definitions.
 
 ### `term()` | `any()`
 

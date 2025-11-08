@@ -384,8 +384,8 @@ process_record_fields(
         {ok, FieldSchema} ->
             NewProperties = Properties#{BinaryName => FieldSchema},
             NewRequired =
-                case spectra_type:can_be_undefined(TypeInfo, FieldType) of
-                    true ->
+                case spectra_type:can_be_missing(TypeInfo, FieldType) of
+                    {true, _} ->
                         Required;
                     false ->
                         [BinaryName | Required]

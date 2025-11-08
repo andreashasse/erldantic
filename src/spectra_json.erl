@@ -22,8 +22,6 @@ to_json(TypeInfo, Type, Data) ->
     case do_to_json(TypeInfo, Type, Data) of
         {ok, Json} ->
             {ok, Json};
-        skip ->
-            {ok, undefined};
         {error, Errs} ->
             {error, Errs}
     end.
@@ -34,7 +32,7 @@ to_json(TypeInfo, Type, Data) ->
     Type :: spectra:sp_type_or_ref(),
     Data :: dynamic()
 ) ->
-    {ok, json:encode_value()} | {error, [spectra:error()]} | skip.
+    {ok, json:encode_value()} | {error, [spectra:error()]}.
 do_to_json(TypeInfo, {record, RecordName}, Record) when is_atom(RecordName) ->
     record_to_json(TypeInfo, RecordName, Record, []);
 do_to_json(TypeInfo, #sp_rec{} = RecordInfo, Record) when is_tuple(Record) ->
@@ -77,8 +75,6 @@ do_to_json(
     is_integer(Value) andalso Min =< Value, Value =< Max
 ->
     {ok, Value};
-do_to_json(_TypeInfo, #sp_literal{value = undefined}, undefined) ->
-    skip;
 do_to_json(_TypeInfo, #sp_literal{value = Value, binary_value = BinaryValue}, Value) when
     is_atom(Value)
 ->
@@ -179,8 +175,6 @@ list_to_json(TypeInfo, Type, Data) when is_list(Data) ->
             case do_to_json(TypeInfo, Type, Item) of
                 {ok, Json} ->
                     {ok, Json};
-                skip ->
-                    {ok, undefined};
                 {error, Errs} ->
                     Errs2 =
                         lists:map(
@@ -193,7 +187,15 @@ list_to_json(TypeInfo, Type, Data) when is_list(Data) ->
         lists:enumerate(Data)
     ).
 
-map_to_json(TypeInfo, #sp_map{fields = Fields}, Data) when is_map(Data) ->
+-spec map_to_json(
+    TypeInfo :: spectra:type_info(),
+    MapFieldTypes :: #sp_map{},
+    Data :: map()
+) ->
+    {ok, json:encode_value()} | {error, [spectra:error()]}.
+map_to_json(TypeInfo, #sp_map{fields = Fields}, Data) when
+    is_map(Data)
+->
     %% Check if this is an Elixir struct and remove __struct__ field for JSON serialization
     DataWithoutStruct =
         case maps:take('__struct__', Data) of
@@ -217,6 +219,12 @@ map_to_json(_TypeInfo, _MapFieldTypes, Data) ->
         }
     ]}.
 
+-spec map_fields_to_json(
+    TypeInfo :: spectra:type_info(),
+    MapFieldTypes :: [spectra:map_field()],
+    Data :: map()
+) ->
+    {ok, [{binary(), json:encode_value()}]} | {error, [spectra:error()]}.
 map_fields_to_json(TypeInfo, MapFieldTypes, Data) ->
     Fun = fun
         (
@@ -225,16 +233,18 @@ map_fields_to_json(TypeInfo, MapFieldTypes, Data) ->
             },
             {FieldsAcc, DataAcc}
         ) ->
-            case maps:take(FieldName, DataAcc) of
-                {FieldData, NewDataAcc} ->
+            case
+                {maps:take(FieldName, DataAcc), spectra_type:can_be_missing(TypeInfo, FieldType)}
+            of
+                {{MissingValue, NewDataAcc}, {true, MissingValue}} ->
+                    {ok, {FieldsAcc, NewDataAcc}};
+                {{FieldData, NewDataAcc}, _} ->
                     case do_to_json(TypeInfo, FieldType, FieldData) of
                         {ok, FieldJson} ->
                             {ok, {
                                 [{BinaryFieldName, FieldJson}] ++ FieldsAcc,
-                                maps:remove(FieldName, DataAcc)
+                                NewDataAcc
                             }};
-                        skip ->
-                            {ok, {FieldsAcc, NewDataAcc}};
                         {error, Errs} ->
                             Errs2 =
                                 lists:map(
@@ -243,14 +253,14 @@ map_fields_to_json(TypeInfo, MapFieldTypes, Data) ->
                                 ),
                             {error, Errs2}
                     end;
-                error ->
+                {error, _} ->
                     {ok, {FieldsAcc, DataAcc}}
             end;
         (
             #typed_map_field{kind = assoc, key_type = KeyType, val_type = ValueType},
             {FieldsAcc, DataAcc}
         ) ->
-            case map_field_type(TypeInfo, KeyType, ValueType, DataAcc) of
+            case map_typed_field_to_json(TypeInfo, KeyType, ValueType, DataAcc) of
                 {ok, {NewFields, NewDataAcc}} ->
                     {ok, {NewFields ++ FieldsAcc, NewDataAcc}};
                 {error, _} = Err ->
@@ -260,7 +270,7 @@ map_fields_to_json(TypeInfo, MapFieldTypes, Data) ->
             #typed_map_field{kind = exact, key_type = KeyType, val_type = ValueType},
             {FieldsAcc, DataAcc}
         ) ->
-            case map_field_type(TypeInfo, KeyType, ValueType, DataAcc) of
+            case map_typed_field_to_json(TypeInfo, KeyType, ValueType, DataAcc) of
                 {ok, {[], _}} ->
                     NoExactMatch =
                         #sp_error{
@@ -285,14 +295,15 @@ map_fields_to_json(TypeInfo, MapFieldTypes, Data) ->
             },
             {FieldsAcc, DataAcc}
         ) ->
-            case maps:take(FieldName, DataAcc) of
-                {FieldData, NewDataAcc} ->
+            case
+                {maps:take(FieldName, DataAcc), spectra_type:can_be_missing(TypeInfo, FieldType)}
+            of
+                {{MissingValue, NewDataAcc}, {true, MissingValue}} ->
+                    {ok, {FieldsAcc, NewDataAcc}};
+                {{FieldData, NewDataAcc}, _} ->
                     case do_to_json(TypeInfo, FieldType, FieldData) of
                         {ok, FieldJson} ->
                             {ok, {[{BinaryFieldName, FieldJson}] ++ FieldsAcc, NewDataAcc}};
-                        skip ->
-                            %% FIXME: Warn about weird type def??
-                            {ok, {FieldsAcc, NewDataAcc}};
                         {error, Errs} ->
                             Errs2 =
                                 lists:map(
@@ -301,9 +312,9 @@ map_fields_to_json(TypeInfo, MapFieldTypes, Data) ->
                                 ),
                             {error, Errs2}
                     end;
-                error ->
-                    case spectra_type:can_be_undefined(TypeInfo, FieldType) of
-                        true ->
+                {error, _} ->
+                    case spectra_type:can_be_missing(TypeInfo, FieldType) of
+                        {true, _} ->
                             {ok, {FieldsAcc, DataAcc}};
                         false ->
                             {error, [
@@ -337,7 +348,7 @@ map_fields_to_json(TypeInfo, MapFieldTypes, Data) ->
             Err
     end.
 
--spec map_field_type(
+-spec map_typed_field_to_json(
     TypeInfo :: spectra:type_info(),
     KeyType :: spectra:sp_type(),
     ValueType :: spectra:sp_type(),
@@ -345,18 +356,25 @@ map_fields_to_json(TypeInfo, MapFieldTypes, Data) ->
 ) ->
     {ok, {[{json:encode_value(), json:encode_value()}], map()}}
     | {error, [spectra:error()]}.
-map_field_type(TypeInfo, KeyType, ValueType, Data) ->
+map_typed_field_to_json(TypeInfo, KeyType, ValueType, Data) ->
     Fun = fun({Key, Value}, {FieldsAcc, DataAcc}) ->
         case do_to_json(TypeInfo, KeyType, Key) of
             {ok, KeyJson} ->
-                case do_to_json(TypeInfo, ValueType, Value) of
-                    {ok, ValueJson} ->
-                        {ok, {FieldsAcc ++ [{KeyJson, ValueJson}], maps:remove(Key, DataAcc)}};
-                    skip ->
-                        {ok, {FieldsAcc, DataAcc}};
-                    {error, Errs} ->
-                        Errs2 = lists:map(fun(Err) -> err_append_location(Err, Key) end, Errs),
-                        {error, Errs2}
+                case {Value, spectra_type:can_be_missing(TypeInfo, ValueType)} of
+                    {MissingValue, {true, MissingValue}} ->
+                        {ok, {FieldsAcc, maps:remove(Key, DataAcc)}};
+                    _ ->
+                        case do_to_json(TypeInfo, ValueType, Value) of
+                            {ok, ValueJson} ->
+                                {ok, {
+                                    FieldsAcc ++ [{KeyJson, ValueJson}], maps:remove(Key, DataAcc)
+                                }};
+                            {error, Errs} ->
+                                Errs2 = lists:map(
+                                    fun(Err) -> err_append_location(Err, Key) end, Errs
+                                ),
+                                {error, Errs2}
+                        end
                 end;
             {error, _Errs} ->
                 {ok, {FieldsAcc, DataAcc}}
@@ -440,13 +458,19 @@ do_record_to_json(TypeInfo, RecFieldTypesWithData) ->
         },
         FieldsAcc
     ) ->
-        case do_to_json(TypeInfo, FieldType, RecordFieldData) of
-            {ok, FieldJson} ->
-                {ok, [{BinaryFieldName, FieldJson}] ++ FieldsAcc};
-            skip ->
+        case {RecordFieldData, spectra_type:can_be_missing(TypeInfo, FieldType)} of
+            {MissingValue, {true, MissingValue}} ->
                 {ok, FieldsAcc};
-            {error, Errors} ->
-                {error, lists:map(fun(Error) -> err_append_location(Error, FieldName) end, Errors)}
+            _ ->
+                case do_to_json(TypeInfo, FieldType, RecordFieldData) of
+                    {ok, FieldJson} ->
+                        {ok, [{BinaryFieldName, FieldJson}] ++ FieldsAcc};
+                    {error, Errors} ->
+                        {error,
+                            lists:map(
+                                fun(Error) -> err_append_location(Error, FieldName) end, Errors
+                            )}
+                end
         end
     end,
 
@@ -496,7 +520,9 @@ do_from_json(
     is_atom(RecordName)
 ->
     record_from_json(TypeInfo, RecordName, Json, TypeArgs);
-do_from_json(TypeInfo, #sp_map{fields = Fields, struct_name = StructName}, Json) ->
+do_from_json(
+    TypeInfo, #sp_map{fields = Fields, struct_name = StructName}, Json
+) ->
     case map_from_json(TypeInfo, Fields, Json) of
         {ok, MapResult} when StructName =/= undefined ->
             %% Add back the __struct__ field for Elixir structs
@@ -775,8 +801,6 @@ do_first(_Fun, _TypeInfo, [], _Json) ->
     {error, no_match};
 do_first(Fun, TypeInfo, [Type | Rest], Json) ->
     case Fun(TypeInfo, Type, Json) of
-        skip ->
-            skip;
         {ok, Result} ->
             {ok, Result};
         {error, _} ->
@@ -928,9 +952,9 @@ map_from_json(TypeInfo, MapFieldType, Json) when is_map(Json) ->
                             {error, Errs2}
                     end;
                 error ->
-                    case spectra_type:can_be_undefined(TypeInfo, FieldType) of
-                        true ->
-                            {ok, {[{FieldName, undefined}] ++ FieldsAcc, JsonAcc}};
+                    case spectra_type:can_be_missing(TypeInfo, FieldType) of
+                        {true, MissingValue} ->
+                            {ok, {[{FieldName, MissingValue}] ++ FieldsAcc, JsonAcc}};
                         false ->
                             {error, [
                                 #sp_error{
@@ -1051,7 +1075,9 @@ map_field_type_from_json(TypeInfo, KeyType, ValueType, Json) ->
 record_from_json(TypeInfo, RecordName, Json, TypeArgs) when is_atom(RecordName) ->
     {ok, Record} = spectra_type_info:get_record(TypeInfo, RecordName),
     record_from_json(TypeInfo, Record, Json, TypeArgs);
-record_from_json(TypeInfo, #sp_rec{name = RecordName} = ARec, Json, TypeArgs) ->
+record_from_json(
+    TypeInfo, #sp_rec{name = RecordName} = ARec, Json, TypeArgs
+) ->
     RecordInfo = record_replace_vars(ARec#sp_rec.fields, TypeArgs),
     do_record_from_json(TypeInfo, RecordName, RecordInfo, Json).
 
@@ -1081,9 +1107,9 @@ do_record_from_json(TypeInfo, RecordName, RecordInfo, Json) when is_map(Json) ->
                         {error, Errs2}
                 end;
             error ->
-                case spectra_type:can_be_undefined(TypeInfo, FieldType) of
-                    true ->
-                        {ok, {[undefined | FieldsAcc], JsonAcc}};
+                case spectra_type:can_be_missing(TypeInfo, FieldType) of
+                    {true, MissingValue} ->
+                        {ok, {[MissingValue | FieldsAcc], JsonAcc}};
                     false ->
                         {error, [
                             #sp_error{
