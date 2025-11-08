@@ -27,6 +27,13 @@
 %% Union types
 -type my_union() :: integer() | string().
 -type my_optional() :: integer() | undefined.
+%% Enum types (unions of literals)
+-type role() :: admin | user | guest.
+-type status() :: active | inactive | pending.
+-type number_enum() :: 1 | 2 | 3.
+-type bool_enum() :: true | false.
+-type optional_enum() :: admin | user | undefined.
+-type optional_enum_with_nil() :: admin | user | nil.
 %% Map types
 -type my_map() :: #{name := string(), age := integer()}.
 -type my_flexible_map() :: #{config := string(), timeout := integer()}.
@@ -166,7 +173,7 @@ list_types_test() ->
 
 %% Test union type mappings
 union_types_test() ->
-    %% Simple union
+    %% Simple union of non-literals (should use oneOf)
     ?assertEqual(
         {ok, #{oneOf => [#{type => <<"integer">>}, #{type => <<"string">>}]}},
         spectra_json_schema:to_schema(?MODULE, {type, my_union, 0})
@@ -275,6 +282,44 @@ record_with_optional_fields_test() ->
             required => [<<"id">>, <<"name">>]
         }},
         spectra_json_schema:to_schema(?MODULE, {record, user_with_optional})
+    ).
+
+%% Test enum type optimization (unions of literals should become single enum)
+enum_types_test() ->
+    %% Atom enum (like role: admin | user | guest)
+    ?assertEqual(
+        {ok, #{type => <<"string">>, enum => [<<"admin">>, <<"user">>, <<"guest">>]}},
+        spectra_json_schema:to_schema(?MODULE, {type, role, 0})
+    ),
+
+    %% Status enum
+    ?assertEqual(
+        {ok, #{type => <<"string">>, enum => [<<"active">>, <<"inactive">>, <<"pending">>]}},
+        spectra_json_schema:to_schema(?MODULE, {type, status, 0})
+    ),
+
+    %% Number enum
+    ?assertEqual(
+        {ok, #{type => <<"integer">>, enum => [1, 2, 3]}},
+        spectra_json_schema:to_schema(?MODULE, {type, number_enum, 0})
+    ),
+
+    %% Boolean enum
+    ?assertEqual(
+        {ok, #{type => <<"boolean">>, enum => [true, false]}},
+        spectra_json_schema:to_schema(?MODULE, {type, bool_enum, 0})
+    ),
+
+    %% Optional enum (union with undefined)
+    ?assertEqual(
+        {ok, #{type => <<"string">>, enum => [<<"admin">>, <<"user">>]}},
+        spectra_json_schema:to_schema(?MODULE, {type, optional_enum, 0})
+    ),
+
+    %% Optional enum (union with nil - Elixir's missing value)
+    ?assertEqual(
+        {ok, #{type => <<"string">>, enum => [<<"admin">>, <<"user">>]}},
+        spectra_json_schema:to_schema(?MODULE, {type, optional_enum_with_nil, 0})
     ).
 
 %% Test error handling
