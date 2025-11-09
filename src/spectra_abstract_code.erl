@@ -342,14 +342,24 @@ field_info_to_type({TypeOrOpaque, _, Type, TypeAttrs}) when
         list ->
             case lists:flatmap(fun field_info_to_type/1, TypeAttrs) of
                 [ListType] ->
-                    [#sp_list{type = ListType}];
+                    case is_kvlist_tuple(ListType) of
+                        {true, KeyType, ValType} ->
+                            [#sp_kvlist{key_type = KeyType, val_type = ValType}];
+                        false ->
+                            [#sp_list{type = ListType}]
+                    end;
                 [] ->
                     [#sp_list{type = #sp_simple_type{type = term}}]
             end;
         nonempty_list ->
             case lists:flatmap(fun field_info_to_type/1, TypeAttrs) of
                 [ListType] ->
-                    [#sp_nonempty_list{type = ListType}];
+                    case is_kvlist_tuple(ListType) of
+                        {true, KeyType, ValType} ->
+                            [#sp_kvlist{key_type = KeyType, val_type = ValType}];
+                        false ->
+                            [#sp_nonempty_list{type = ListType}]
+                    end;
                 [] ->
                     [#sp_nonempty_list{type = #sp_simple_type{type = term}}]
             end;
@@ -550,3 +560,12 @@ extract_struct_name(MapFields) ->
         {[], _} ->
             {undefined, MapFields}
     end.
+
+%% Helper function to detect if a type is a 2-tuple representing a key-value pair
+%% Returns {true, KeyType, ValType} if it's a 2-tuple, false otherwise
+-spec is_kvlist_tuple(spectra:sp_type()) ->
+    {true, spectra:sp_type(), spectra:sp_type()} | false.
+is_kvlist_tuple(#sp_tuple{fields = [KeyType, ValType]}) ->
+    {true, KeyType, ValType};
+is_kvlist_tuple(_) ->
+    false.

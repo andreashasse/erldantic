@@ -87,6 +87,10 @@ do_to_json(TypeInfo, #sp_nonempty_list{type = Type}, Data) ->
     nonempty_list_to_json(TypeInfo, Type, Data);
 do_to_json(TypeInfo, #sp_list{type = Type}, Data) when is_list(Data) ->
     list_to_json(TypeInfo, Type, Data);
+do_to_json(TypeInfo, #sp_kvlist{key_type = KeyType, val_type = ValType}, Data) when
+    is_list(Data)
+->
+    kvlist_to_json(TypeInfo, KeyType, ValType, Data);
 do_to_json(TypeInfo, {type, TypeName, TypeArity}, Data) when is_atom(TypeName) ->
     %% FIXME: For simple types without arity, default to 0
     {ok, Type} = spectra_type_info:get_type(TypeInfo, TypeName, TypeArity),
@@ -186,6 +190,85 @@ list_to_json(TypeInfo, Type, Data) when is_list(Data) ->
         end,
         lists:enumerate(Data)
     ).
+
+-spec kvlist_to_json(
+    TypeInfo :: spectra:type_info(),
+    KeyType :: spectra:sp_type_or_ref(),
+    ValType :: spectra:sp_type_or_ref(),
+    Data :: [{term(), term()}]
+) ->
+    {ok, json:encode_value()} | {error, [spectra:error()]}.
+kvlist_to_json(TypeInfo, KeyType, ValType, Data) when is_list(Data) ->
+    %% First, validate that the key type is JSON-compatible
+    case is_json_compatible_key_type(KeyType) of
+        false ->
+            {error, [
+                #sp_error{
+                    type = type_mismatch,
+                    location = [],
+                    ctx = #{
+                        expected => json_compatible_key_type,
+                        key_type => KeyType,
+                        message =>
+                            <<
+                                "Map and list types cannot be used as kvlist keys in JSON. "
+                                "Only atoms, binaries, strings, integers, and floats can be used as keys."
+                            >>
+                    }
+                }
+            ]};
+        true ->
+            do_kvlist_to_json(TypeInfo, KeyType, ValType, Data)
+    end.
+
+-spec do_kvlist_to_json(
+    TypeInfo :: spectra:type_info(),
+    KeyType :: spectra:sp_type_or_ref(),
+    ValType :: spectra:sp_type_or_ref(),
+    Data :: [{term(), term()}]
+) ->
+    {ok, json:encode_value()} | {error, [spectra:error()]}.
+do_kvlist_to_json(TypeInfo, KeyType, ValType, Data) ->
+    Fun = fun({Nr, Item}) ->
+        case Item of
+            {Key, Value} ->
+                case do_to_json(TypeInfo, KeyType, Key) of
+                    {ok, KeyJson} ->
+                        case do_to_json(TypeInfo, ValType, Value) of
+                            {ok, ValueJson} ->
+                                {ok, {KeyJson, ValueJson}};
+                            {error, Errs} ->
+                                Errs2 =
+                                    lists:map(
+                                        fun(Err) -> err_append_location(Err, Nr) end,
+                                        Errs
+                                    ),
+                                {error, Errs2}
+                        end;
+                    {error, Errs} ->
+                        Errs2 =
+                            lists:map(
+                                fun(Err) -> err_append_location(Err, Nr) end,
+                                Errs
+                            ),
+                        {error, Errs2}
+                end;
+            _ ->
+                {error, [
+                    #sp_error{
+                        type = type_mismatch,
+                        location = [Nr],
+                        ctx = #{expected => two_tuple, value => Item}
+                    }
+                ]}
+        end
+    end,
+    case spectra_util:map_until_error(Fun, lists:enumerate(Data)) of
+        {ok, KVPairs} ->
+            {ok, maps:from_list(KVPairs)};
+        {error, _} = Err ->
+            Err
+    end.
 
 -spec map_to_json(
     TypeInfo :: spectra:type_info(),
@@ -542,6 +625,8 @@ do_from_json(TypeInfo, #sp_nonempty_list{type = Type}, Data) ->
     nonempty_list_from_json(TypeInfo, Type, Data);
 do_from_json(TypeInfo, #sp_list{type = Type}, Data) ->
     list_from_json(TypeInfo, Type, Data);
+do_from_json(TypeInfo, #sp_kvlist{key_type = KeyType, val_type = ValType}, Data) ->
+    kvlist_from_json(TypeInfo, KeyType, ValType, Data);
 do_from_json(_TypeInfo, #sp_simple_type{type = NotSupported} = T, _Value) when
     NotSupported =:= pid orelse
         NotSupported =:= port orelse
@@ -676,6 +761,40 @@ list_from_json(_TypeInfo, Type, Data) ->
         }
     ]}.
 
+kvlist_from_json(TypeInfo, KeyType, ValType, Data) when is_map(Data) ->
+    Fun = fun({Key, Value}) ->
+        case do_from_json(TypeInfo, KeyType, Key) of
+            {ok, KeyResult} ->
+                case do_from_json(TypeInfo, ValType, Value) of
+                    {ok, ValueResult} ->
+                        {ok, {KeyResult, ValueResult}};
+                    {error, Errs} ->
+                        Errs2 =
+                            lists:map(
+                                fun(Err) -> err_append_location(Err, Key) end,
+                                Errs
+                            ),
+                        {error, Errs2}
+                end;
+            {error, Errs} ->
+                Errs2 =
+                    lists:map(
+                        fun(Err) -> err_append_location(Err, Key) end,
+                        Errs
+                    ),
+                {error, Errs2}
+        end
+    end,
+    spectra_util:map_until_error(Fun, maps:to_list(Data));
+kvlist_from_json(_TypeInfo, KeyType, ValType, Data) ->
+    {error, [
+        #sp_error{
+            type = type_mismatch,
+            location = [],
+            ctx = #{type => {kvlist, KeyType, ValType}, value => Data}
+        }
+    ]}.
+
 string_from_json(Type, Json) ->
     case unicode:characters_to_list(Json) of
         StringValue when is_list(StringValue) ->
@@ -781,6 +900,41 @@ check_type(atom, Json) when is_atom(Json) ->
 check_type(term, Json) ->
     {true, Json};
 check_type(_Type, _Json) ->
+    false.
+
+%% @doc Checks if a type can be used as a JSON object key.
+%% JSON only supports atom, binary, string, integer, and float key types.
+%% Maps, lists (except strings), tuples, and other complex types are not supported.
+-spec is_json_compatible_key_type(spectra:sp_type_or_ref()) -> boolean().
+is_json_compatible_key_type(#sp_simple_type{type = atom}) ->
+    true;
+is_json_compatible_key_type(#sp_simple_type{type = binary}) ->
+    true;
+is_json_compatible_key_type(#sp_simple_type{type = string}) ->
+    true;
+is_json_compatible_key_type(#sp_simple_type{type = integer}) ->
+    true;
+is_json_compatible_key_type(#sp_simple_type{type = float}) ->
+    true;
+is_json_compatible_key_type(#sp_simple_type{type = number}) ->
+    true;
+is_json_compatible_key_type(#sp_literal{value = V}) when is_atom(V) -> true;
+is_json_compatible_key_type(#sp_literal{value = V}) when is_binary(V) -> true;
+is_json_compatible_key_type(#sp_literal{value = V}) when is_integer(V) -> true;
+is_json_compatible_key_type(#sp_literal{value = V}) when is_float(V) -> true;
+%% Union types are compatible if all subtypes are compatible
+is_json_compatible_key_type(#sp_union{types = Types}) ->
+    lists:all(fun is_json_compatible_key_type/1, Types);
+%% Type references need to be resolved - for now, assume they're compatible
+%% and let the actual encoding fail if they're not
+is_json_compatible_key_type({type, _, _}) ->
+    true;
+is_json_compatible_key_type(#sp_user_type_ref{}) ->
+    true;
+is_json_compatible_key_type(#sp_remote_type{}) ->
+    true;
+%% Everything else (maps, lists, tuples, records, etc.) is not compatible
+is_json_compatible_key_type(_) ->
     false.
 
 union(Fun, TypeInfo, #sp_union{types = Types} = T, Json) ->
