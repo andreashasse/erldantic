@@ -55,6 +55,7 @@
 -record(sp_range, {type :: integer, lower_bound :: integer(), upper_bound :: integer()}).
 -record(sp_list, {type :: spectra:sp_type()}).
 -record(sp_nonempty_list, {type :: spectra:sp_type()}).
+-record(sp_kvlist, {key_type :: spectra:sp_type(), val_type :: spectra:sp_type()}).
 -record(sp_function_spec, {args :: [spectra:sp_type()], return :: spectra:sp_type()}).
 -record(literal_map_field, {
     kind :: assoc | exact,

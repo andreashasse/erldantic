@@ -30,6 +30,7 @@
     | #sp_nonempty_list{}
     | #sp_maybe_improper_list{}
     | #sp_nonempty_improper_list{}
+    | #sp_kvlist{}
     | #sp_remote_type{}.
 -type map_field() :: #literal_map_field{} | #typed_map_field{}.
 -type sp_type_reference() ::
