@@ -74,7 +74,9 @@ do_to_schema(
         maximum => Max
     }};
 %% Literal types
-do_to_schema(_TypeInfo, #sp_literal{value = undefined}) ->
+do_to_schema(_TypeInfo, #sp_literal{value = Value}) when
+    Value =:= undefined orelse Value =:= nil
+->
     {ok, #{enum => [null]}};
 do_to_schema(_TypeInfo, #sp_literal{value = Value, binary_value = BinaryValue}) when
     is_atom(Value)
@@ -103,11 +105,10 @@ do_to_schema(TypeInfo, #sp_nonempty_list{type = ItemType}) ->
     end;
 %% Union types
 do_to_schema(TypeInfo, #sp_union{types = Types}) ->
-    %% Check if this is a union with undefined - if so, extract the non-undefined type
     case
         lists:partition(
             fun
-                (#sp_literal{value = undefined}) ->
+                (#sp_literal{value = Value}) when Value =:= undefined orelse Value =:= nil ->
                     true;
                 (_) ->
                     false
@@ -115,15 +116,22 @@ do_to_schema(TypeInfo, #sp_union{types = Types}) ->
             Types
         )
     of
-        {[_UndefinedLiteral], [SingleType]} ->
-            %% Union with undefined and one other type - return just the other type
+        {[_MissingLiteral], [SingleType]} ->
             do_to_schema(TypeInfo, SingleType);
-        {[], _} ->
-            %% No undefined in union - generate normal oneOf
-            generate_oneof_schema(TypeInfo, Types);
-        {[_UndefinedLiteral], OtherTypes} when length(OtherTypes) > 1 ->
-            %% Union with undefined and multiple other types - generate oneOf for all
-            generate_oneof_schema(TypeInfo, Types)
+        {[], NonMissingTypes} ->
+            case try_generate_enum_schema(NonMissingTypes) of
+                {ok, _} = EnumSchema ->
+                    EnumSchema;
+                not_all_literals ->
+                    generate_oneof_schema(TypeInfo, NonMissingTypes)
+            end;
+        {[_MissingLiteral], OtherTypes} when length(OtherTypes) > 1 ->
+            case try_generate_enum_schema(OtherTypes) of
+                {ok, _} = EnumSchema ->
+                    EnumSchema;
+                not_all_literals ->
+                    generate_oneof_schema(TypeInfo, Types)
+            end
     end;
 %% Map types
 do_to_schema(TypeInfo, #sp_map{fields = Fields}) ->
@@ -416,6 +424,57 @@ generate_oneof_schema(TypeInfo, Types) ->
         {error, _} = Err ->
             Err
     end.
+
+try_generate_enum_schema(Types) ->
+    case
+        lists:all(
+            fun
+                (#sp_literal{}) -> true;
+                (_) -> false
+            end,
+            Types
+        )
+    of
+        true ->
+            EnumValues = lists:map(
+                fun
+                    (#sp_literal{value = Value}) when Value =:= undefined orelse Value =:= nil ->
+                        null;
+                    (#sp_literal{value = Value}) when Value =:= true orelse Value =:= false ->
+                        Value;
+                    (#sp_literal{value = Value, binary_value = BinaryValue}) when is_atom(Value) ->
+                        BinaryValue;
+                    (#sp_literal{value = Value}) ->
+                        Value
+                end,
+                Types
+            ),
+            JsonType = infer_json_type(Types),
+            case JsonType of
+                undefined ->
+                    {ok, #{enum => EnumValues}};
+                Type ->
+                    {ok, #{type => Type, enum => EnumValues}}
+            end;
+        false ->
+            not_all_literals
+    end.
+
+infer_json_type(Types) ->
+    JsonTypes = lists:map(fun literal_to_json_type/1, Types),
+    case lists:usort(JsonTypes) of
+        [SingleType] -> SingleType;
+        _ -> undefined
+    end.
+
+literal_to_json_type(#sp_literal{value = Value}) when Value =:= undefined orelse Value =:= nil ->
+    null;
+literal_to_json_type(#sp_literal{value = Value}) when Value =:= true orelse Value =:= false ->
+    <<"boolean">>;
+literal_to_json_type(#sp_literal{value = Value}) when is_integer(Value) ->
+    <<"integer">>;
+literal_to_json_type(#sp_literal{value = Value}) when is_atom(Value) ->
+    <<"string">>.
 
 %% Helper function to conditionally add key-value pairs to a map
 -spec map_add_if_not_value(Map, Key, Value, SkipValue) -> Map when
