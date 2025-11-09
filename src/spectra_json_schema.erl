@@ -472,7 +472,9 @@ literal_to_json_type(#sp_literal{value = Value}) when Value =:= undefined orelse
 literal_to_json_type(#sp_literal{value = Value}) when Value =:= true orelse Value =:= false ->
     <<"boolean">>;
 literal_to_json_type(#sp_literal{value = Value}) when is_integer(Value) ->
-    <<"integer">>;
+    <<"integer">>";
+literal_to_json_type(#sp_literal{value = Value}) when is_float(Value) ->
+    <<"number">>";
 literal_to_json_type(#sp_literal{value = Value}) when is_atom(Value) ->
     <<"string">>.
 
