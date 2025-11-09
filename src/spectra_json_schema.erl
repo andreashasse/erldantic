@@ -469,8 +469,6 @@ infer_json_type(Types) ->
 
 literal_to_json_type(#sp_literal{value = Value}) when Value =:= undefined orelse Value =:= nil ->
     null;
-literal_to_json_type(#sp_literal{value = []}) ->
-    null;
 literal_to_json_type(#sp_literal{value = Value}) when Value =:= true orelse Value =:= false ->
     <<"boolean">>;
 literal_to_json_type(#sp_literal{value = Value}) when is_integer(Value) ->
